@@ -1,0 +1,14 @@
+logging:
+  level:
+    org:
+      springframework:
+        ai:
+          chat:
+            client:
+              advisor: debug
+spring:
+  application:
+    name: job-search-agent
+  ai:
+    openai:
+      api-key: ${OPEN_API_KEY}
