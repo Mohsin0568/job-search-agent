@@ -2,10 +2,11 @@ package com.systa.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.systa.exception.CandidateProfileNotFoundException;
+import com.systa.exception.CompanyPreferencesNotSetException;
+import com.systa.model.CandidateProfile;
 import com.systa.model.JobSearchResponse;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
+import com.systa.repository.CandidateProfileRepository;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,26 +24,39 @@ public class JobSearchService {
 
     private final ChatClient chatClient;
     private final ResourceLoader resourceLoader;
-
-    @Value("${job-search.resume-path:classpath:resume.pdf}")
-    private String resumePath;
+    private final CandidateProfileRepository candidateProfileRepository;
 
     @Value("${job-search.system-prompt-path:classpath:system_prompts/job_search_system_prompt.txt}")
     private String systemPromptPath;
 
-    public JobSearchService(final ChatClient chatClient, final ResourceLoader resourceLoader) {
+    public JobSearchService(final ChatClient chatClient,
+                             final ResourceLoader resourceLoader,
+                             final CandidateProfileRepository candidateProfileRepository) {
         this.chatClient = chatClient;
         this.resourceLoader = resourceLoader;
+        this.candidateProfileRepository = candidateProfileRepository;
     }
 
-    public JobSearchResponse searchJobs(final String companyName) {
-        final String resumeContent = loadResumeText();
-        final String systemPrompt = loadSystemPromptTemplate().formatted(resumeContent);
+    public JobSearchResponse searchJobs(final String userId) {
+        final CandidateProfile candidateProfile = candidateProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new CandidateProfileNotFoundException(userId));
+
+        if (candidateProfile.companyPreferences() == null || candidateProfile.companyPreferences().isEmpty()) {
+            throw new CompanyPreferencesNotSetException(userId);
+        }
+
+        final String systemPrompt = loadSystemPromptTemplate().formatted(
+                candidateProfile.desiredRole(),
+                String.join(", ", candidateProfile.skills()),
+                candidateProfile.currentJobDescription());
+
+        final String companyList = String.join(", ", candidateProfile.companyPreferences());
 
         String rawResponse = chatClient.prompt()
                 .system(systemPrompt)
-                .user("Find all current UK job openings at " + companyName
-                        + ". Search thoroughly across all available sources and return every matching role.")
+                .user("Find all current UK job openings at each of the following companies: " + companyList
+                        + ". Search thoroughly across all available sources for every company and return "
+                        + "every matching role, grouped by company.")
                 .options(OpenAiChatOptions.builder()
                         .model(JOB_SEARCH_MODEL))
                 .call()
@@ -64,19 +78,6 @@ public class JobSearchService {
                     .readAllBytes());
         } catch (IOException e) {
             throw new IllegalStateException("Failed to load system prompt from: " + systemPromptPath, e);
-        }
-    }
-
-    private String loadResumeText() {
-        try {
-            final byte[] pdfBytes = resourceLoader.getResource(resumePath)
-                    .getInputStream()
-                    .readAllBytes();
-            try (PDDocument document = Loader.loadPDF(pdfBytes)) {
-                return new PDFTextStripper().getText(document);
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to load resume from: " + resumePath, e);
         }
     }
 

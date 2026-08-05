@@ -1,5 +1,6 @@
 package com.systa.controller;
 
+import com.systa.model.CandidateProfile;
 import com.systa.model.JobSearchRequest;
 import com.systa.model.JobSearchResponse;
 import com.systa.service.JobSearchService;
@@ -21,6 +22,6 @@ public class JobSearchController {
 
     @PostMapping("/search")
     public ResponseEntity<JobSearchResponse> searchJobs(@RequestBody final JobSearchRequest request) {
-        return ResponseEntity.ok(jobSearchService.searchJobs(request.companyName()));
+        return ResponseEntity.ok(jobSearchService.searchJobs(request.userId()));
     }
 }

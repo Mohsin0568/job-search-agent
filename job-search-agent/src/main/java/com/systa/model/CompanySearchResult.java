@@ -5,4 +5,4 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record JobSearchResponse(List<CompanySearchResult> companies) {}
+public record CompanySearchResult(String companyName, List<JobListing> jobs) {}
