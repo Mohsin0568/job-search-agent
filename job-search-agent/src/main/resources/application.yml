@@ -12,5 +12,16 @@ spring:
   ai:
     openai:
       api-key: ${OPEN_API_KEY}
+    mcp:
+      client:
+        streamable-http:
+          connections:
+            firecrawl:
+              url: https://mcp.firecrawl.dev
+              endpoint: /v2/mcp
   mongodb:
     uri: ${MONGODB_URI:mongodb://localhost:27017/job-search-agent}
+
+firecrawl:
+  api-key: ${FIRECRAWL_API_KEY}
+

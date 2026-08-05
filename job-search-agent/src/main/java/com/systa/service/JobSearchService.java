@@ -18,7 +18,7 @@ import java.io.IOException;
 @Service
 public class JobSearchService {
 
-    private static final String JOB_SEARCH_MODEL = "gpt-4o-search-preview";
+    private static final String JOB_SEARCH_MODEL = "gpt-4.1";
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
