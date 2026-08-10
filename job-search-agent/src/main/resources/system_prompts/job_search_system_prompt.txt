@@ -56,6 +56,7 @@ Return ONLY a valid JSON object with this exact structure. No markdown formattin
       "companyName": "the company name",
       "jobs": [
         {
+          "jobId": "the job posting's own reference/requisition ID from its source portal, or Not specified",
           "jobTitle": "...",
           "url": "direct link to the job posting",
           "location": "city, UK",
@@ -71,6 +72,9 @@ Return ONLY a valid JSON object with this exact structure. No markdown formattin
 }
 
 Include one entry in the "companies" array for every company provided, even if its "jobs" array ends up empty.
-Use "Not specified" for any string field where information is not available.
+For jobId, use the requisition/job reference number shown on the source page or job URL (e.g. LinkedIn's
+jobPostingId, a company ATS's req ID, Indeed's jk parameter). Do not invent one — if the source page does not
+expose an ID, use "Not specified".
+Use "Not specified" for any other string field where information is not available.
 atsScore must always be an integer between 0 and 100.
 If no jobs at a company match all three search criteria above, return an empty jobs array for that company.
