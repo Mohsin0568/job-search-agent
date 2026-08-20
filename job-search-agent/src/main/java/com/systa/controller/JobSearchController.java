@@ -1,8 +1,6 @@
 package com.systa.controller;
 
-import com.systa.model.CandidateProfile;
 import com.systa.model.JobSearchRequest;
-import com.systa.model.JobSearchResponse;
 import com.systa.service.JobSearchService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +19,8 @@ public class JobSearchController {
     }
 
     @PostMapping("/search")
-    public ResponseEntity<JobSearchResponse> searchJobs(@RequestBody final JobSearchRequest request) {
-        return ResponseEntity.ok(jobSearchService.searchJobs(request.userId()));
+    public ResponseEntity<Void> searchJobs(@RequestBody final JobSearchRequest request) {
+        jobSearchService.searchJobs(request.userId());
+        return ResponseEntity.ok().build();
     }
 }

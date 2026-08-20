@@ -7,5 +7,6 @@ import java.util.Optional;
 
 public interface UserJobSearchResultRepository extends MongoRepository<UserJobSearchResult, String> {
 
-    Optional<UserJobSearchResult> findByUserIdAndCompanyName(final String userId, final String companyName);
+    Optional<UserJobSearchResult> findByUserIdAndCompanyNameAndJob_JobId(
+            final String userId, final String companyName, final String jobId);
 }

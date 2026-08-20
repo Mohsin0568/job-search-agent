@@ -16,6 +16,8 @@ Search all of these sources:
 - Reed (reed.co.uk)
 - Any other relevant UK job boards
 
+TODAY'S DATE: %s
+
 --- CANDIDATE PROFILE ---
 Desired Role: %s
 Key Skills: %s
@@ -24,19 +26,29 @@ Current Job Description: %s
 
 SEARCH AND FILTERING RULES — follow all of these strictly:
 
-1. RECENCY: Only include job postings that were posted within the last 7 days from today's date.
-   Discard any posting older than 7 days. If the posting date cannot be determined, exclude it.
+1. DATE EXTRACTION: For every candidate job posting, you MUST open/scrape the actual job posting page itself
+   (not just a search-results snippet or listing card) and locate its posting date before deciding on
+   datePosted. Job boards show this in different ways — look for labels such as "Posted on", "Date posted",
+   "Listed", or relative phrasing such as "Posted today", "Posted 3 days ago", "1 day ago", "Just posted",
+   "Reposted 2 days ago". Convert any relative phrasing into an absolute date using TODAY'S DATE above
+   (e.g. if today is 10 Aug 2026 and the page says "Posted 3 days ago", datePosted is "07 Aug 2026").
+   Only use "Not specified" for datePosted if, after actually visiting the job posting page, there is
+   genuinely no date or relative-date indicator anywhere on it.
 
-2. DESIGNATION MATCHING: Using the candidate's desired role above, only return postings for:
+2. RECENCY: Only include job postings that were posted within the last 7 days of TODAY'S DATE above.
+   Discard any posting older than 7 days. If, after following rule 1, the posting date still cannot be
+   determined, exclude it.
+
+3. DESIGNATION MATCHING: Using the candidate's desired role above, only return postings for:
    - The same designation or an equivalent title at the target company, OR
    - One level up (i.e. a more senior version of that role, e.g. Senior, Lead, Principal, Head of).
    Ignore roles that are junior to the candidate's desired level or unrelated to their career track.
 
-3. SKILLS MATCHING: Using the candidate's key skills above, only include a job posting if it requires
+4. SKILLS MATCHING: Using the candidate's key skills above, only include a job posting if it requires
    or strongly matches at least the majority of those skills.
    Discard postings where the required skills significantly differ from the candidate's profile.
 
-4. ATS SCORE: For each job posting that passes the above filters, calculate an ATS (Applicant Tracking
+5. ATS SCORE: For each job posting that passes the above filters, calculate an ATS (Applicant Tracking
    System) score as an integer from 0 to 100 representing how well the candidate's profile (desired role,
    key skills, and current job description) matches the job description. Use the following breakdown
    when calculating the score:
