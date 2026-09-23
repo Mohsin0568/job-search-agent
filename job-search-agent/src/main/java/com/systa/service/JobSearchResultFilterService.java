@@ -17,7 +17,8 @@ import java.util.List;
 @Service
 public class JobSearchResultFilterService {
 
-    private static final int RECENCY_WINDOW_DAYS = 7;
+    // Used when a candidate profile hasn't configured its own recencyWindowDays.
+    private static final int DEFAULT_RECENCY_WINDOW_DAYS = 7;
 
     private static final DateTimeFormatter DATE_POSTED_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy");
 
@@ -34,15 +35,20 @@ public class JobSearchResultFilterService {
         this.clock = clock;
     }
 
-    // Backstop for the LLM's own recency rule: it doesn't reliably apply the "last 7 days"
+    // Backstop for the LLM's own recency rule: it doesn't reliably apply the recency
     // cutoff itself (e.g. it once included a job posted 27 days ago), so re-check it here in code.
-    public JobSearchResponse filterStaleJobs(final String userId, final JobSearchResponse jobSearchResponse) {
+    public JobSearchResponse filterStaleJobs(final String userId, final Integer recencyWindowDays,
+                                              final JobSearchResponse jobSearchResponse) {
+        final int effectiveRecencyWindowDays =
+                recencyWindowDays != null ? recencyWindowDays : DEFAULT_RECENCY_WINDOW_DAYS;
+
         final LocalDate today = LocalDate.now(clock);
-        final LocalDate earliestAllowedDate = today.minusDays(RECENCY_WINDOW_DAYS);
+        final LocalDate earliestAllowedDate = today.minusDays(effectiveRecencyWindowDays);
 
         final List<CompanySearchResult> filteredCompanies = jobSearchResponse.companies().stream()
                 .map(company -> new CompanySearchResult(company.companyName(), company.jobs().stream()
-                        .filter(job -> isWithinRecencyWindow(userId, job, earliestAllowedDate, today))
+                        .filter(job -> isWithinRecencyWindow(userId, job, earliestAllowedDate, today,
+                                effectiveRecencyWindowDays))
                         .toList()))
                 .toList();
 
@@ -57,7 +63,8 @@ public class JobSearchResultFilterService {
     }
 
     private boolean isWithinRecencyWindow(final String userId, final JobListing job,
-                                           final LocalDate earliestAllowedDate, final LocalDate today) {
+                                           final LocalDate earliestAllowedDate, final LocalDate today,
+                                           final int recencyWindowDays) {
         final LocalDate datePosted = parseDatePosted(job.datePosted());
         if (datePosted == null) {
             LOGGER.info("Dropping job with unparseable/unspecified datePosted - userId={}, jobTitle={}, "
@@ -70,7 +77,7 @@ public class JobSearchResultFilterService {
         if (!withinWindow) {
             LOGGER.info("Dropping stale job outside {}-day recency window - userId={}, jobTitle={}, "
                             + "datePosted={}, url={}",
-                    RECENCY_WINDOW_DAYS, userId, job.jobTitle(), job.datePosted(), job.url());
+                    recencyWindowDays, userId, job.jobTitle(), job.datePosted(), job.url());
         }
         return withinWindow;
     }

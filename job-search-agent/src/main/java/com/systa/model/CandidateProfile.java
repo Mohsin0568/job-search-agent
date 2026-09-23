@@ -12,5 +12,7 @@ public record CandidateProfile(
         String desiredRole,
         List<String> skills,
         String currentJobDescription,
-        List<String> companyPreferences
+        List<String> companyPreferences,
+        // Null for profiles that haven't set a preference - callers fall back to a default.
+        Integer recencyWindowDays
 ) {}

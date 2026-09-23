@@ -25,3 +25,8 @@ spring:
 firecrawl:
   api-key: ${FIRECRAWL_API_KEY}
 
+job-search:
+  model: gpt-4.1
+  max-attempts-per-batch: 2
+  rate-limit-retry-delay: 30s
+
