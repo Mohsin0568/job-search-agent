@@ -2,11 +2,10 @@ package com.systa.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.systa.exception.CandidateProfileNotFoundException;
-import com.systa.exception.CompanyPreferencesNotSetException;
 import com.systa.model.CandidateProfile;
+import com.systa.model.CompanySearchResult;
+import com.systa.model.JobListing;
 import com.systa.model.JobSearchResponse;
-import com.systa.repository.CandidateProfileRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -17,6 +16,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -28,45 +29,68 @@ public class JobSearchLlmService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    private static final List<String> JOB_SOURCES = List.of(
+            "The company's official careers/jobs portal",
+            "LinkedIn (linkedin.com/jobs)",
+            "Indeed UK (uk.indeed.com)",
+            "Glassdoor UK (glassdoor.co.uk)",
+            "TotalJobs (totaljobs.com)",
+            "Reed (reed.co.uk)");
+
+    // Batching keeps each call's scraped-content volume under gpt-4.1's org TPM limit -
+    // a single call covering all 6 sources was measured at ~36.8k tokens against a 30k/min cap.
+    private static final int SOURCES_PER_BATCH = 3;
+
+    private static final List<List<String>> JOB_SOURCE_BATCHES = batchSources(JOB_SOURCES, SOURCES_PER_BATCH);
+
     private final ChatClient chatClient;
     private final ResourceLoader resourceLoader;
-    private final CandidateProfileRepository candidateProfileRepository;
 
     @Value("${job-search.system-prompt-path:classpath:system_prompts/job_search_system_prompt.txt}")
     private String systemPromptPath;
 
-    public JobSearchLlmService(final ChatClient chatClient,
-                                final ResourceLoader resourceLoader,
-                                final CandidateProfileRepository candidateProfileRepository) {
+    public JobSearchLlmService(final ChatClient chatClient, final ResourceLoader resourceLoader) {
         this.chatClient = chatClient;
         this.resourceLoader = resourceLoader;
-        this.candidateProfileRepository = candidateProfileRepository;
     }
 
-    public JobSearchResponse searchJobs(final String userId) {
-        final CandidateProfile candidateProfile = candidateProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new CandidateProfileNotFoundException(userId));
-
-        if (candidateProfile.companyPreferences() == null || candidateProfile.companyPreferences().isEmpty()) {
-            throw new CompanyPreferencesNotSetException(userId);
+    public CompanySearchResult searchJobsForCompany(final String userId, final CandidateProfile candidateProfile,
+                                                      final String company) {
+        final List<JobListing> jobs = new ArrayList<>();
+        for (final List<String> sourceBatch : JOB_SOURCE_BATCHES) {
+            try {
+                jobs.addAll(searchJobsForCompanyAndSources(userId, candidateProfile, company, sourceBatch));
+            } catch (final Exception e) {
+                // Isolate failures per (company, batch) so one bad/rate-limited call
+                // doesn't lose results already gathered from the other batches.
+                log.error("Job search failed for a source batch - userId={}, company={}, sources={}",
+                        userId, company, sourceBatch, e);
+            }
         }
+        return new CompanySearchResult(company, jobs);
+    }
+
+    private List<JobListing> searchJobsForCompanyAndSources(final String userId, final CandidateProfile candidateProfile,
+                                                              final String company, final List<String> sources) {
+        final String sourcesPromptList = sources.stream()
+                .map(source -> "- " + source)
+                .reduce((a, b) -> a + "\n" + b)
+                .orElse("");
 
         final String systemPrompt = loadSystemPromptTemplate().formatted(
+                sourcesPromptList,
                 LocalDate.now().format(PROMPT_DATE_FORMAT),
                 candidateProfile.desiredRole(),
                 String.join(", ", candidateProfile.skills()),
                 candidateProfile.currentJobDescription());
 
-        final String companyList = String.join(", ", candidateProfile.companyPreferences());
-
-        log.info("Starting job search - userId={}, companies=[{}], desiredRole={}, skills=[{}]",
-                userId, companyList, candidateProfile.desiredRole(), String.join(", ", candidateProfile.skills()));
+        log.info("Starting job search - userId={}, company={}, sources={}, desiredRole={}, skills=[{}]",
+                userId, company, sources, candidateProfile.desiredRole(), String.join(", ", candidateProfile.skills()));
 
         String rawResponse = chatClient.prompt()
                 .system(systemPrompt)
-                .user("Find all current UK job openings at each of the following companies: " + companyList
-                        + ". Search thoroughly across all available sources for every company and return "
-                        + "every matching role, grouped by company.")
+                .user("Find all current UK job openings at " + company + " across all the sources listed above."
+                        + " Search thoroughly and return every matching role from every source.")
                 .options(OpenAiChatOptions.builder()
                         .model(JOB_SEARCH_MODEL))
                 .call()
@@ -74,15 +98,29 @@ public class JobSearchLlmService {
 
         rawResponse = stripMarkdownFences(rawResponse);
 
-        log.info("Raw LLM job search response - userId={}, response={}", userId, rawResponse);
+        log.info("Raw LLM job search response - userId={}, company={}, sources={}, response={}",
+                userId, company, sources, rawResponse);
 
+        final JobSearchResponse jobSearchResponse;
         try {
-            return OBJECT_MAPPER.readValue(rawResponse, JobSearchResponse.class);
+            jobSearchResponse = OBJECT_MAPPER.readValue(rawResponse, JobSearchResponse.class);
         } catch (JsonProcessingException e) {
-            log.error("Failed to parse job search response from LLM - userId={}, response={}",
-                    userId, rawResponse, e);
+            log.error("Failed to parse job search response from LLM - userId={}, company={}, sources={}, response={}",
+                    userId, company, sources, rawResponse, e);
             throw new JobSearchParseException("Failed to parse job search response from LLM", e);
         }
+
+        return jobSearchResponse.companies().stream()
+                .flatMap(companySearchResult -> companySearchResult.jobs().stream())
+                .toList();
+    }
+
+    private static List<List<String>> batchSources(final List<String> sources, final int batchSize) {
+        final List<List<String>> batches = new ArrayList<>();
+        for (int i = 0; i < sources.size(); i += batchSize) {
+            batches.add(sources.subList(i, Math.min(i + batchSize, sources.size())));
+        }
+        return batches;
     }
 
     private String loadSystemPromptTemplate() {
