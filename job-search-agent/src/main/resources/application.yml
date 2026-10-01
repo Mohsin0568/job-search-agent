@@ -25,6 +25,15 @@ spring:
 firecrawl:
   api-key: ${FIRECRAWL_API_KEY}
 
+auth:
+  cognito:
+    # https://cognito-idp.<region>.amazonaws.com/<userPoolId>
+    issuer-uri: ${COGNITO_ISSUER_URI}
+    # The SPA app client - only access tokens issued to this client are accepted.
+    client-id: ${COGNITO_CLIENT_ID}
+  # Comma-separated. Only needed when the frontend isn't served via the Vite dev proxy.
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
 job-search:
   model: gpt-4.1
   max-attempts-per-batch: 2
