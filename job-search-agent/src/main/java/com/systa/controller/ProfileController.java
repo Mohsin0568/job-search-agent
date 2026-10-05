@@ -32,6 +32,6 @@ public class ProfileController {
     @PutMapping
     public CandidateProfileDto saveProfile(@AuthenticationPrincipal final Jwt jwt,
                                            @Valid @RequestBody final CandidateProfileDto details) {
-        return CandidateProfileDto.from(candidateProfileService.save(jwt.getSubject(), details));
+        return CandidateProfileDto.from(candidateProfileService.save(jwt.getSubject(), jwt.getTokenValue(), details));
     }
 }
