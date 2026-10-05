@@ -20,12 +20,16 @@ export type TagInputProps = {
 
 const MAX_VISIBLE_SUGGESTIONS = 8
 
-// Loose comparison so "nestle", "Nestlé" and "NESTLE " are treated as the same entry.
+// Loose comparison so "nestle", "Nestlé" and "NESTLE " are treated as the same entry, while "C", "C++"
+// and "C#" stay different. Mirrors SuggestionNames.normalize on the backend - keep the two in sync.
 function matchKey(value: string): string {
   return value
     .normalize('NFD')
     .replace(/\p{M}+/gu, '')
     .toLowerCase()
+    .replaceAll('+', ' plus ')
+    .replaceAll('#', ' sharp ')
+    .replace(/(^|\s)\.(?=[a-z0-9])/g, '$1dot ')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
 }

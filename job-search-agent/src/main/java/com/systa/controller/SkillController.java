@@ -10,22 +10,22 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/companies")
-public class CompanyController {
+@RequestMapping("/api/skills")
+public class SkillController {
 
     private final SuggestionService suggestionService;
 
-    public CompanyController(final SuggestionService suggestionService) {
+    public SkillController(final SuggestionService suggestionService) {
         this.suggestionService = suggestionService;
     }
 
-    // Autocomplete for the profile's company list, e.g. ?q=del -> [{"name":"Deliveroo"}].
+    // Autocomplete for the profile's skill list, e.g. ?q=spr -> [{"name":"Spring"},{"name":"Spring Boot"}].
     @GetMapping("/suggest")
     public List<Suggestion> suggest(@RequestParam(defaultValue = "") final String q,
                                     @RequestParam(defaultValue = "10") final int limit) {
         if (q.length() > SuggestionLimits.MAX_QUERY_LENGTH) {
             return List.of();
         }
-        return suggestionService.suggestCompanies(q, SuggestionLimits.clamp(limit));
+        return suggestionService.suggestSkills(q, SuggestionLimits.clamp(limit));
     }
 }

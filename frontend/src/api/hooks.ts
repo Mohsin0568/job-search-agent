@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../auth/AuthContext'
-import { getJobResults, getProfile, saveProfile, startJobSearch, suggestCompanies } from './endpoints'
-import type { CandidateProfile } from './types'
+import { getJobResults, getProfile, saveProfile, startJobSearch, suggestNames } from './endpoints'
+import type { CandidateProfile, SuggestionSource } from './types'
 
 // Query keys include the user id so one user's cached data is never shown to the next user on this browser.
 const keys = {
@@ -46,14 +46,18 @@ export function useStartJobSearch() {
   })
 }
 
-export const MIN_COMPANY_QUERY_LENGTH = 2
+// Skills can be a single letter ("C", "R"), so they suggest from the first keystroke.
+export const MIN_SUGGESTION_QUERY_LENGTH: Record<SuggestionSource, number> = {
+  companies: 2,
+  skills: 1,
+}
 
-/** Company autocomplete. Not user-specific, so it's cached across users. */
-export function useCompanySuggestions(query: string) {
+/** Company or skill autocomplete. Not user-specific, so it's cached across users. */
+export function useSuggestions(source: SuggestionSource, query: string) {
   return useQuery({
-    queryKey: ['companySuggestions', query],
-    queryFn: ({ signal }) => suggestCompanies(query, signal),
-    enabled: query.length >= MIN_COMPANY_QUERY_LENGTH,
+    queryKey: ['suggestions', source, query],
+    queryFn: ({ signal }) => suggestNames(source, query, signal),
+    enabled: query.length >= MIN_SUGGESTION_QUERY_LENGTH[source],
     staleTime: 5 * 60 * 1000,
     // Keep showing the last list while the next one loads, so the dropdown doesn't flicker.
     placeholderData: keepPreviousData,
