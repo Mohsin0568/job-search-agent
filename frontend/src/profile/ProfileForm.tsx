@@ -9,6 +9,7 @@ import { SubmitButton } from '../components/form/SubmitButton'
 import { TagInput } from '../components/form/TagInput'
 import { TextAreaField } from '../components/form/TextAreaField'
 import { TextField } from '../components/form/TextField'
+import { CompanyTagInput } from './CompanyTagInput'
 import { profileSchema, RECENCY_OPTIONS, toFormValues, toProfile, type ProfileFormValues } from './profileSchema'
 
 type Props = {
@@ -69,16 +70,16 @@ export function ProfileForm({ initialProfile, submitLabel, autoFocus = true, onS
         control={control}
         name="companyPreferences"
         render={({ field, fieldState }) => (
-          <TagInput
+          <CompanyTagInput
             label="Companies to search"
             value={field.value}
             onChange={field.onChange}
             onBlur={field.onBlur}
-            placeholder="Type a company and press Enter"
+            placeholder="Start typing, e.g. Deliveroo"
             maxItems={MAX_COMPANY_PREFERENCES}
             maxItemLength={200}
             error={fieldState.error?.message}
-            hint="We check each company’s careers page and the major UK job boards."
+            hint="Pick from the suggestions to get the name right, or press Enter to add a company that isn’t listed."
           />
         )}
       />

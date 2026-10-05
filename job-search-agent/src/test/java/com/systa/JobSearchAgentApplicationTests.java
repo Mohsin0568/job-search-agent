@@ -3,7 +3,8 @@ package com.systa;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+// No Mongo in this test, so don't try to seed the company list.
+@SpringBootTest(properties = "companies.seed-on-startup=false")
 class JobSearchAgentApplicationTests {
 
 	@Test
