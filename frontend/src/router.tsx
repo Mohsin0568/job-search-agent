@@ -7,6 +7,7 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { OnboardingPage } from './pages/OnboardingPage'
+import { ProfilePage } from './pages/ProfilePage'
 import { RegisterPage } from './pages/RegisterPage'
 import { RequireProfile } from './profile/RequireProfile'
 
@@ -29,7 +30,10 @@ export const router = createBrowserRouter([
           { path: '/onboarding', element: <OnboardingPage /> },
           {
             element: <RequireProfile />,
-            children: [{ index: true, element: <DashboardPage /> }],
+            children: [
+              { index: true, element: <DashboardPage /> },
+              { path: '/profile', element: <ProfilePage /> },
+            ],
           },
         ],
       },

@@ -51,7 +51,11 @@ export function LoginPage() {
           await goToConfirm(email)
           return
         case 'RESET_PASSWORD': {
-          const state: AuthLocationState = { email, message: 'You need to reset your password before signing in.' }
+          const state: AuthLocationState = {
+            email,
+            message: 'You need to reset your password before signing in.',
+            messageTone: 'info',
+          }
           navigate('/forgot-password', { state })
           return
         }
@@ -71,7 +75,9 @@ export function LoginPage() {
   return (
     <AuthLayout title="Sign in" subtitle="Welcome back">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-        {locationState.message && !formError && <Alert variant="success">{locationState.message}</Alert>}
+        {locationState.message && !formError && (
+          <Alert variant={locationState.messageTone ?? 'success'}>{locationState.message}</Alert>
+        )}
         {formError && <Alert variant="error">{formError}</Alert>}
 
         <TextField
