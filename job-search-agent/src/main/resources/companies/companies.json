@@ -1,0 +1,1368 @@
+[
+  {
+    "name": "Google",
+    "aliases": [
+      "Alphabet"
+    ]
+  },
+  {
+    "name": "Google DeepMind",
+    "aliases": [
+      "DeepMind"
+    ]
+  },
+  {
+    "name": "Microsoft"
+  },
+  {
+    "name": "Apple"
+  },
+  {
+    "name": "Amazon"
+  },
+  {
+    "name": "Amazon Web Services",
+    "aliases": [
+      "AWS"
+    ]
+  },
+  {
+    "name": "Meta",
+    "aliases": [
+      "Facebook",
+      "Instagram",
+      "WhatsApp"
+    ]
+  },
+  {
+    "name": "Netflix"
+  },
+  {
+    "name": "Spotify"
+  },
+  {
+    "name": "Uber"
+  },
+  {
+    "name": "Airbnb"
+  },
+  {
+    "name": "Salesforce"
+  },
+  {
+    "name": "Oracle"
+  },
+  {
+    "name": "SAP"
+  },
+  {
+    "name": "IBM"
+  },
+  {
+    "name": "Cisco"
+  },
+  {
+    "name": "Intel"
+  },
+  {
+    "name": "Nvidia"
+  },
+  {
+    "name": "AMD",
+    "aliases": [
+      "Advanced Micro Devices"
+    ]
+  },
+  {
+    "name": "Qualcomm"
+  },
+  {
+    "name": "Adobe"
+  },
+  {
+    "name": "Atlassian"
+  },
+  {
+    "name": "Shopify"
+  },
+  {
+    "name": "Stripe"
+  },
+  {
+    "name": "Bloomberg"
+  },
+  {
+    "name": "Palantir"
+  },
+  {
+    "name": "Snowflake"
+  },
+  {
+    "name": "Datadog"
+  },
+  {
+    "name": "MongoDB"
+  },
+  {
+    "name": "Elastic",
+    "aliases": [
+      "Elasticsearch"
+    ]
+  },
+  {
+    "name": "Cloudflare"
+  },
+  {
+    "name": "GitHub"
+  },
+  {
+    "name": "GitLab"
+  },
+  {
+    "name": "Twilio"
+  },
+  {
+    "name": "Zendesk"
+  },
+  {
+    "name": "HubSpot"
+  },
+  {
+    "name": "Workday"
+  },
+  {
+    "name": "ServiceNow"
+  },
+  {
+    "name": "Red Hat"
+  },
+  {
+    "name": "VMware"
+  },
+  {
+    "name": "Dell Technologies",
+    "aliases": [
+      "Dell"
+    ]
+  },
+  {
+    "name": "HP",
+    "aliases": [
+      "Hewlett-Packard"
+    ]
+  },
+  {
+    "name": "Hewlett Packard Enterprise",
+    "aliases": [
+      "HPE"
+    ]
+  },
+  {
+    "name": "Samsung"
+  },
+  {
+    "name": "Sony"
+  },
+  {
+    "name": "Arm",
+    "aliases": [
+      "ARM Holdings"
+    ]
+  },
+  {
+    "name": "Sage",
+    "aliases": [
+      "The Sage Group"
+    ]
+  },
+  {
+    "name": "Darktrace"
+  },
+  {
+    "name": "Wayve"
+  },
+  {
+    "name": "OpenAI"
+  },
+  {
+    "name": "Anthropic"
+  },
+  {
+    "name": "Synthesia"
+  },
+  {
+    "name": "Stability AI"
+  },
+  {
+    "name": "ElevenLabs"
+  },
+  {
+    "name": "Faculty",
+    "aliases": [
+      "Faculty AI"
+    ]
+  },
+  {
+    "name": "PolyAI"
+  },
+  {
+    "name": "Quantexa"
+  },
+  {
+    "name": "Graphcore"
+  },
+  {
+    "name": "Canonical",
+    "aliases": [
+      "Ubuntu"
+    ]
+  },
+  {
+    "name": "JetBrains"
+  },
+  {
+    "name": "Figma"
+  },
+  {
+    "name": "Miro"
+  },
+  {
+    "name": "Notion"
+  },
+  {
+    "name": "Slack"
+  },
+  {
+    "name": "Dropbox"
+  },
+  {
+    "name": "Zoom"
+  },
+  {
+    "name": "LinkedIn"
+  },
+  {
+    "name": "TikTok",
+    "aliases": [
+      "ByteDance"
+    ]
+  },
+  {
+    "name": "Snap",
+    "aliases": [
+      "Snapchat"
+    ]
+  },
+  {
+    "name": "Pinterest"
+  },
+  {
+    "name": "eBay"
+  },
+  {
+    "name": "Etsy"
+  },
+  {
+    "name": "Booking.com",
+    "aliases": [
+      "Booking"
+    ]
+  },
+  {
+    "name": "Expedia"
+  },
+  {
+    "name": "Skyscanner"
+  },
+  {
+    "name": "Trainline"
+  },
+  {
+    "name": "Rightmove"
+  },
+  {
+    "name": "Zoopla"
+  },
+  {
+    "name": "Auto Trader",
+    "aliases": [
+      "AutoTrader"
+    ]
+  },
+  {
+    "name": "Moonpig"
+  },
+  {
+    "name": "Depop"
+  },
+  {
+    "name": "Farfetch"
+  },
+  {
+    "name": "Bumble"
+  },
+  {
+    "name": "Deliveroo",
+    "aliases": [
+      "Roofoods"
+    ]
+  },
+  {
+    "name": "Just Eat Takeaway.com",
+    "aliases": [
+      "Just Eat",
+      "Just Eat Takeaway"
+    ]
+  },
+  {
+    "name": "Ocado",
+    "aliases": [
+      "Ocado Technology"
+    ]
+  },
+  {
+    "name": "Bolt"
+  },
+  {
+    "name": "Gousto"
+  },
+  {
+    "name": "HelloFresh"
+  },
+  {
+    "name": "Zilch"
+  },
+  {
+    "name": "Onfido"
+  },
+  {
+    "name": "Paddle"
+  },
+  {
+    "name": "Peak",
+    "aliases": [
+      "Peak AI"
+    ]
+  },
+  {
+    "name": "Tractable"
+  },
+  {
+    "name": "Accenture"
+  },
+  {
+    "name": "Deloitte"
+  },
+  {
+    "name": "PwC",
+    "aliases": [
+      "PricewaterhouseCoopers"
+    ]
+  },
+  {
+    "name": "EY",
+    "aliases": [
+      "Ernst & Young"
+    ]
+  },
+  {
+    "name": "KPMG"
+  },
+  {
+    "name": "Capgemini"
+  },
+  {
+    "name": "Thoughtworks"
+  },
+  {
+    "name": "McKinsey & Company",
+    "aliases": [
+      "McKinsey"
+    ]
+  },
+  {
+    "name": "Boston Consulting Group",
+    "aliases": [
+      "BCG"
+    ]
+  },
+  {
+    "name": "Bain & Company",
+    "aliases": [
+      "Bain"
+    ]
+  },
+  {
+    "name": "Infosys"
+  },
+  {
+    "name": "Tata Consultancy Services",
+    "aliases": [
+      "TCS"
+    ]
+  },
+  {
+    "name": "Wipro"
+  },
+  {
+    "name": "Cognizant"
+  },
+  {
+    "name": "HCLTech",
+    "aliases": [
+      "HCL Technologies",
+      "HCL"
+    ]
+  },
+  {
+    "name": "Tech Mahindra"
+  },
+  {
+    "name": "Capita"
+  },
+  {
+    "name": "Sopra Steria"
+  },
+  {
+    "name": "CGI"
+  },
+  {
+    "name": "Atos"
+  },
+  {
+    "name": "Fujitsu"
+  },
+  {
+    "name": "NTT Data"
+  },
+  {
+    "name": "Kainos"
+  },
+  {
+    "name": "BJSS"
+  },
+  {
+    "name": "Endava"
+  },
+  {
+    "name": "Softwire"
+  },
+  {
+    "name": "Made Tech"
+  },
+  {
+    "name": "Equal Experts"
+  },
+  {
+    "name": "Scott Logic"
+  },
+  {
+    "name": "Version 1"
+  },
+  {
+    "name": "Computacenter"
+  },
+  {
+    "name": "Softcat"
+  },
+  {
+    "name": "Grant Thornton"
+  },
+  {
+    "name": "BDO"
+  },
+  {
+    "name": "Mazars",
+    "aliases": [
+      "Forvis Mazars"
+    ]
+  },
+  {
+    "name": "Oliver Wyman"
+  },
+  {
+    "name": "Gartner"
+  },
+  {
+    "name": "Barclays"
+  },
+  {
+    "name": "HSBC"
+  },
+  {
+    "name": "Lloyds Banking Group",
+    "aliases": [
+      "Lloyds Bank",
+      "Lloyds",
+      "Halifax",
+      "Bank of Scotland"
+    ]
+  },
+  {
+    "name": "NatWest Group",
+    "aliases": [
+      "NatWest",
+      "RBS",
+      "Royal Bank of Scotland"
+    ]
+  },
+  {
+    "name": "Santander",
+    "aliases": [
+      "Santander UK"
+    ]
+  },
+  {
+    "name": "Standard Chartered"
+  },
+  {
+    "name": "Nationwide Building Society",
+    "aliases": [
+      "Nationwide"
+    ]
+  },
+  {
+    "name": "Virgin Money"
+  },
+  {
+    "name": "Metro Bank"
+  },
+  {
+    "name": "TSB"
+  },
+  {
+    "name": "Coutts"
+  },
+  {
+    "name": "Monzo"
+  },
+  {
+    "name": "Starling Bank",
+    "aliases": [
+      "Starling"
+    ]
+  },
+  {
+    "name": "Revolut"
+  },
+  {
+    "name": "Wise",
+    "aliases": [
+      "TransferWise"
+    ]
+  },
+  {
+    "name": "Checkout.com",
+    "aliases": [
+      "Checkout"
+    ]
+  },
+  {
+    "name": "GoCardless"
+  },
+  {
+    "name": "Klarna"
+  },
+  {
+    "name": "Zopa"
+  },
+  {
+    "name": "OakNorth"
+  },
+  {
+    "name": "ClearScore"
+  },
+  {
+    "name": "Funding Circle"
+  },
+  {
+    "name": "Tide"
+  },
+  {
+    "name": "Curve"
+  },
+  {
+    "name": "Cleo"
+  },
+  {
+    "name": "Moneybox"
+  },
+  {
+    "name": "Marshmallow"
+  },
+  {
+    "name": "Thought Machine"
+  },
+  {
+    "name": "10x Banking"
+  },
+  {
+    "name": "Goldman Sachs"
+  },
+  {
+    "name": "Morgan Stanley"
+  },
+  {
+    "name": "JPMorgan Chase",
+    "aliases": [
+      "JP Morgan",
+      "J.P. Morgan",
+      "Chase UK"
+    ]
+  },
+  {
+    "name": "Citi",
+    "aliases": [
+      "Citigroup",
+      "Citibank"
+    ]
+  },
+  {
+    "name": "Bank of America",
+    "aliases": [
+      "BofA"
+    ]
+  },
+  {
+    "name": "Deutsche Bank"
+  },
+  {
+    "name": "UBS"
+  },
+  {
+    "name": "BNP Paribas"
+  },
+  {
+    "name": "Société Générale",
+    "aliases": [
+      "SocGen"
+    ]
+  },
+  {
+    "name": "Nomura"
+  },
+  {
+    "name": "Bank of England"
+  },
+  {
+    "name": "BlackRock"
+  },
+  {
+    "name": "Vanguard"
+  },
+  {
+    "name": "Fidelity International",
+    "aliases": [
+      "Fidelity"
+    ]
+  },
+  {
+    "name": "Schroders"
+  },
+  {
+    "name": "Legal & General",
+    "aliases": [
+      "L&G"
+    ]
+  },
+  {
+    "name": "Aviva"
+  },
+  {
+    "name": "Prudential"
+  },
+  {
+    "name": "Phoenix Group"
+  },
+  {
+    "name": "Admiral Group",
+    "aliases": [
+      "Admiral"
+    ]
+  },
+  {
+    "name": "Direct Line Group",
+    "aliases": [
+      "Direct Line"
+    ]
+  },
+  {
+    "name": "Hargreaves Lansdown"
+  },
+  {
+    "name": "London Stock Exchange Group",
+    "aliases": [
+      "LSEG"
+    ]
+  },
+  {
+    "name": "Experian"
+  },
+  {
+    "name": "Equifax"
+  },
+  {
+    "name": "Mastercard"
+  },
+  {
+    "name": "Visa"
+  },
+  {
+    "name": "American Express",
+    "aliases": [
+      "Amex"
+    ]
+  },
+  {
+    "name": "PayPal"
+  },
+  {
+    "name": "Worldpay"
+  },
+  {
+    "name": "Lloyd's of London"
+  },
+  {
+    "name": "Man Group"
+  },
+  {
+    "name": "Jane Street"
+  },
+  {
+    "name": "Citadel"
+  },
+  {
+    "name": "G-Research"
+  },
+  {
+    "name": "Two Sigma"
+  },
+  {
+    "name": "Optiver"
+  },
+  {
+    "name": "IMC Trading",
+    "aliases": [
+      "IMC"
+    ]
+  },
+  {
+    "name": "Jump Trading"
+  },
+  {
+    "name": "Hudson River Trading",
+    "aliases": [
+      "HRT"
+    ]
+  },
+  {
+    "name": "XTX Markets"
+  },
+  {
+    "name": "Marshall Wace"
+  },
+  {
+    "name": "Brevan Howard"
+  },
+  {
+    "name": "Tesco"
+  },
+  {
+    "name": "Sainsbury's",
+    "aliases": [
+      "J Sainsbury",
+      "Sainsburys"
+    ]
+  },
+  {
+    "name": "Asda"
+  },
+  {
+    "name": "Morrisons"
+  },
+  {
+    "name": "Waitrose"
+  },
+  {
+    "name": "John Lewis Partnership",
+    "aliases": [
+      "John Lewis"
+    ]
+  },
+  {
+    "name": "Marks & Spencer",
+    "aliases": [
+      "M&S",
+      "Marks and Spencer"
+    ]
+  },
+  {
+    "name": "Aldi"
+  },
+  {
+    "name": "Lidl"
+  },
+  {
+    "name": "Co-op",
+    "aliases": [
+      "The Co-operative Group"
+    ]
+  },
+  {
+    "name": "Boots"
+  },
+  {
+    "name": "Next"
+  },
+  {
+    "name": "Primark"
+  },
+  {
+    "name": "JD Sports"
+  },
+  {
+    "name": "Currys"
+  },
+  {
+    "name": "Argos"
+  },
+  {
+    "name": "Kingfisher"
+  },
+  {
+    "name": "B&Q"
+  },
+  {
+    "name": "Screwfix"
+  },
+  {
+    "name": "Dunelm"
+  },
+  {
+    "name": "IKEA"
+  },
+  {
+    "name": "H&M"
+  },
+  {
+    "name": "Inditex",
+    "aliases": [
+      "Zara"
+    ]
+  },
+  {
+    "name": "Burberry"
+  },
+  {
+    "name": "ASOS"
+  },
+  {
+    "name": "Boohoo"
+  },
+  {
+    "name": "THG",
+    "aliases": [
+      "The Hut Group"
+    ]
+  },
+  {
+    "name": "Gymshark"
+  },
+  {
+    "name": "Lush"
+  },
+  {
+    "name": "Superdrug"
+  },
+  {
+    "name": "WHSmith",
+    "aliases": [
+      "WH Smith"
+    ]
+  },
+  {
+    "name": "Unilever"
+  },
+  {
+    "name": "Diageo"
+  },
+  {
+    "name": "Reckitt",
+    "aliases": [
+      "Reckitt Benckiser"
+    ]
+  },
+  {
+    "name": "British American Tobacco",
+    "aliases": [
+      "BAT"
+    ]
+  },
+  {
+    "name": "Imperial Brands"
+  },
+  {
+    "name": "Associated British Foods",
+    "aliases": [
+      "ABF"
+    ]
+  },
+  {
+    "name": "Nestlé"
+  },
+  {
+    "name": "PepsiCo"
+  },
+  {
+    "name": "Coca-Cola Europacific Partners",
+    "aliases": [
+      "Coca-Cola"
+    ]
+  },
+  {
+    "name": "Mondelez"
+  },
+  {
+    "name": "Procter & Gamble",
+    "aliases": [
+      "P&G"
+    ]
+  },
+  {
+    "name": "Greggs"
+  },
+  {
+    "name": "Pret A Manger",
+    "aliases": [
+      "Pret"
+    ]
+  },
+  {
+    "name": "Whitbread",
+    "aliases": [
+      "Premier Inn"
+    ]
+  },
+  {
+    "name": "Compass Group"
+  },
+  {
+    "name": "Costa Coffee",
+    "aliases": [
+      "Costa"
+    ]
+  },
+  {
+    "name": "Starbucks"
+  },
+  {
+    "name": "McDonald's",
+    "aliases": [
+      "McDonalds"
+    ]
+  },
+  {
+    "name": "Nando's",
+    "aliases": [
+      "Nandos"
+    ]
+  },
+  {
+    "name": "BP"
+  },
+  {
+    "name": "Shell"
+  },
+  {
+    "name": "Centrica",
+    "aliases": [
+      "British Gas"
+    ]
+  },
+  {
+    "name": "SSE"
+  },
+  {
+    "name": "National Grid"
+  },
+  {
+    "name": "EDF",
+    "aliases": [
+      "EDF Energy"
+    ]
+  },
+  {
+    "name": "E.ON",
+    "aliases": [
+      "EON"
+    ]
+  },
+  {
+    "name": "ScottishPower",
+    "aliases": [
+      "Scottish Power"
+    ]
+  },
+  {
+    "name": "Octopus Energy",
+    "aliases": [
+      "Kraken"
+    ]
+  },
+  {
+    "name": "OVO",
+    "aliases": [
+      "OVO Energy"
+    ]
+  },
+  {
+    "name": "Siemens"
+  },
+  {
+    "name": "GE Vernova"
+  },
+  {
+    "name": "GE Aerospace"
+  },
+  {
+    "name": "Rolls-Royce",
+    "aliases": [
+      "Rolls Royce"
+    ]
+  },
+  {
+    "name": "BAE Systems",
+    "aliases": [
+      "BAE"
+    ]
+  },
+  {
+    "name": "Airbus"
+  },
+  {
+    "name": "Leonardo"
+  },
+  {
+    "name": "Thales"
+  },
+  {
+    "name": "QinetiQ"
+  },
+  {
+    "name": "Babcock International",
+    "aliases": [
+      "Babcock"
+    ]
+  },
+  {
+    "name": "Jaguar Land Rover",
+    "aliases": [
+      "JLR"
+    ]
+  },
+  {
+    "name": "Nissan"
+  },
+  {
+    "name": "Toyota"
+  },
+  {
+    "name": "BMW Group",
+    "aliases": [
+      "BMW",
+      "Mini"
+    ]
+  },
+  {
+    "name": "Ford"
+  },
+  {
+    "name": "Network Rail"
+  },
+  {
+    "name": "Transport for London",
+    "aliases": [
+      "TfL"
+    ]
+  },
+  {
+    "name": "Heathrow"
+  },
+  {
+    "name": "easyJet"
+  },
+  {
+    "name": "British Airways",
+    "aliases": [
+      "BA"
+    ]
+  },
+  {
+    "name": "Virgin Atlantic"
+  },
+  {
+    "name": "Ryanair"
+  },
+  {
+    "name": "Jet2"
+  },
+  {
+    "name": "TUI"
+  },
+  {
+    "name": "Royal Mail"
+  },
+  {
+    "name": "DPD"
+  },
+  {
+    "name": "Evri"
+  },
+  {
+    "name": "DHL"
+  },
+  {
+    "name": "FedEx"
+  },
+  {
+    "name": "BT Group",
+    "aliases": [
+      "BT",
+      "British Telecom",
+      "Openreach"
+    ]
+  },
+  {
+    "name": "Vodafone"
+  },
+  {
+    "name": "EE"
+  },
+  {
+    "name": "Virgin Media O2",
+    "aliases": [
+      "Virgin Media",
+      "O2"
+    ]
+  },
+  {
+    "name": "Three UK",
+    "aliases": [
+      "Three"
+    ]
+  },
+  {
+    "name": "Sky"
+  },
+  {
+    "name": "Arup"
+  },
+  {
+    "name": "AtkinsRéalis",
+    "aliases": [
+      "Atkins"
+    ]
+  },
+  {
+    "name": "Mott MacDonald"
+  },
+  {
+    "name": "Balfour Beatty"
+  },
+  {
+    "name": "AstraZeneca"
+  },
+  {
+    "name": "GSK",
+    "aliases": [
+      "GlaxoSmithKline"
+    ]
+  },
+  {
+    "name": "Haleon"
+  },
+  {
+    "name": "Pfizer"
+  },
+  {
+    "name": "Novartis"
+  },
+  {
+    "name": "Roche"
+  },
+  {
+    "name": "Johnson & Johnson",
+    "aliases": [
+      "J&J"
+    ]
+  },
+  {
+    "name": "Novo Nordisk"
+  },
+  {
+    "name": "Sanofi"
+  },
+  {
+    "name": "MSD",
+    "aliases": [
+      "Merck"
+    ]
+  },
+  {
+    "name": "Bupa"
+  },
+  {
+    "name": "NHS",
+    "aliases": [
+      "National Health Service"
+    ]
+  },
+  {
+    "name": "NHS England"
+  },
+  {
+    "name": "Wellcome",
+    "aliases": [
+      "Wellcome Trust"
+    ]
+  },
+  {
+    "name": "BBC"
+  },
+  {
+    "name": "ITV"
+  },
+  {
+    "name": "Channel 4"
+  },
+  {
+    "name": "Guardian Media Group",
+    "aliases": [
+      "The Guardian"
+    ]
+  },
+  {
+    "name": "Financial Times",
+    "aliases": [
+      "FT"
+    ]
+  },
+  {
+    "name": "Thomson Reuters",
+    "aliases": [
+      "Reuters"
+    ]
+  },
+  {
+    "name": "RELX",
+    "aliases": [
+      "Elsevier",
+      "LexisNexis"
+    ]
+  },
+  {
+    "name": "Pearson"
+  },
+  {
+    "name": "Informa"
+  },
+  {
+    "name": "WPP"
+  },
+  {
+    "name": "Publicis",
+    "aliases": [
+      "Publicis Sapient"
+    ]
+  },
+  {
+    "name": "Rockstar Games"
+  },
+  {
+    "name": "Sony Interactive Entertainment",
+    "aliases": [
+      "PlayStation"
+    ]
+  },
+  {
+    "name": "King"
+  },
+  {
+    "name": "Electronic Arts",
+    "aliases": [
+      "EA"
+    ]
+  },
+  {
+    "name": "Ubisoft"
+  },
+  {
+    "name": "Frontier Developments"
+  },
+  {
+    "name": "Sumo Digital"
+  },
+  {
+    "name": "Rare"
+  },
+  {
+    "name": "Jagex"
+  },
+  {
+    "name": "Warner Bros. Discovery",
+    "aliases": [
+      "Warner Bros"
+    ]
+  },
+  {
+    "name": "Disney"
+  },
+  {
+    "name": "Universal Music Group",
+    "aliases": [
+      "UMG"
+    ]
+  },
+  {
+    "name": "HMRC",
+    "aliases": [
+      "HM Revenue & Customs"
+    ]
+  },
+  {
+    "name": "Government Digital Service",
+    "aliases": [
+      "GDS"
+    ]
+  },
+  {
+    "name": "Ministry of Defence",
+    "aliases": [
+      "MOD"
+    ]
+  },
+  {
+    "name": "Department for Work and Pensions",
+    "aliases": [
+      "DWP"
+    ]
+  },
+  {
+    "name": "Home Office"
+  },
+  {
+    "name": "Office for National Statistics",
+    "aliases": [
+      "ONS"
+    ]
+  },
+  {
+    "name": "Met Office"
+  },
+  {
+    "name": "GCHQ"
+  },
+  {
+    "name": "Civil Service"
+  }
+]
