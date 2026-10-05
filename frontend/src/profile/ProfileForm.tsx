@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useId, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { useEffect, useId, useState } from 'react'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useSaveProfile } from '../api/hooks'
 import { MAX_COMPANY_PREFERENCES, MAX_SKILLS, type CandidateProfile } from '../api/types'
 import { Alert } from '../components/form/Alert'
@@ -14,10 +14,13 @@ import { profileSchema, RECENCY_OPTIONS, toFormValues, toProfile, type ProfileFo
 type Props = {
   initialProfile?: CandidateProfile | null
   submitLabel: string
+  autoFocus?: boolean
   onSaved?: (profile: CandidateProfile) => void
+  /** Called when the user edits any field, e.g. to hide a "saved" message. */
+  onChange?: () => void
 }
 
-export function ProfileForm({ initialProfile, submitLabel, onSaved }: Props) {
+export function ProfileForm({ initialProfile, submitLabel, autoFocus = true, onSaved, onChange }: Props) {
   const recencyId = useId()
   const saveProfile = useSaveProfile()
   const [formError, setFormError] = useState<string>()
@@ -31,6 +34,13 @@ export function ProfileForm({ initialProfile, submitLabel, onSaved }: Props) {
     resolver: zodResolver(profileSchema),
     defaultValues: toFormValues(initialProfile),
   })
+
+  // Fires only when a value actually changes (including TagInput chips, which raise no native
+  // form event) - not on submit-state updates, so a "saved" message survives the save itself.
+  const valuesKey = JSON.stringify(useWatch({ control }))
+  useEffect(() => {
+    onChange?.()
+  }, [valuesKey, onChange])
 
   const onSubmit = async (values: ProfileFormValues) => {
     setFormError(undefined)
@@ -50,7 +60,7 @@ export function ProfileForm({ initialProfile, submitLabel, onSaved }: Props) {
       <TextField
         label="Role you’re looking for"
         placeholder="e.g. Senior Java Developer"
-        autoFocus
+        autoFocus={autoFocus}
         error={errors.desiredRole?.message}
         {...register('desiredRole')}
       />

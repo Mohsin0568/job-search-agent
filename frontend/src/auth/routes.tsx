@@ -5,6 +5,8 @@ import { useAuth } from './AuthContext'
 export type AuthLocationState = {
   email?: string
   message?: string
+  /** How to style `message`; defaults to success. */
+  messageTone?: 'success' | 'info'
   /** Where to return after sign-in. */
   from?: string
 }
@@ -27,6 +29,7 @@ export function ProtectedRoute() {
     const state: AuthLocationState = {
       from: location.pathname + location.search,
       message: sessionExpired ? 'Your session has expired. Please sign in again.' : undefined,
+      messageTone: 'info',
     }
     return <Navigate to="/login" replace state={state} />
   }

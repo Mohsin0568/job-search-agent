@@ -25,17 +25,23 @@ export function ForgotPasswordPage() {
   return email ? (
     <ConfirmStep email={email} onRestart={() => setEmail(undefined)} />
   ) : (
-    <RequestStep initialEmail={locationState.email} message={locationState.message} onCodeSent={setEmail} />
+    <RequestStep
+      initialEmail={locationState.email}
+      message={locationState.message}
+      messageTone={locationState.messageTone}
+      onCodeSent={setEmail}
+    />
   )
 }
 
 type RequestStepProps = {
   initialEmail?: string
   message?: string
+  messageTone?: AuthLocationState['messageTone']
   onCodeSent: (email: string) => void
 }
 
-function RequestStep({ initialEmail, message, onCodeSent }: RequestStepProps) {
+function RequestStep({ initialEmail, message, messageTone, onCodeSent }: RequestStepProps) {
   const [formError, setFormError] = useState<string>()
   const {
     register,
@@ -64,7 +70,7 @@ function RequestStep({ initialEmail, message, onCodeSent }: RequestStepProps) {
   return (
     <AuthLayout title="Reset your password" subtitle="We'll email you a code to reset it">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-        {message && !formError && <Alert variant="success">{message}</Alert>}
+        {message && !formError && <Alert variant={messageTone ?? 'success'}>{message}</Alert>}
         {formError && <Alert variant="error">{formError}</Alert>}
         <TextField label="Email" type="email" autoComplete="email" autoFocus error={errors.email?.message} {...register('email')} />
         <SubmitButton loading={isSubmitting}>Send reset code</SubmitButton>
