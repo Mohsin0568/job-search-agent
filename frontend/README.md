@@ -20,6 +20,7 @@ src/
   auth/       Amplify config, AuthProvider/useAuth, route guards, form schemas, error messages
   components/ layouts and shared UI
   config/     typed access to VITE_* environment variables
+  hooks/      generic React hooks (e.g. useDebouncedValue)
   jobs/       job card, ATS badge, grouping and formatting of job results
   pages/      route screens
   profile/    profile form, schema, and the RequireProfile onboarding guard

@@ -29,6 +29,10 @@ export type JobSearchResult = {
   job: JobListing
 }
 
+export type CompanySuggestion = {
+  name: string
+}
+
 // Backend limits (CandidateProfileDto) - keep in sync.
 export const MAX_COMPANY_PREFERENCES = 10
 export const MAX_SKILLS = 50
