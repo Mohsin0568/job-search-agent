@@ -29,7 +29,10 @@ export type JobSearchResult = {
   job: JobListing
 }
 
-export type CompanySuggestion = {
+/** Which seeded list to autocomplete from; also the path segment of its endpoint. */
+export type SuggestionSource = 'companies' | 'skills'
+
+export type Suggestion = {
   name: string
 }
 

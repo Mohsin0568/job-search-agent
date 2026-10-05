@@ -6,10 +6,9 @@ import { MAX_COMPANY_PREFERENCES, MAX_SKILLS, type CandidateProfile } from '../a
 import { Alert } from '../components/form/Alert'
 import { inputClass, labelClass } from '../components/form/fieldStyles'
 import { SubmitButton } from '../components/form/SubmitButton'
-import { TagInput } from '../components/form/TagInput'
 import { TextAreaField } from '../components/form/TextAreaField'
 import { TextField } from '../components/form/TextField'
-import { CompanyTagInput } from './CompanyTagInput'
+import { SuggestTagInput } from './SuggestTagInput'
 import { profileSchema, RECENCY_OPTIONS, toFormValues, toProfile, type ProfileFormValues } from './profileSchema'
 
 type Props = {
@@ -70,7 +69,8 @@ export function ProfileForm({ initialProfile, submitLabel, autoFocus = true, onS
         control={control}
         name="companyPreferences"
         render={({ field, fieldState }) => (
-          <CompanyTagInput
+          <SuggestTagInput
+            source="companies"
             label="Companies to search"
             value={field.value}
             onChange={field.onChange}
@@ -88,16 +88,17 @@ export function ProfileForm({ initialProfile, submitLabel, autoFocus = true, onS
         control={control}
         name="skills"
         render={({ field, fieldState }) => (
-          <TagInput
+          <SuggestTagInput
+            source="skills"
             label="Key skills"
             value={field.value}
             onChange={field.onChange}
             onBlur={field.onBlur}
-            placeholder="e.g. Spring Boot, AWS, Kafka"
+            placeholder="Start typing, e.g. Spring Boot"
             maxItems={MAX_SKILLS}
             maxItemLength={100}
             error={fieldState.error?.message}
-            hint="Used to score how well each job matches you."
+            hint="Used to score how well each job matches you. Pick from the suggestions, or press Enter to add your own."
           />
         )}
       />

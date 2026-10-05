@@ -1,5 +1,5 @@
 import { ApiError, apiFetch } from './client'
-import type { CandidateProfile, CompanySuggestion, JobSearchResult } from './types'
+import type { CandidateProfile, JobSearchResult, Suggestion, SuggestionSource } from './types'
 
 /** Returns null when the user hasn't set up a profile yet (backend responds 404). */
 export async function getProfile(): Promise<CandidateProfile | null> {
@@ -28,8 +28,8 @@ export function getJobResults(page = 0, size = 50): Promise<JobSearchResult[]> {
   return apiFetch<JobSearchResult[]>(`/api/jobs/results?${params}`)
 }
 
-/** Known companies matching what the user has typed so far, e.g. "del" -> Deliveroo. */
-export function suggestCompanies(query: string, signal?: AbortSignal): Promise<CompanySuggestion[]> {
+/** Known companies or skills matching what the user has typed so far, e.g. "del" -> Deliveroo. */
+export function suggestNames(source: SuggestionSource, query: string, signal?: AbortSignal): Promise<Suggestion[]> {
   const params = new URLSearchParams({ q: query })
-  return apiFetch<CompanySuggestion[]>(`/api/companies/suggest?${params}`, { signal })
+  return apiFetch<Suggestion[]>(`/api/${source}/suggest?${params}`, { signal })
 }
