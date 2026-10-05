@@ -8,22 +8,32 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-/** Normalisation shared by stored company search keys and incoming queries, so both match the same way. */
-public final class CompanyNames {
+/** Normalisation shared by stored search keys and incoming queries, so both match the same way. */
+public final class SuggestionNames {
 
     private static final Pattern DIACRITICS = Pattern.compile("\\p{M}+");
+    // A dot that starts a word, as in ".NET" - unlike the ones inside "Node.js" or "Booking.com".
+    private static final Pattern LEADING_DOT = Pattern.compile("(^|\\s)\\.(?=[a-z0-9])");
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]+");
 
-    private CompanyNames() {
+    private SuggestionNames() {
     }
 
-    /** "Nestlé", "NESTLE " and "nestle" all become "nestle"; "Marks & Spencer" becomes "marks spencer". */
+    /**
+     * Lowercases and strips accents and punctuation: "Nestlé" becomes "nestle", "Marks &amp; Spencer"
+     * becomes "marks spencer". The symbols that distinguish skills are spelt out first, so "C", "C++"
+     * and "C#" stay different ("c", "c plus plus", "c sharp") and ".NET" becomes "dot net".
+     */
     public static String normalize(final String value) {
         if (value == null) {
             return "";
         }
-        final String withoutAccents = DIACRITICS.matcher(Normalizer.normalize(value, Normalizer.Form.NFD)).replaceAll("");
-        return NON_ALPHANUMERIC.matcher(withoutAccents.toLowerCase(Locale.ROOT)).replaceAll(" ").trim();
+        String text = DIACRITICS.matcher(Normalizer.normalize(value, Normalizer.Form.NFD)).replaceAll("")
+                .toLowerCase(Locale.ROOT)
+                .replace("+", " plus ")
+                .replace("#", " sharp ");
+        text = LEADING_DOT.matcher(text).replaceAll("$1dot ");
+        return NON_ALPHANUMERIC.matcher(text).replaceAll(" ").trim();
     }
 
     /**

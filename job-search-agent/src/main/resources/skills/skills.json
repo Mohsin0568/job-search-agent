@@ -1,0 +1,1162 @@
+[
+  {
+    "name": "Java"
+  },
+  {
+    "name": "Kotlin"
+  },
+  {
+    "name": "Scala"
+  },
+  {
+    "name": "Groovy"
+  },
+  {
+    "name": "Python"
+  },
+  {
+    "name": "JavaScript",
+    "aliases": [
+      "JS"
+    ]
+  },
+  {
+    "name": "TypeScript",
+    "aliases": [
+      "TS"
+    ]
+  },
+  {
+    "name": "C"
+  },
+  {
+    "name": "C++",
+    "aliases": [
+      "CPP"
+    ]
+  },
+  {
+    "name": "C#",
+    "aliases": [
+      "CSharp"
+    ]
+  },
+  {
+    "name": "Go",
+    "aliases": [
+      "Golang"
+    ]
+  },
+  {
+    "name": "Rust"
+  },
+  {
+    "name": "Ruby"
+  },
+  {
+    "name": "PHP"
+  },
+  {
+    "name": "Swift"
+  },
+  {
+    "name": "Objective-C"
+  },
+  {
+    "name": "Dart"
+  },
+  {
+    "name": "R"
+  },
+  {
+    "name": "MATLAB"
+  },
+  {
+    "name": "Perl"
+  },
+  {
+    "name": "Elixir"
+  },
+  {
+    "name": "Erlang"
+  },
+  {
+    "name": "Haskell"
+  },
+  {
+    "name": "Clojure"
+  },
+  {
+    "name": "F#",
+    "aliases": [
+      "FSharp"
+    ]
+  },
+  {
+    "name": "Lua"
+  },
+  {
+    "name": "SQL"
+  },
+  {
+    "name": "PL/SQL"
+  },
+  {
+    "name": "T-SQL"
+  },
+  {
+    "name": "Bash",
+    "aliases": [
+      "Shell Scripting"
+    ]
+  },
+  {
+    "name": "PowerShell"
+  },
+  {
+    "name": "HTML",
+    "aliases": [
+      "HTML5"
+    ]
+  },
+  {
+    "name": "CSS",
+    "aliases": [
+      "CSS3"
+    ]
+  },
+  {
+    "name": "Sass",
+    "aliases": [
+      "SCSS"
+    ]
+  },
+  {
+    "name": "Solidity"
+  },
+  {
+    "name": "COBOL"
+  },
+  {
+    "name": "VBA"
+  },
+  {
+    "name": "Assembly"
+  },
+  {
+    "name": "Spring",
+    "aliases": [
+      "Spring Framework"
+    ]
+  },
+  {
+    "name": "Spring Boot",
+    "aliases": [
+      "SpringBoot"
+    ]
+  },
+  {
+    "name": "Spring Security"
+  },
+  {
+    "name": "Spring Cloud"
+  },
+  {
+    "name": "Spring Data"
+  },
+  {
+    "name": "Spring AI"
+  },
+  {
+    "name": "Hibernate"
+  },
+  {
+    "name": "JPA",
+    "aliases": [
+      "Java Persistence API"
+    ]
+  },
+  {
+    "name": "Micronaut"
+  },
+  {
+    "name": "Quarkus"
+  },
+  {
+    "name": "Java EE",
+    "aliases": [
+      "Jakarta EE",
+      "J2EE"
+    ]
+  },
+  {
+    "name": "Maven"
+  },
+  {
+    "name": "Gradle"
+  },
+  {
+    "name": ".NET",
+    "aliases": [
+      "DotNet"
+    ]
+  },
+  {
+    "name": "ASP.NET",
+    "aliases": [
+      "ASP.NET Core"
+    ]
+  },
+  {
+    "name": "Entity Framework"
+  },
+  {
+    "name": "Node.js",
+    "aliases": [
+      "NodeJS",
+      "Node"
+    ]
+  },
+  {
+    "name": "Express",
+    "aliases": [
+      "Express.js",
+      "ExpressJS"
+    ]
+  },
+  {
+    "name": "NestJS",
+    "aliases": [
+      "Nest.js"
+    ]
+  },
+  {
+    "name": "Django"
+  },
+  {
+    "name": "Flask"
+  },
+  {
+    "name": "FastAPI"
+  },
+  {
+    "name": "Ruby on Rails",
+    "aliases": [
+      "Rails"
+    ]
+  },
+  {
+    "name": "Laravel"
+  },
+  {
+    "name": "Symfony"
+  },
+  {
+    "name": "Phoenix"
+  },
+  {
+    "name": "REST APIs",
+    "aliases": [
+      "REST",
+      "RESTful APIs"
+    ]
+  },
+  {
+    "name": "GraphQL"
+  },
+  {
+    "name": "gRPC"
+  },
+  {
+    "name": "SOAP"
+  },
+  {
+    "name": "OpenAPI",
+    "aliases": [
+      "Swagger"
+    ]
+  },
+  {
+    "name": "WebSockets"
+  },
+  {
+    "name": "Microservices"
+  },
+  {
+    "name": "Event-Driven Architecture"
+  },
+  {
+    "name": "Domain-Driven Design",
+    "aliases": [
+      "DDD"
+    ]
+  },
+  {
+    "name": "System Design"
+  },
+  {
+    "name": "Design Patterns"
+  },
+  {
+    "name": "Object-Oriented Programming",
+    "aliases": [
+      "OOP"
+    ]
+  },
+  {
+    "name": "Functional Programming"
+  },
+  {
+    "name": "Multithreading",
+    "aliases": [
+      "Concurrency"
+    ]
+  },
+  {
+    "name": "OAuth 2.0",
+    "aliases": [
+      "OAuth",
+      "OAuth2"
+    ]
+  },
+  {
+    "name": "OpenID Connect",
+    "aliases": [
+      "OIDC"
+    ]
+  },
+  {
+    "name": "JWT",
+    "aliases": [
+      "JSON Web Tokens"
+    ]
+  },
+  {
+    "name": "React",
+    "aliases": [
+      "ReactJS",
+      "React.js"
+    ]
+  },
+  {
+    "name": "Next.js",
+    "aliases": [
+      "NextJS"
+    ]
+  },
+  {
+    "name": "Redux"
+  },
+  {
+    "name": "Angular"
+  },
+  {
+    "name": "Vue.js",
+    "aliases": [
+      "Vue",
+      "VueJS"
+    ]
+  },
+  {
+    "name": "Nuxt",
+    "aliases": [
+      "Nuxt.js"
+    ]
+  },
+  {
+    "name": "Svelte"
+  },
+  {
+    "name": "jQuery"
+  },
+  {
+    "name": "Tailwind CSS",
+    "aliases": [
+      "Tailwind"
+    ]
+  },
+  {
+    "name": "Bootstrap"
+  },
+  {
+    "name": "Webpack"
+  },
+  {
+    "name": "Vite"
+  },
+  {
+    "name": "React Native"
+  },
+  {
+    "name": "Flutter"
+  },
+  {
+    "name": "Android"
+  },
+  {
+    "name": "iOS"
+  },
+  {
+    "name": "SwiftUI"
+  },
+  {
+    "name": "Jetpack Compose"
+  },
+  {
+    "name": "Web Accessibility",
+    "aliases": [
+      "WCAG",
+      "a11y"
+    ]
+  },
+  {
+    "name": "Responsive Design"
+  },
+  {
+    "name": "UX Design",
+    "aliases": [
+      "User Experience"
+    ]
+  },
+  {
+    "name": "UI Design",
+    "aliases": [
+      "User Interface Design"
+    ]
+  },
+  {
+    "name": "Figma"
+  },
+  {
+    "name": "PostgreSQL",
+    "aliases": [
+      "Postgres"
+    ]
+  },
+  {
+    "name": "MySQL"
+  },
+  {
+    "name": "MariaDB"
+  },
+  {
+    "name": "Oracle Database",
+    "aliases": [
+      "Oracle DB"
+    ]
+  },
+  {
+    "name": "SQL Server",
+    "aliases": [
+      "MSSQL",
+      "Microsoft SQL Server"
+    ]
+  },
+  {
+    "name": "SQLite"
+  },
+  {
+    "name": "MongoDB",
+    "aliases": [
+      "Mongo"
+    ]
+  },
+  {
+    "name": "Redis"
+  },
+  {
+    "name": "Cassandra",
+    "aliases": [
+      "Apache Cassandra"
+    ]
+  },
+  {
+    "name": "DynamoDB"
+  },
+  {
+    "name": "Elasticsearch",
+    "aliases": [
+      "Elastic",
+      "OpenSearch"
+    ]
+  },
+  {
+    "name": "Neo4j"
+  },
+  {
+    "name": "Couchbase"
+  },
+  {
+    "name": "Kafka",
+    "aliases": [
+      "Apache Kafka"
+    ]
+  },
+  {
+    "name": "RabbitMQ"
+  },
+  {
+    "name": "ActiveMQ"
+  },
+  {
+    "name": "Amazon SQS",
+    "aliases": [
+      "SQS"
+    ]
+  },
+  {
+    "name": "Spark",
+    "aliases": [
+      "Apache Spark",
+      "PySpark"
+    ]
+  },
+  {
+    "name": "Hadoop"
+  },
+  {
+    "name": "Flink",
+    "aliases": [
+      "Apache Flink"
+    ]
+  },
+  {
+    "name": "Airflow",
+    "aliases": [
+      "Apache Airflow"
+    ]
+  },
+  {
+    "name": "dbt"
+  },
+  {
+    "name": "Snowflake"
+  },
+  {
+    "name": "Databricks"
+  },
+  {
+    "name": "BigQuery"
+  },
+  {
+    "name": "Redshift",
+    "aliases": [
+      "Amazon Redshift"
+    ]
+  },
+  {
+    "name": "ETL",
+    "aliases": [
+      "ELT",
+      "Data Pipelines"
+    ]
+  },
+  {
+    "name": "Data Modelling",
+    "aliases": [
+      "Data Modeling"
+    ]
+  },
+  {
+    "name": "Data Warehousing"
+  },
+  {
+    "name": "Data Engineering"
+  },
+  {
+    "name": "Data Analysis",
+    "aliases": [
+      "Data Analytics"
+    ]
+  },
+  {
+    "name": "Data Visualisation",
+    "aliases": [
+      "Data Visualization"
+    ]
+  },
+  {
+    "name": "Tableau"
+  },
+  {
+    "name": "Power BI",
+    "aliases": [
+      "PowerBI"
+    ]
+  },
+  {
+    "name": "Looker"
+  },
+  {
+    "name": "Excel",
+    "aliases": [
+      "Microsoft Excel"
+    ]
+  },
+  {
+    "name": "Statistics"
+  },
+  {
+    "name": "Machine Learning",
+    "aliases": [
+      "ML"
+    ]
+  },
+  {
+    "name": "Deep Learning"
+  },
+  {
+    "name": "Artificial Intelligence",
+    "aliases": [
+      "AI"
+    ]
+  },
+  {
+    "name": "Generative AI",
+    "aliases": [
+      "GenAI"
+    ]
+  },
+  {
+    "name": "Large Language Models",
+    "aliases": [
+      "LLM",
+      "LLMs"
+    ]
+  },
+  {
+    "name": "Prompt Engineering"
+  },
+  {
+    "name": "Retrieval-Augmented Generation",
+    "aliases": [
+      "RAG"
+    ]
+  },
+  {
+    "name": "AI Agents",
+    "aliases": [
+      "Agentic AI"
+    ]
+  },
+  {
+    "name": "Model Context Protocol",
+    "aliases": [
+      "MCP"
+    ]
+  },
+  {
+    "name": "Natural Language Processing",
+    "aliases": [
+      "NLP"
+    ]
+  },
+  {
+    "name": "Computer Vision"
+  },
+  {
+    "name": "MLOps"
+  },
+  {
+    "name": "TensorFlow"
+  },
+  {
+    "name": "PyTorch"
+  },
+  {
+    "name": "scikit-learn",
+    "aliases": [
+      "sklearn"
+    ]
+  },
+  {
+    "name": "Pandas"
+  },
+  {
+    "name": "NumPy"
+  },
+  {
+    "name": "LangChain"
+  },
+  {
+    "name": "Hugging Face"
+  },
+  {
+    "name": "Jupyter",
+    "aliases": [
+      "Jupyter Notebook"
+    ]
+  },
+  {
+    "name": "Data Science"
+  },
+  {
+    "name": "AWS",
+    "aliases": [
+      "Amazon Web Services"
+    ]
+  },
+  {
+    "name": "Azure",
+    "aliases": [
+      "Microsoft Azure"
+    ]
+  },
+  {
+    "name": "Google Cloud",
+    "aliases": [
+      "GCP",
+      "Google Cloud Platform"
+    ]
+  },
+  {
+    "name": "AWS Lambda",
+    "aliases": [
+      "Lambda"
+    ]
+  },
+  {
+    "name": "Amazon S3",
+    "aliases": [
+      "S3"
+    ]
+  },
+  {
+    "name": "Amazon EC2",
+    "aliases": [
+      "EC2"
+    ]
+  },
+  {
+    "name": "Amazon ECS",
+    "aliases": [
+      "ECS",
+      "Fargate"
+    ]
+  },
+  {
+    "name": "Amazon EKS",
+    "aliases": [
+      "EKS"
+    ]
+  },
+  {
+    "name": "Amazon RDS",
+    "aliases": [
+      "RDS"
+    ]
+  },
+  {
+    "name": "Amazon Cognito",
+    "aliases": [
+      "Cognito"
+    ]
+  },
+  {
+    "name": "CloudFormation"
+  },
+  {
+    "name": "AWS CDK",
+    "aliases": [
+      "CDK"
+    ]
+  },
+  {
+    "name": "Docker"
+  },
+  {
+    "name": "Kubernetes",
+    "aliases": [
+      "K8s"
+    ]
+  },
+  {
+    "name": "Helm"
+  },
+  {
+    "name": "OpenShift"
+  },
+  {
+    "name": "Terraform"
+  },
+  {
+    "name": "Ansible"
+  },
+  {
+    "name": "Pulumi"
+  },
+  {
+    "name": "CI/CD",
+    "aliases": [
+      "Continuous Integration",
+      "Continuous Delivery"
+    ]
+  },
+  {
+    "name": "Jenkins"
+  },
+  {
+    "name": "GitHub Actions"
+  },
+  {
+    "name": "GitLab CI",
+    "aliases": [
+      "GitLab CI/CD"
+    ]
+  },
+  {
+    "name": "CircleCI"
+  },
+  {
+    "name": "Argo CD",
+    "aliases": [
+      "ArgoCD"
+    ]
+  },
+  {
+    "name": "Git"
+  },
+  {
+    "name": "GitHub"
+  },
+  {
+    "name": "GitLab"
+  },
+  {
+    "name": "Bitbucket"
+  },
+  {
+    "name": "Linux",
+    "aliases": [
+      "Unix"
+    ]
+  },
+  {
+    "name": "Nginx"
+  },
+  {
+    "name": "Serverless"
+  },
+  {
+    "name": "Infrastructure as Code",
+    "aliases": [
+      "IaC"
+    ]
+  },
+  {
+    "name": "DevOps"
+  },
+  {
+    "name": "Site Reliability Engineering",
+    "aliases": [
+      "SRE"
+    ]
+  },
+  {
+    "name": "Observability",
+    "aliases": [
+      "Monitoring"
+    ]
+  },
+  {
+    "name": "Prometheus"
+  },
+  {
+    "name": "Grafana"
+  },
+  {
+    "name": "Datadog"
+  },
+  {
+    "name": "Splunk"
+  },
+  {
+    "name": "New Relic"
+  },
+  {
+    "name": "ELK Stack",
+    "aliases": [
+      "ELK"
+    ]
+  },
+  {
+    "name": "OpenTelemetry"
+  },
+  {
+    "name": "Networking",
+    "aliases": [
+      "TCP/IP"
+    ]
+  },
+  {
+    "name": "Cloud Architecture"
+  },
+  {
+    "name": "Solution Architecture",
+    "aliases": [
+      "Solutions Architecture"
+    ]
+  },
+  {
+    "name": "JUnit"
+  },
+  {
+    "name": "Mockito"
+  },
+  {
+    "name": "TestNG"
+  },
+  {
+    "name": "Testcontainers"
+  },
+  {
+    "name": "Cucumber",
+    "aliases": [
+      "BDD"
+    ]
+  },
+  {
+    "name": "Selenium"
+  },
+  {
+    "name": "Cypress"
+  },
+  {
+    "name": "Playwright"
+  },
+  {
+    "name": "Jest"
+  },
+  {
+    "name": "Vitest"
+  },
+  {
+    "name": "pytest"
+  },
+  {
+    "name": "Postman"
+  },
+  {
+    "name": "JMeter"
+  },
+  {
+    "name": "Gatling"
+  },
+  {
+    "name": "Test-Driven Development",
+    "aliases": [
+      "TDD"
+    ]
+  },
+  {
+    "name": "Unit Testing"
+  },
+  {
+    "name": "Integration Testing"
+  },
+  {
+    "name": "Test Automation",
+    "aliases": [
+      "Automated Testing"
+    ]
+  },
+  {
+    "name": "Performance Testing",
+    "aliases": [
+      "Load Testing"
+    ]
+  },
+  {
+    "name": "Manual Testing"
+  },
+  {
+    "name": "Code Review"
+  },
+  {
+    "name": "SonarQube",
+    "aliases": [
+      "Sonar"
+    ]
+  },
+  {
+    "name": "Cyber Security",
+    "aliases": [
+      "Cybersecurity",
+      "Information Security"
+    ]
+  },
+  {
+    "name": "Application Security",
+    "aliases": [
+      "AppSec"
+    ]
+  },
+  {
+    "name": "Penetration Testing",
+    "aliases": [
+      "Pen Testing"
+    ]
+  },
+  {
+    "name": "OWASP"
+  },
+  {
+    "name": "Identity and Access Management",
+    "aliases": [
+      "IAM"
+    ]
+  },
+  {
+    "name": "Cryptography"
+  },
+  {
+    "name": "Threat Modelling",
+    "aliases": [
+      "Threat Modeling"
+    ]
+  },
+  {
+    "name": "ISO 27001"
+  },
+  {
+    "name": "GDPR"
+  },
+  {
+    "name": "Agile"
+  },
+  {
+    "name": "Scrum"
+  },
+  {
+    "name": "Kanban"
+  },
+  {
+    "name": "SAFe",
+    "aliases": [
+      "Scaled Agile"
+    ]
+  },
+  {
+    "name": "Jira"
+  },
+  {
+    "name": "Confluence"
+  },
+  {
+    "name": "Project Management"
+  },
+  {
+    "name": "Programme Management",
+    "aliases": [
+      "Program Management"
+    ]
+  },
+  {
+    "name": "Product Management"
+  },
+  {
+    "name": "Business Analysis"
+  },
+  {
+    "name": "Requirements Gathering"
+  },
+  {
+    "name": "Stakeholder Management"
+  },
+  {
+    "name": "Technical Leadership",
+    "aliases": [
+      "Tech Lead"
+    ]
+  },
+  {
+    "name": "People Management",
+    "aliases": [
+      "Line Management"
+    ]
+  },
+  {
+    "name": "Mentoring",
+    "aliases": [
+      "Coaching"
+    ]
+  },
+  {
+    "name": "Team Leadership"
+  },
+  {
+    "name": "Communication"
+  },
+  {
+    "name": "Problem Solving"
+  },
+  {
+    "name": "Technical Writing",
+    "aliases": [
+      "Documentation"
+    ]
+  },
+  {
+    "name": "Presentation Skills",
+    "aliases": [
+      "Public Speaking"
+    ]
+  },
+  {
+    "name": "Budget Management"
+  },
+  {
+    "name": "Risk Management"
+  },
+  {
+    "name": "Change Management"
+  },
+  {
+    "name": "Vendor Management"
+  },
+  {
+    "name": "Customer Service"
+  },
+  {
+    "name": "Sales"
+  },
+  {
+    "name": "Account Management"
+  },
+  {
+    "name": "Digital Marketing"
+  },
+  {
+    "name": "SEO",
+    "aliases": [
+      "Search Engine Optimisation"
+    ]
+  },
+  {
+    "name": "Content Writing",
+    "aliases": [
+      "Copywriting"
+    ]
+  },
+  {
+    "name": "Financial Analysis"
+  },
+  {
+    "name": "Accounting"
+  },
+  {
+    "name": "PRINCE2"
+  },
+  {
+    "name": "ITIL"
+  },
+  {
+    "name": "Salesforce"
+  },
+  {
+    "name": "SAP"
+  },
+  {
+    "name": "ServiceNow"
+  }
+]

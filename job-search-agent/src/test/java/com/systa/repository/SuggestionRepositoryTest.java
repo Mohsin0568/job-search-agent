@@ -12,7 +12,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class CompanyRepositoryTest {
+class SuggestionRepositoryTest {
 
     private final CompanyRepository repository = Mockito.mock(CompanyRepository.class, Mockito.CALLS_REAL_METHODS);
 
@@ -28,6 +28,8 @@ class CompanyRepositoryTest {
     @Test
     void rejectsPrefixesThatCouldInjectRegex() {
         assertThatThrownBy(() -> repository.findBySearchKeyPrefix(".*", Limit.of(5)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> repository.findBySearchKeyPrefix("c++", Limit.of(5)))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> repository.findBySearchKeyPrefix("Del", Limit.of(5)))
                 .isInstanceOf(IllegalArgumentException.class);
