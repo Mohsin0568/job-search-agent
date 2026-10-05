@@ -9,6 +9,8 @@ import java.util.List;
 public record CandidateProfile(
         @Id String id,
         String userId,
+        // Verified email from Cognito, refreshed on every profile save. Never taken from the client.
+        String email,
         String desiredRole,
         List<String> skills,
         String currentJobDescription,
