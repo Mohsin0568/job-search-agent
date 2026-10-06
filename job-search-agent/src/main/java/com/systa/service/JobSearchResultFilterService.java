@@ -13,14 +13,18 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class JobSearchResultFilterService {
 
     // Used when a candidate profile hasn't configured its own recencyWindowDays.
-    private static final int DEFAULT_RECENCY_WINDOW_DAYS = 7;
+    static final int DEFAULT_RECENCY_WINDOW_DAYS = 7;
 
-    private static final DateTimeFormatter DATE_POSTED_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy");
+    // English month names whatever the JVM's default locale: en_GB would expect "Sept", not "Sep".
+    // A single "d" also reads a day the LLM wrote without its leading zero ("7 Aug 2026").
+    private static final DateTimeFormatter DATE_POSTED_FORMAT =
+            DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JobSearchResultFilterService.class);
 
@@ -39,8 +43,7 @@ public class JobSearchResultFilterService {
     // cutoff itself (e.g. it once included a job posted 27 days ago), so re-check it here in code.
     public JobSearchResponse filterStaleJobs(final String userId, final Integer recencyWindowDays,
                                               final JobSearchResponse jobSearchResponse) {
-        final int effectiveRecencyWindowDays =
-                recencyWindowDays != null ? recencyWindowDays : DEFAULT_RECENCY_WINDOW_DAYS;
+        final int effectiveRecencyWindowDays = effectiveRecencyWindowDays(recencyWindowDays);
 
         final LocalDate today = LocalDate.now(clock);
         final LocalDate earliestAllowedDate = today.minusDays(effectiveRecencyWindowDays);
@@ -60,6 +63,11 @@ public class JobSearchResultFilterService {
         }
 
         return filteredResponse;
+    }
+
+    /** The profile's window, or the default when it hasn't set one. Shared with the LLM prompt. */
+    static int effectiveRecencyWindowDays(final Integer recencyWindowDays) {
+        return recencyWindowDays != null ? recencyWindowDays : DEFAULT_RECENCY_WINDOW_DAYS;
     }
 
     private boolean isWithinRecencyWindow(final String userId, final JobListing job,

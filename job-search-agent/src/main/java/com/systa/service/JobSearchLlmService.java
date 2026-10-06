@@ -22,12 +22,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 @Service
 @Slf4j
 public class JobSearchLlmService {
 
-    private static final DateTimeFormatter PROMPT_DATE_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy");
+    // English month names whatever the JVM's default locale, to match the format the prompt asks for.
+    private static final DateTimeFormatter PROMPT_DATE_FORMAT =
+            DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -57,7 +60,10 @@ public class JobSearchLlmService {
                 LocalDate.now().format(PROMPT_DATE_FORMAT),
                 candidateProfile.desiredRole(),
                 String.join(", ", candidateProfile.skills()),
-                candidateProfile.currentJobDescription());
+                candidateProfile.currentJobDescription(),
+                // The same window the filter enforces afterwards, so the model doesn't discard jobs the
+                // user asked to see.
+                JobSearchResultFilterService.effectiveRecencyWindowDays(candidateProfile.recencyWindowDays()));
 
         log.info("Starting job search - userId={}, company={}, sources={}, desiredRole={}, skills=[{}]",
                 userId, company, sources, candidateProfile.desiredRole(), String.join(", ", candidateProfile.skills()));
@@ -82,9 +88,14 @@ public class JobSearchLlmService {
             throw new JobSearchParseException("Failed to parse job search response from LLM", e);
         }
 
-        final List<JobListing> jobs = jobSearchResponse.companies().stream()
-                .flatMap(companySearchResult -> companySearchResult.jobs().stream())
-                .toList();
+        // The model sometimes leaves out "companies", or a company's "jobs", when it found nothing.
+        final List<JobListing> jobs = jobSearchResponse == null || jobSearchResponse.companies() == null
+                ? List.of()
+                : jobSearchResponse.companies().stream()
+                        .filter(companySearchResult -> companySearchResult != null && companySearchResult.jobs() != null)
+                        .flatMap(companySearchResult -> companySearchResult.jobs().stream())
+                        .filter(Objects::nonNull)
+                        .toList();
 
         return new CompanySearchResult(company, jobs);
     }
