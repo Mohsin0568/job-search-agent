@@ -31,8 +31,8 @@ SEARCH AND FILTERING RULES — follow all of these strictly:
    Only use "Not specified" for datePosted if, after actually visiting the job posting page, there is
    genuinely no date or relative-date indicator anywhere on it.
 
-2. RECENCY: Only include job postings that were posted within the last 7 days of TODAY'S DATE above.
-   Discard any posting older than 7 days. If, after following rule 1, the posting date still cannot be
+2. RECENCY: Only include job postings that were posted within the last %6$d days of TODAY'S DATE above.
+   Discard any posting older than %6$d days. If, after following rule 1, the posting date still cannot be
    determined, exclude it.
 
 3. DESIGNATION MATCHING: Using the candidate's desired role above, only return postings for:

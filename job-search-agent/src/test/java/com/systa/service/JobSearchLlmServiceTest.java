@@ -101,6 +101,31 @@ class JobSearchLlmServiceTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {
+            "{}",
+            "null",
+            "{\"companies\": null}",
+            "{\"companies\": [{\"companyName\": \"Acme Corp\"}]}",
+            "{\"companies\": [{\"companyName\": \"Acme Corp\", \"jobs\": null}, null]}"})
+    void returnsNoJobs_whenTheModelLeavesOutTheListsItFoundNothingFor(final String reply) {
+        modelReplies(reply);
+
+        final CompanySearchResult result = search();
+
+        assertThat(result.companyName()).isEqualTo(COMPANY);
+        assertThat(result.jobs()).isEmpty();
+    }
+
+    @Test
+    void keepsTheJobsOfOtherCompanies_whenOneCompanyHasNoJobsList() {
+        modelReplies("""
+                {"companies": [{"companyName": "Acme Corp"}, {"companyName": "Acme", "jobs": [{"jobId": "J-1"}, null]}]}
+                """);
+
+        assertThat(search().jobs()).extracting(JobListing::jobId).containsExactly("J-1");
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"```json\n%s\n```", "```\n%s\n```", "  %s  \n", "```json %s```"})
     void readsAReplyWrappedInMarkdownFences(final String wrapper) {
         modelReplies(wrapper.formatted(ONE_JOB));
@@ -144,10 +169,33 @@ class JobSearchLlmServiceTest {
                 .contains("TODAY'S DATE: "
                         + LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH)))
                 // Every placeholder in the template was filled in.
-                .doesNotContain("%s");
+                .doesNotContain("%");
         final ArgumentCaptor<String> userMessage = ArgumentCaptor.forClass(String.class);
         verify(request).user(userMessage.capture());
         assertThat(userMessage.getValue()).contains("UK job openings at Acme Corp");
+    }
+
+    @Test
+    void asksTheModelForTheUsersRecencyWindow_notAFixedOne() {
+        modelReplies(ONE_JOB);
+
+        service.searchJobsForCompanyBatch(USER_ID, profileWithWindow(30), COMPANY, SOURCES);
+
+        assertThat(systemPromptSent())
+                .contains("posted within the last 30 days of TODAY'S DATE")
+                .contains("Discard any posting older than 30 days.")
+                .doesNotContain("7 days");
+    }
+
+    @Test
+    void asksTheModelForSevenDays_whenTheProfileHasNoWindow() {
+        modelReplies(ONE_JOB);
+
+        service.searchJobsForCompanyBatch(USER_ID, profileWithWindow(null), COMPANY, SOURCES);
+
+        assertThat(systemPromptSent())
+                .contains("posted within the last 7 days of TODAY'S DATE")
+                .contains("Discard any posting older than 7 days.");
     }
 
     @Test
@@ -203,6 +251,11 @@ class JobSearchLlmServiceTest {
         assertThatThrownBy(this::search)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("classpath:system_prompts/no_such_prompt.txt");
+    }
+
+    private static CandidateProfile profileWithWindow(final Integer recencyWindowDays) {
+        return new CandidateProfile(PROFILE.id(), USER_ID, PROFILE.email(), PROFILE.desiredRole(), PROFILE.skills(),
+                PROFILE.currentJobDescription(), PROFILE.companyPreferences(), recencyWindowDays);
     }
 
     private CompanySearchResult search() {

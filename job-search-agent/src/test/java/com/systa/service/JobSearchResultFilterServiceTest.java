@@ -80,9 +80,21 @@ class JobSearchResultFilterServiceTest {
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"Not specified", "", "2026-08-17", "17/08/2026", "17 August 2026", "3 days ago",
-            "7 Aug 2026", "32 Aug 2026"})
+            "32 Aug 2026", "0 Aug 2026"})
     void dropsJobsWhoseDateCannotBeRead(final String datePosted) {
         assertThat(titlesKept(30, job("unreadable date", datePosted))).isEmpty();
+    }
+
+    @Test
+    void readsADayWrittenWithoutItsLeadingZero() {
+        final JobSearchResultFilterService service = serviceOn(LocalDate.of(2026, 8, 9));
+
+        final JobSearchResponse filtered = service.filterStaleJobs(USER_ID, 7, response(company("Acme Corp",
+                job("no leading zero", "7 Aug 2026"),
+                job("leading zero", "07 Aug 2026"),
+                job("stale, no leading zero", "1 Aug 2026"))));
+
+        assertThat(titles(filtered)).containsExactly("no leading zero", "leading zero");
     }
 
     @Test
