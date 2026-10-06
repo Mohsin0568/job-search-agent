@@ -12,6 +12,18 @@ npm run dev                  # http://localhost:5173
 
 In development, requests to `/api/*` are proxied to the Spring Boot backend on `http://localhost:8080`.
 
+## Tests
+
+```bash
+npm test             # unit and component tests (Vitest, Testing Library, MSW)
+npm run test:watch   # the same, re-running on change
+npm run test:e2e     # browser tests (Playwright); first run: npx playwright install chromium
+```
+
+None of these need Cognito, the backend or `.env.local`. Unit and component tests sit next to the code
+as `*.test.ts(x)`, with shared helpers in `src/test/`. The browser tests in `e2e/` start their own dev
+server on port 5174 and answer Cognito and `/api` calls inside the browser (see `e2e/app.ts`).
+
 ## Layout
 
 ```
@@ -24,5 +36,6 @@ src/
   jobs/       job card, ATS badge, grouping and formatting of job results
   pages/      route screens
   profile/    profile form, schema, and the RequireProfile onboarding guard
+  test/       test setup, the MSW server, render helper and fixtures
   router.tsx  route table
 ```
