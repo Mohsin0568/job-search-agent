@@ -7,6 +7,7 @@ import com.systa.model.CompanySearchResult;
 import com.systa.model.JobSearchResponse;
 import com.systa.repository.CandidateProfileRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ public class JobSearchService {
     private final JobSearchResultFilterService jobSearchResultFilterService;
     private final JobSearchResultPersistenceService jobSearchResultPersistenceService;
     private final CandidateProfileRepository candidateProfileRepository;
+    private final Duration delayBetweenBatchCalls;
 
     private static final List<String> JOB_SOURCES = List.of(
             "The company's official careers/jobs portal",
@@ -41,14 +43,25 @@ public class JobSearchService {
     // before the provider even has a chance to return a 429 for us to back off on.
     private static final Duration DELAY_BETWEEN_BATCH_CALLS = Duration.ofSeconds(5);
 
+    @Autowired
     public JobSearchService(final JobSearchLlmService jobSearchLlmService,
                              final JobSearchResultFilterService jobSearchResultFilterService,
                              final JobSearchResultPersistenceService jobSearchResultPersistenceService,
                              final CandidateProfileRepository candidateProfileRepository) {
+        this(jobSearchLlmService, jobSearchResultFilterService, jobSearchResultPersistenceService,
+                candidateProfileRepository, DELAY_BETWEEN_BATCH_CALLS);
+    }
+
+    JobSearchService(final JobSearchLlmService jobSearchLlmService,
+                      final JobSearchResultFilterService jobSearchResultFilterService,
+                      final JobSearchResultPersistenceService jobSearchResultPersistenceService,
+                      final CandidateProfileRepository candidateProfileRepository,
+                      final Duration delayBetweenBatchCalls) {
         this.jobSearchLlmService = jobSearchLlmService;
         this.jobSearchResultFilterService = jobSearchResultFilterService;
         this.jobSearchResultPersistenceService = jobSearchResultPersistenceService;
         this.candidateProfileRepository = candidateProfileRepository;
+        this.delayBetweenBatchCalls = delayBetweenBatchCalls;
     }
 
 
@@ -78,7 +91,7 @@ public class JobSearchService {
         for (final String company : candidateProfile.companyPreferences()) {
             for (final List<String> sourceBatch : JOB_SOURCE_BATCHES) {
                 if (!firstBatchCall) {
-                    sleep(DELAY_BETWEEN_BATCH_CALLS);
+                    sleep(delayBetweenBatchCalls);
                 }
                 firstBatchCall = false;
 

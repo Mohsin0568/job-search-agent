@@ -24,6 +24,12 @@ jobs:
           cache: maven
       # The repository tests start MongoDB with Testcontainers; the runner's Docker is enough.
       - run: ./mvnw -B verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: job-search-agent/target/site/jacoco
+          retention-days: 7
 
   frontend:
     runs-on: ubuntu-latest

@@ -27,7 +27,9 @@ import java.util.Locale;
 @Slf4j
 public class JobSearchLlmService {
 
-    private static final DateTimeFormatter PROMPT_DATE_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy");
+    // English month names whatever the JVM's default locale, to match the format the prompt asks for.
+    private static final DateTimeFormatter PROMPT_DATE_FORMAT =
+            DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class JobSearchResultFilterService {
@@ -20,7 +21,9 @@ public class JobSearchResultFilterService {
     // Used when a candidate profile hasn't configured its own recencyWindowDays.
     private static final int DEFAULT_RECENCY_WINDOW_DAYS = 7;
 
-    private static final DateTimeFormatter DATE_POSTED_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy");
+    // English month names whatever the JVM's default locale: en_GB would expect "Sept", not "Sep".
+    private static final DateTimeFormatter DATE_POSTED_FORMAT =
+            DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JobSearchResultFilterService.class);
 

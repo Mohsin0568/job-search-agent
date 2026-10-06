@@ -30,6 +30,7 @@
 		<java.version>25</java.version>
 		<spring-ai.version>2.0.0</spring-ai.version>
 		<aws-sdk.version>2.55.11</aws-sdk.version>
+		<jacoco.version>0.8.14</jacoco.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -160,6 +161,27 @@
 						</exclude>
 					</excludes>
 				</configuration>
+			</plugin>
+			<!-- Test coverage report, written to target/site/jacoco/index.html by "mvnw verify". -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
