@@ -1,0 +1,10 @@
+# Job mode: run the daily job search for every user, then exit. No web server.
+#   ./mvnw spring-boot:run -Dspring-boot.run.profiles=job
+#   java -jar job-search-agent.jar --spring.profiles.active=job
+spring:
+  main:
+    web-application-type: none
+
+# The API seeds the autocomplete lists; the job doesn't use them.
+suggestions:
+  seed-on-startup: false

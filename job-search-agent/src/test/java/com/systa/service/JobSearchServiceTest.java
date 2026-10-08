@@ -3,8 +3,8 @@ package com.systa.service;
 import com.systa.model.CandidateProfile;
 import com.systa.model.CompanySearchResult;
 import com.systa.model.JobListing;
+import com.systa.model.JobSearchOutcome;
 import com.systa.model.JobSearchResponse;
-import com.systa.repository.CandidateProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,10 +18,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -49,9 +47,6 @@ class JobSearchServiceTest {
     @Mock
     private JobSearchResultPersistenceService jobSearchResultPersistenceService;
 
-    @Mock
-    private CandidateProfileRepository candidateProfileRepository;
-
     @Captor
     private ArgumentCaptor<List<String>> sourcesCaptor;
 
@@ -61,7 +56,7 @@ class JobSearchServiceTest {
     void setUp() {
         // No pause between batch calls, so the tests don't wait on the rate-limit spacing.
         service = new JobSearchService(jobSearchLlmService, jobSearchResultFilterService,
-                jobSearchResultPersistenceService, candidateProfileRepository, Duration.ZERO);
+                jobSearchResultPersistenceService, Duration.ZERO);
 
         // By default the LLM finds one job per batch and the filter keeps everything.
         lenient().when(jobSearchLlmService.searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList()))
@@ -72,9 +67,11 @@ class JobSearchServiceTest {
 
     @Test
     void searchesEverySourceOnceForEachPreferredCompany_inSmallBatches() {
-        final CandidateProfile profile = userHasProfile("Acme Corp", "Globex");
+        final CandidateProfile profile = profile("Acme Corp", "Globex");
 
-        service.searchJobs(USER_ID);
+        final JobSearchOutcome outcome = service.searchJobs(profile);
+
+        assertThat(outcome).isEqualTo(new JobSearchOutcome(2 * BATCHES_PER_COMPANY, 0));
 
         for (final String company : List.of("Acme Corp", "Globex")) {
             verify(jobSearchLlmService, times(BATCHES_PER_COMPANY))
@@ -93,9 +90,7 @@ class JobSearchServiceTest {
 
     @Test
     void searchesCompaniesInTheUsersPreferredOrder() {
-        userHasProfile("Globex", "Acme Corp");
-
-        service.searchJobs(USER_ID);
+        service.searchJobs(profile("Globex", "Acme Corp"));
 
         final InOrder inOrder = inOrder(jobSearchLlmService);
         inOrder.verify(jobSearchLlmService, times(BATCHES_PER_COMPANY))
@@ -106,11 +101,10 @@ class JobSearchServiceTest {
 
     @Test
     void filtersEachBatchWithTheProfilesRecencyWindow_thenSavesWhatIsLeft() {
-        userHasProfileWithWindow(30, "Acme Corp");
         final JobSearchResponse fresh = new JobSearchResponse(List.of(new CompanySearchResult("Acme Corp", List.of())));
         when(jobSearchResultFilterService.filterStaleJobs(anyString(), any(), any())).thenReturn(fresh);
 
-        service.searchJobs(USER_ID);
+        service.searchJobs(profile(30, List.of("Acme Corp")));
 
         final ArgumentCaptor<JobSearchResponse> unfiltered = ArgumentCaptor.forClass(JobSearchResponse.class);
         verify(jobSearchResultFilterService, times(BATCHES_PER_COMPANY))
@@ -125,18 +119,14 @@ class JobSearchServiceTest {
 
     @Test
     void passesOnAMissingRecencyWindow_forTheFilterToDefault() {
-        userHasProfileWithWindow(null, "Acme Corp");
-
-        service.searchJobs(USER_ID);
+        service.searchJobs(profile(null, List.of("Acme Corp")));
 
         verify(jobSearchResultFilterService, times(BATCHES_PER_COMPANY)).filterStaleJobs(eq(USER_ID), eq(null), any());
     }
 
     @Test
     void savesEachBatchBeforeSearchingTheNext_soAnEarlierResultSurvivesALaterFailure() {
-        userHasProfile("Acme Corp");
-
-        service.searchJobs(USER_ID);
+        service.searchJobs(profile("Acme Corp"));
 
         final InOrder inOrder = inOrder(jobSearchLlmService, jobSearchResultPersistenceService);
         for (int batch = 0; batch < BATCHES_PER_COMPANY; batch++) {
@@ -146,15 +136,17 @@ class JobSearchServiceTest {
     }
 
     @Test
-    void carriesOnWithTheOtherBatchesAndCompanies_whenOneSearchFails() {
-        userHasProfile("Acme Corp", "Globex");
+    void carriesOnWithTheOtherBatchesAndCompanies_whenOneSearchFails_andCountsTheFailures() {
         doThrow(new IllegalStateException("429 rate limit, retries exhausted"))
                 .doThrow(new JobSearchParseException("Failed to parse job search response from LLM", null))
                 .doAnswer(call -> found(call.getArgument(2), call.<List<String>>getArgument(3)))
                 .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
 
-        assertThatCode(() -> service.searchJobs(USER_ID)).doesNotThrowAnyException();
+        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Globex"));
 
+        assertThat(outcome).isEqualTo(new JobSearchOutcome(2 * BATCHES_PER_COMPANY, 2));
+        assertThat(outcome.someBatchesFailed()).isTrue();
+        assertThat(outcome.allBatchesFailed()).isFalse();
         verify(jobSearchLlmService, times(2 * BATCHES_PER_COMPANY))
                 .searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
         verify(jobSearchResultPersistenceService, times(2 * BATCHES_PER_COMPANY - 2)).persist(eq(USER_ID), any());
@@ -162,53 +154,39 @@ class JobSearchServiceTest {
 
     @Test
     void carriesOn_whenSavingABatchFails() {
-        userHasProfile("Acme Corp");
         doThrow(new IllegalStateException("Mongo unavailable")).doNothing()
                 .when(jobSearchResultPersistenceService).persist(eq(USER_ID), any());
 
-        assertThatCode(() -> service.searchJobs(USER_ID)).doesNotThrowAnyException();
+        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp"));
 
+        assertThat(outcome).isEqualTo(new JobSearchOutcome(BATCHES_PER_COMPANY, 1));
         verify(jobSearchResultPersistenceService, times(BATCHES_PER_COMPANY)).persist(eq(USER_ID), any());
     }
 
     @Test
-    void doesNothing_whenTheUserHasNoProfile() {
-        when(candidateProfileRepository.findByUserId(USER_ID)).thenReturn(Optional.empty());
+    void reportsEveryBatchAsFailed_whenNoSearchGetsThrough() {
+        doThrow(new IllegalStateException("429 rate limit, retries exhausted"))
+                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
 
-        assertThatCode(() -> service.searchJobs(USER_ID)).doesNotThrowAnyException();
+        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp"));
 
-        verifyNoInteractions(jobSearchLlmService, jobSearchResultFilterService, jobSearchResultPersistenceService);
+        assertThat(outcome).isEqualTo(new JobSearchOutcome(BATCHES_PER_COMPANY, BATCHES_PER_COMPANY));
+        assertThat(outcome.allBatchesFailed()).isTrue();
+        verifyNoInteractions(jobSearchResultPersistenceService);
     }
 
     @ParameterizedTest
     @NullAndEmptySource
-    void doesNothing_whenTheProfileNamesNoCompanies(final List<String> companyPreferences) {
-        when(candidateProfileRepository.findByUserId(USER_ID))
-                .thenReturn(Optional.of(profile(7, companyPreferences)));
+    void searchesNothing_whenTheProfileNamesNoCompanies(final List<String> companyPreferences) {
+        final JobSearchOutcome outcome = service.searchJobs(profile(7, companyPreferences));
 
-        assertThatCode(() -> service.searchJobs(USER_ID)).doesNotThrowAnyException();
-
+        assertThat(outcome.nothingToSearch()).isTrue();
+        assertThat(outcome.allBatchesFailed()).isFalse();
         verifyNoInteractions(jobSearchLlmService, jobSearchResultFilterService, jobSearchResultPersistenceService);
     }
 
-    @Test
-    void neverThrowsToItsCaller_evenWhenTheProfileCannotBeLoaded() {
-        when(candidateProfileRepository.findByUserId(USER_ID)).thenThrow(new IllegalStateException("Mongo unavailable"));
-
-        assertThatCode(() -> service.searchJobs(USER_ID)).doesNotThrowAnyException();
-
-        verifyNoInteractions(jobSearchLlmService);
-    }
-
-    private CandidateProfile userHasProfile(final String... companyPreferences) {
-        return userHasProfileWithWindow(7, companyPreferences);
-    }
-
-    private CandidateProfile userHasProfileWithWindow(final Integer recencyWindowDays,
-                                                      final String... companyPreferences) {
-        final CandidateProfile profile = profile(recencyWindowDays, List.of(companyPreferences));
-        when(candidateProfileRepository.findByUserId(USER_ID)).thenReturn(Optional.of(profile));
-        return profile;
+    private static CandidateProfile profile(final String... companyPreferences) {
+        return profile(7, List.of(companyPreferences));
     }
 
     private static CandidateProfile profile(final Integer recencyWindowDays, final List<String> companyPreferences) {

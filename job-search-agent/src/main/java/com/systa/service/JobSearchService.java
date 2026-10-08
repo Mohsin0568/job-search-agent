@@ -1,14 +1,11 @@
 package com.systa.service;
 
-import com.systa.exception.CandidateProfileNotFoundException;
-import com.systa.exception.CompanyPreferencesNotSetException;
 import com.systa.model.CandidateProfile;
 import com.systa.model.CompanySearchResult;
+import com.systa.model.JobSearchOutcome;
 import com.systa.model.JobSearchResponse;
-import com.systa.repository.CandidateProfileRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -22,7 +19,6 @@ public class JobSearchService {
     private final JobSearchLlmService jobSearchLlmService;
     private final JobSearchResultFilterService jobSearchResultFilterService;
     private final JobSearchResultPersistenceService jobSearchResultPersistenceService;
-    private final CandidateProfileRepository candidateProfileRepository;
     private final Duration delayBetweenBatchCalls;
 
     private static final List<String> JOB_SOURCES = List.of(
@@ -46,54 +42,45 @@ public class JobSearchService {
     @Autowired
     public JobSearchService(final JobSearchLlmService jobSearchLlmService,
                              final JobSearchResultFilterService jobSearchResultFilterService,
-                             final JobSearchResultPersistenceService jobSearchResultPersistenceService,
-                             final CandidateProfileRepository candidateProfileRepository) {
+                             final JobSearchResultPersistenceService jobSearchResultPersistenceService) {
         this(jobSearchLlmService, jobSearchResultFilterService, jobSearchResultPersistenceService,
-                candidateProfileRepository, DELAY_BETWEEN_BATCH_CALLS);
+                DELAY_BETWEEN_BATCH_CALLS);
     }
 
     JobSearchService(final JobSearchLlmService jobSearchLlmService,
                       final JobSearchResultFilterService jobSearchResultFilterService,
                       final JobSearchResultPersistenceService jobSearchResultPersistenceService,
-                      final CandidateProfileRepository candidateProfileRepository,
                       final Duration delayBetweenBatchCalls) {
         this.jobSearchLlmService = jobSearchLlmService;
         this.jobSearchResultFilterService = jobSearchResultFilterService;
         this.jobSearchResultPersistenceService = jobSearchResultPersistenceService;
-        this.candidateProfileRepository = candidateProfileRepository;
         this.delayBetweenBatchCalls = delayBetweenBatchCalls;
     }
 
-
-    @Async
-    public void searchJobs(final String userId) {
-        try {
-            doSearchJobs(userId);
-        } catch (final Exception e) {
-            // Runs fire-and-forget off the request thread, so this is the only place
-            // left to surface a failure - the caller has already received its 200.
-            log.error("Job search failed - userId={}", userId, e);
-        }
-    }
-
+    /**
+     * Searches every job source for each of the profile's preferred companies, and returns once all of
+     * them have been tried. A failed batch is logged and counted rather than thrown, so the caller can
+     * tell a clean run from a partial one.
+     */
     // Persists each source batch as soon as it comes back, rather than aggregating every
     // company's results in memory first - so a later batch/company hitting a rate limit
     // (even after its own retry) doesn't lose results already fetched.
-    private void doSearchJobs(final String userId) {
-        final CandidateProfile candidateProfile = candidateProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new CandidateProfileNotFoundException(userId));
+    public JobSearchOutcome searchJobs(final CandidateProfile candidateProfile) {
+        final String userId = candidateProfile.userId();
 
         if (candidateProfile.companyPreferences() == null || candidateProfile.companyPreferences().isEmpty()) {
-            throw new CompanyPreferencesNotSetException(userId);
+            log.warn("No company preferences set, nothing to search - userId={}", userId);
+            return new JobSearchOutcome(0, 0);
         }
 
-        boolean firstBatchCall = true;
+        int batchesAttempted = 0;
+        int batchesFailed = 0;
         for (final String company : candidateProfile.companyPreferences()) {
             for (final List<String> sourceBatch : JOB_SOURCE_BATCHES) {
-                if (!firstBatchCall) {
+                if (batchesAttempted > 0) {
                     sleep(delayBetweenBatchCalls);
                 }
-                firstBatchCall = false;
+                batchesAttempted++;
 
                 try {
                     final CompanySearchResult batchResult = jobSearchLlmService
@@ -102,11 +89,13 @@ public class JobSearchService {
                 } catch (final Exception e) {
                     // Isolate failures per (company, batch) so one bad/rate-limited call
                     // doesn't stop results already persisted for other batches/companies.
+                    batchesFailed++;
                     log.error("Job search failed for a source batch - userId={}, company={}, sources={}",
                             userId, company, sourceBatch, e);
                 }
             }
         }
+        return new JobSearchOutcome(batchesAttempted, batchesFailed);
     }
 
     private void persistBatchResult(final String userId, final Integer recencyWindowDays,

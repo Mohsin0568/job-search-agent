@@ -13,20 +13,6 @@ public class GlobalExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(CandidateProfileNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleCandidateProfileNotFound(final CandidateProfileNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(
-                        "your job search profile has not been set, please update your preferences to search for the job"));
-    }
-
-    @ExceptionHandler(CompanyPreferencesNotSetException.class)
-    public ResponseEntity<ErrorResponse> handleCompanyPreferencesNotSet(final CompanyPreferencesNotSetException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(
-                        "you have not set any company preferences, please update your preferences to search for the job"));
-    }
-
     // 401 makes the frontend end its local session and send the user back to sign in.
     @ExceptionHandler(UserSessionRevokedException.class)
     public ResponseEntity<ErrorResponse> handleUserSessionRevoked(final UserSessionRevokedException ex) {

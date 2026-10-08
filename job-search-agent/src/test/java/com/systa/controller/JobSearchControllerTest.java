@@ -4,13 +4,11 @@ import com.systa.model.JobListing;
 import com.systa.model.UserJobSearchResult;
 import com.systa.security.SecurityConfig;
 import com.systa.service.JobSearchResultQueryService;
-import com.systa.service.JobSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -23,7 +21,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -43,29 +40,7 @@ class JobSearchControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private JobSearchService jobSearchService;
-
-    @MockitoBean
     private JobSearchResultQueryService jobSearchResultQueryService;
-
-    @Test
-    void searchJobs_withoutToken_isUnauthorized() throws Exception {
-        mockMvc.perform(post("/api/jobs/search"))
-                .andExpect(status().isUnauthorized());
-
-        verifyNoInteractions(jobSearchService);
-    }
-
-    @Test
-    void searchJobs_usesTokenSubject_andIgnoresUserIdInBody() throws Exception {
-        mockMvc.perform(post("/api/jobs/search")
-                        .with(jwt().jwt(token -> token.subject(USER_ID)))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"userId\":\"someone-else\"}"))
-                .andExpect(status().isAccepted());
-
-        verify(jobSearchService).searchJobs(USER_ID);
-    }
 
     @Test
     void getResults_returnsResultsForTokenSubject() throws Exception {
@@ -101,9 +76,9 @@ class JobSearchControllerTest {
 
     @Test
     void corsPreflight_fromFrontendOrigin_isAllowed() throws Exception {
-        mockMvc.perform(options("/api/jobs/search")
+        mockMvc.perform(options("/api/jobs/results")
                         .header(HttpHeaders.ORIGIN, FRONTEND_ORIGIN)
-                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET")
                         .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "authorization"))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, FRONTEND_ORIGIN));
@@ -111,9 +86,9 @@ class JobSearchControllerTest {
 
     @Test
     void corsPreflight_fromUnknownOrigin_isRejected() throws Exception {
-        mockMvc.perform(options("/api/jobs/search")
+        mockMvc.perform(options("/api/jobs/results")
                         .header(HttpHeaders.ORIGIN, "https://evil.example")
-                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))
                 .andExpect(status().isForbidden());
     }
 }
