@@ -1,5 +1,6 @@
 package com.systa.security;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +22,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.time.Duration;
 import java.util.List;
 
+// Not loaded in job mode, which serves no HTTP requests.
 @Configuration
+@ConditionalOnWebApplication
 @EnableConfigurationProperties(AuthProperties.class)
 public class SecurityConfig {
 

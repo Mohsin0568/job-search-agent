@@ -18,11 +18,7 @@ export function saveProfile(profile: CandidateProfile): Promise<CandidateProfile
   })
 }
 
-/** Starts a search in the background; results arrive via getJobResults as each batch completes. */
-export function startJobSearch(): Promise<void> {
-  return apiFetch<void>('/api/jobs/search', { method: 'POST' })
-}
-
+/** Results are produced by the backend's daily job search; there is no way to start one from here. */
 export function getJobResults(page = 0, size = 50): Promise<JobSearchResult[]> {
   const params = new URLSearchParams({ page: String(page), size: String(size) })
   return apiFetch<JobSearchResult[]>(`/api/jobs/results?${params}`)

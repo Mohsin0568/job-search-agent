@@ -39,3 +39,9 @@ job-search:
   max-attempts-per-batch: 2
   rate-limit-retry-delay: 30s
 
+  # Used by the daily job (the "job" profile - see application-job.yml).
+  daily-run:
+    page-size: 50
+    delay-between-users: 5s
+    # Set to true to search again for users already searched today (JOB_SEARCH_FORCE=true).
+    force: ${JOB_SEARCH_FORCE:false}
