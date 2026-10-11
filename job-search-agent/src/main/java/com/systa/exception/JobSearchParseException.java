@@ -1,4 +1,4 @@
-package com.systa.service;
+package com.systa.exception;
 
 public class JobSearchParseException extends RuntimeException {
 

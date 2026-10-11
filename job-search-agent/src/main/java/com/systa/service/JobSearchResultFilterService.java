@@ -1,8 +1,9 @@
 package com.systa.service;
 
 import com.systa.model.CompanySearchResult;
+import com.systa.model.FilteredOutJob;
+import com.systa.model.JobFilterResult;
 import com.systa.model.JobListing;
-import com.systa.model.JobSearchResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -41,28 +43,29 @@ public class JobSearchResultFilterService {
 
     // Backstop for the LLM's own recency rule: it doesn't reliably apply the recency
     // cutoff itself (e.g. it once included a job posted 27 days ago), so re-check it here in code.
-    public JobSearchResponse filterStaleJobs(final String userId, final Integer recencyWindowDays,
-                                              final JobSearchResponse jobSearchResponse) {
+    public JobFilterResult filterStaleJobs(final String userId, final Integer recencyWindowDays,
+                                            final CompanySearchResult company) {
         final int effectiveRecencyWindowDays = effectiveRecencyWindowDays(recencyWindowDays);
 
         final LocalDate today = LocalDate.now(clock);
         final LocalDate earliestAllowedDate = today.minusDays(effectiveRecencyWindowDays);
 
-        final List<CompanySearchResult> filteredCompanies = jobSearchResponse.companies().stream()
-                .map(company -> new CompanySearchResult(company.companyName(), company.jobs().stream()
-                        .filter(job -> isWithinRecencyWindow(userId, job, earliestAllowedDate, today,
-                                effectiveRecencyWindowDays))
-                        .toList()))
-                .toList();
-
-        final JobSearchResponse filteredResponse = new JobSearchResponse(filteredCompanies);
-
-        for (final CompanySearchResult company : filteredResponse.companies()) {
-            LOGGER.info("Job search result summary - userId={}, company={}, jobsFound={}",
-                    userId, company.companyName(), company.jobs().size());
+        final List<JobListing> validJobs = new ArrayList<>();
+        final List<FilteredOutJob> filteredOutJobs = new ArrayList<>();
+        for (final JobListing job : company.jobs()) {
+            final FilteredOutJob.Reason reasonToDrop = reasonToDrop(userId, job, earliestAllowedDate, today,
+                    effectiveRecencyWindowDays);
+            if (reasonToDrop == null) {
+                validJobs.add(job);
+            } else {
+                filteredOutJobs.add(new FilteredOutJob(job, reasonToDrop));
+            }
         }
 
-        return filteredResponse;
+        LOGGER.info("Job search result summary - userId={}, company={}, jobsFound={}",
+                userId, company.companyName(), validJobs.size());
+
+        return new JobFilterResult(List.copyOf(validJobs), List.copyOf(filteredOutJobs));
     }
 
     /** The profile's window, or the default when it hasn't set one. Shared with the LLM prompt. */
@@ -70,15 +73,16 @@ public class JobSearchResultFilterService {
         return recencyWindowDays != null ? recencyWindowDays : DEFAULT_RECENCY_WINDOW_DAYS;
     }
 
-    private boolean isWithinRecencyWindow(final String userId, final JobListing job,
-                                           final LocalDate earliestAllowedDate, final LocalDate today,
-                                           final int recencyWindowDays) {
+    /** Why the job fails the recency check, or null when it passes. */
+    private FilteredOutJob.Reason reasonToDrop(final String userId, final JobListing job,
+                                               final LocalDate earliestAllowedDate, final LocalDate today,
+                                               final int recencyWindowDays) {
         final LocalDate datePosted = parseDatePosted(job.datePosted());
         if (datePosted == null) {
             LOGGER.info("Dropping job with unparseable/unspecified datePosted - userId={}, jobTitle={}, "
                             + "datePosted={}, url={}",
                     userId, job.jobTitle(), job.datePosted(), job.url());
-            return false;
+            return FilteredOutJob.Reason.DATE_POSTED_UNREADABLE;
         }
 
         final boolean withinWindow = !datePosted.isBefore(earliestAllowedDate) && !datePosted.isAfter(today);
@@ -86,8 +90,9 @@ public class JobSearchResultFilterService {
             LOGGER.info("Dropping stale job outside {}-day recency window - userId={}, jobTitle={}, "
                             + "datePosted={}, url={}",
                     recencyWindowDays, userId, job.jobTitle(), job.datePosted(), job.url());
+            return FilteredOutJob.Reason.OUTSIDE_RECENCY_WINDOW;
         }
-        return withinWindow;
+        return null;
     }
 
     private LocalDate parseDatePosted(final String datePosted) {

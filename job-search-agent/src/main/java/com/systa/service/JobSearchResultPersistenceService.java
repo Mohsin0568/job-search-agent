@@ -2,7 +2,6 @@ package com.systa.service;
 
 import com.systa.model.CompanySearchResult;
 import com.systa.model.JobListing;
-import com.systa.model.JobSearchResponse;
 import com.systa.model.UserJobSearchResult;
 import com.systa.repository.UserJobSearchResultRepository;
 import org.slf4j.Logger;
@@ -12,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -39,16 +40,20 @@ public class JobSearchResultPersistenceService {
         this.idGenerator = idGenerator;
     }
 
-    public void persist(final String userId, final JobSearchResponse jobSearchResponse) {
+    /** Saves the jobs the user doesn't already have, and returns the ones it saved. */
+    public List<JobListing> persist(final String userId, final CompanySearchResult companySearchResult) {
         final LocalDateTime jobRunDateTime = LocalDateTime.now(clock);
-        for (final CompanySearchResult company : jobSearchResponse.companies()) {
-            for (final JobListing job : company.jobs()) {
-                persistJob(userId, company.companyName(), job, jobRunDateTime);
+        final List<JobListing> savedJobs = new ArrayList<>();
+        for (final JobListing job : companySearchResult.jobs()) {
+            if (persistJob(userId, companySearchResult.companyName(), job, jobRunDateTime)) {
+                savedJobs.add(job);
             }
         }
+
+        return savedJobs;
     }
 
-    private void persistJob(final String userId, final String companyName, final JobListing job,
+    private boolean persistJob(final String userId, final String companyName, final JobListing job,
                              final LocalDateTime jobRunDateTime) {
         final boolean hasReliableJobId = job.jobId() != null && !NOT_SPECIFIED.equalsIgnoreCase(job.jobId());
 
@@ -59,7 +64,7 @@ public class JobSearchResultPersistenceService {
 
             if (alreadyExists) {
                 logDuplicateJob(userId, companyName, job);
-                return;
+                return false;
             }
         }
 
@@ -70,6 +75,7 @@ public class JobSearchResultPersistenceService {
                 jobRunDateTime,
                 companyName,
                 job));
+        return true;
     }
 
     private void logNewJob(final String userId, final String companyName, final JobListing job) {

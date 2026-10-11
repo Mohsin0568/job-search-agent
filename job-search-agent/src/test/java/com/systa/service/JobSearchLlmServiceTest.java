@@ -1,6 +1,7 @@
 package com.systa.service;
 
 import com.systa.config.ApplicationProperties;
+import com.systa.exception.JobSearchParseException;
 import com.systa.model.CandidateProfile;
 import com.systa.model.CompanySearchResult;
 import com.systa.model.JobListing;
