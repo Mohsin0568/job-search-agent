@@ -106,8 +106,9 @@ public class JobSearchService {
                 userId, recencyWindowDays, batchResult);
         final CompanySearchResult validJobsSearchResult =
                 new CompanySearchResult(batchResult.companyName(), filterResult.validJobs());
-        final List<JobListing> savedJobs = jobSearchResultPersistenceService.persist(userId, validJobsSearchResult);
-        return jobSearchAuditService.auditScannedBatch(sourceBatch, batchResult.jobs(), filterResult, savedJobs);
+        final JobPersistResult persistResult =
+                jobSearchResultPersistenceService.persist(userId, validJobsSearchResult);
+        return jobSearchAuditService.auditScannedBatch(sourceBatch, batchResult.jobs(), filterResult, persistResult);
     }
 
     private void sleep(final Duration duration) {

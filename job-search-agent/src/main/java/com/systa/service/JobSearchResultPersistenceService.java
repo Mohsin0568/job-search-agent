@@ -2,6 +2,7 @@ package com.systa.service;
 
 import com.systa.model.CompanySearchResult;
 import com.systa.model.JobListing;
+import com.systa.model.JobPersistResult;
 import com.systa.model.UserJobSearchResult;
 import com.systa.repository.UserJobSearchResultRepository;
 import org.slf4j.Logger;
@@ -40,17 +41,20 @@ public class JobSearchResultPersistenceService {
         this.idGenerator = idGenerator;
     }
 
-    /** Saves the jobs the user doesn't already have, and returns the ones it saved. */
-    public List<JobListing> persist(final String userId, final CompanySearchResult companySearchResult) {
+    /** Saves the jobs the user doesn't already have, and reports which were saved and which were duplicates. */
+    public JobPersistResult persist(final String userId, final CompanySearchResult companySearchResult) {
         final LocalDateTime jobRunDateTime = LocalDateTime.now(clock);
         final List<JobListing> savedJobs = new ArrayList<>();
+        final List<JobListing> duplicateJobs = new ArrayList<>();
         for (final JobListing job : companySearchResult.jobs()) {
             if (persistJob(userId, companySearchResult.companyName(), job, jobRunDateTime)) {
                 savedJobs.add(job);
+            } else {
+                duplicateJobs.add(job);
             }
         }
 
-        return savedJobs;
+        return new JobPersistResult(savedJobs, duplicateJobs);
     }
 
     private boolean persistJob(final String userId, final String companyName, final JobListing job,

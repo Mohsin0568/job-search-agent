@@ -6,6 +6,7 @@ import com.systa.model.CompanySearchResult;
 import com.systa.model.FilteredOutJob;
 import com.systa.model.JobFilterResult;
 import com.systa.model.JobListing;
+import com.systa.model.JobPersistResult;
 import com.systa.model.JobSearchAudit;
 import com.systa.model.JobSearchAudit.SourceAudit;
 import com.systa.model.JobSearchOutcome;
@@ -82,7 +83,7 @@ class JobSearchServiceTest {
         lenient().when(jobSearchResultFilterService.filterStaleJobs(anyString(), any(), any()))
                 .thenAnswer(call -> new JobFilterResult(call.<CompanySearchResult>getArgument(2).jobs(), List.of()));
         lenient().when(jobSearchResultPersistenceService.persist(anyString(), any()))
-                .thenAnswer(call -> call.<CompanySearchResult>getArgument(1).jobs());
+                .thenAnswer(call -> new JobPersistResult(call.<CompanySearchResult>getArgument(1).jobs(), List.of()));
     }
 
     @Test
@@ -178,7 +179,8 @@ class JobSearchServiceTest {
 
     @Test
     void carriesOn_whenSavingABatchFails() {
-        doThrow(new IllegalStateException("Mongo unavailable")).doReturn(List.of())
+        doThrow(new IllegalStateException("Mongo unavailable"))
+                .doReturn(new JobPersistResult(List.of(), List.of()))
                 .when(jobSearchResultPersistenceService).persist(eq(USER_ID), any());
 
         final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp"));
@@ -214,8 +216,8 @@ class JobSearchServiceTest {
         doReturn(new JobFilterResult(List.of(portalJob, linkedInSaved, linkedInDuplicate), List.of(stale)))
                 .doReturn(new JobFilterResult(List.of(), List.of()))
                 .when(jobSearchResultFilterService).filterStaleJobs(anyString(), any(), any());
-        doReturn(List.of(portalJob, linkedInSaved))
-                .doReturn(List.of())
+        doReturn(new JobPersistResult(List.of(portalJob, linkedInSaved), List.of(linkedInDuplicate)))
+                .doReturn(new JobPersistResult(List.of(), List.of()))
                 .when(jobSearchResultPersistenceService).persist(anyString(), any());
 
         service.searchJobs(profile("Acme Corp"));
@@ -229,9 +231,11 @@ class JobSearchServiceTest {
         assertThat(audit.sources()).extracting(SourceAudit::source)
                 .containsExactlyElementsOf(Arrays.stream(JobSource.values()).map(JobSource::displayName).toList());
         assertThat(audit.sources().get(0)).isEqualTo(
-                new SourceAudit("Company careers portal", SourceAudit.Status.SCANNED, null, 1, 0, List.of(), 1, 1, 0));
+                new SourceAudit("Company careers portal", SourceAudit.Status.SCANNED, null, 1, 0, List.of(), 1, 1, 0,
+                        List.of()));
         assertThat(audit.sources().get(1)).isEqualTo(
-                new SourceAudit("LinkedIn", SourceAudit.Status.SCANNED, null, 3, 1, List.of(stale), 2, 1, 1));
+                new SourceAudit("LinkedIn", SourceAudit.Status.SCANNED, null, 3, 1, List.of(stale), 2, 1, 1,
+                        List.of(linkedInDuplicate)));
         assertThat(audit.sources().subList(2, SOURCE_COUNT)).allSatisfy(source -> {
             assertThat(source.status()).isEqualTo(SourceAudit.Status.SCANNED);
             assertThat(source.jobsRetrieved()).isZero();

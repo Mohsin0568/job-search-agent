@@ -3,6 +3,7 @@ package com.systa.service;
 import com.systa.model.FilteredOutJob;
 import com.systa.model.JobFilterResult;
 import com.systa.model.JobListing;
+import com.systa.model.JobPersistResult;
 import com.systa.model.JobSearchAudit;
 import com.systa.model.JobSearchAudit.SourceAudit;
 import com.systa.model.JobSource;
@@ -49,7 +50,7 @@ public class JobSearchAuditService {
 
     /** Splits one batch's jobs between the sources that batch searched. */
     public List<SourceAudit> auditScannedBatch(final List<JobSource> sources, final List<JobListing> retrievedJobs,
-                                                final JobFilterResult filterResult, final List<JobListing> savedJobs) {
+                                                final JobFilterResult filterResult, final JobPersistResult persistResult) {
         final Map<String, Tally> tallies = new LinkedHashMap<>();
         sources.forEach(source -> tallies.put(source.displayName(), new Tally()));
 
@@ -57,7 +58,8 @@ public class JobSearchAuditService {
         filterResult.filteredOutJobs().forEach(filteredOut ->
                 tallyFor(tallies, sources, filteredOut.job()).filteredOut.add(filteredOut));
         filterResult.validJobs().forEach(job -> tallyFor(tallies, sources, job).valid++);
-        savedJobs.forEach(job -> tallyFor(tallies, sources, job).saved++);
+        persistResult.savedJobs().forEach(job -> tallyFor(tallies, sources, job).saved++);
+        persistResult.duplicateJobs().forEach(job -> tallyFor(tallies, sources, job).duplicates.add(job));
 
         return tallies.entrySet().stream()
                 .map(entry -> entry.getValue().toSourceAudit(entry.getKey()))
@@ -135,10 +137,11 @@ public class JobSearchAuditService {
         private final List<FilteredOutJob> filteredOut = new ArrayList<>();
         private int valid;
         private int saved;
+        private final List<JobListing> duplicates = new ArrayList<>();
 
         private SourceAudit toSourceAudit(final String source) {
             return new SourceAudit(source, SourceAudit.Status.SCANNED, null, retrieved, filteredOut.size(),
-                    List.copyOf(filteredOut), valid, saved, valid - saved);
+                    List.copyOf(filteredOut), valid, saved, duplicates.size(), List.copyOf(duplicates));
         }
     }
 }
