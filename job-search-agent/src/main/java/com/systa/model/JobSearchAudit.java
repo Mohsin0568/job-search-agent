@@ -34,7 +34,8 @@ public record JobSearchAudit(
             int validJobs,
             int jobsSaved,
             // Valid jobs not saved because the user already has them from an earlier search.
-            int duplicateJobsSkipped
+            int duplicateJobsSkipped,
+            List<JobListing> duplicateJobs
     ) {
 
         public enum Status {
@@ -44,7 +45,7 @@ public record JobSearchAudit(
         }
 
         public static SourceAudit failed(final String source, final String failureReason) {
-            return new SourceAudit(source, Status.FAILED, failureReason, 0, 0, List.of(), 0, 0, 0);
+            return new SourceAudit(source, Status.FAILED, failureReason, 0, 0, List.of(), 0, 0, 0, List.of());
         }
     }
 }
