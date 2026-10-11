@@ -1,10 +1,16 @@
 package com.systa.service;
 
+import com.systa.exception.JobSearchParseException;
 import com.systa.model.CandidateProfile;
 import com.systa.model.CompanySearchResult;
+import com.systa.model.FilteredOutJob;
+import com.systa.model.JobFilterResult;
 import com.systa.model.JobListing;
+import com.systa.model.JobSearchAudit;
+import com.systa.model.JobSearchAudit.SourceAudit;
 import com.systa.model.JobSearchOutcome;
-import com.systa.model.JobSearchResponse;
+import com.systa.model.JobSource;
+import com.systa.repository.JobSearchAuditRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
@@ -36,7 +44,10 @@ import static org.mockito.Mockito.when;
 class JobSearchServiceTest {
 
     private static final String USER_ID = "user-1";
-    private static final int BATCHES_PER_COMPANY = 3;
+    // Worked out from the sources currently switched on, so the tests hold as sources come and go.
+    private static final int SOURCE_COUNT = JobSource.values().length;
+    private static final int SOURCES_PER_BATCH = 2;
+    private static final int BATCHES_PER_COMPANY = (SOURCE_COUNT + SOURCES_PER_BATCH - 1) / SOURCES_PER_BATCH;
 
     @Mock
     private JobSearchLlmService jobSearchLlmService;
@@ -47,8 +58,14 @@ class JobSearchServiceTest {
     @Mock
     private JobSearchResultPersistenceService jobSearchResultPersistenceService;
 
+    @Mock
+    private JobSearchAuditRepository jobSearchAuditRepository;
+
     @Captor
     private ArgumentCaptor<List<String>> sourcesCaptor;
+
+    @Captor
+    private ArgumentCaptor<JobSearchAudit> auditCaptor;
 
     private JobSearchService service;
 
@@ -56,13 +73,16 @@ class JobSearchServiceTest {
     void setUp() {
         // No pause between batch calls, so the tests don't wait on the rate-limit spacing.
         service = new JobSearchService(jobSearchLlmService, jobSearchResultFilterService,
-                jobSearchResultPersistenceService, Duration.ZERO);
+                jobSearchResultPersistenceService, new JobSearchAuditService(jobSearchAuditRepository),
+                Duration.ZERO);
 
-        // By default the LLM finds one job per batch and the filter keeps everything.
+        // By default the LLM finds one job per batch, the filter keeps everything and all of it is new.
         lenient().when(jobSearchLlmService.searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList()))
                 .thenAnswer(call -> found(call.getArgument(2), call.<List<String>>getArgument(3)));
         lenient().when(jobSearchResultFilterService.filterStaleJobs(anyString(), any(), any()))
-                .thenAnswer(call -> call.getArgument(2));
+                .thenAnswer(call -> new JobFilterResult(call.<CompanySearchResult>getArgument(2).jobs(), List.of()));
+        lenient().when(jobSearchResultPersistenceService.persist(anyString(), any()))
+                .thenAnswer(call -> call.<CompanySearchResult>getArgument(1).jobs());
     }
 
     @Test
@@ -78,11 +98,13 @@ class JobSearchServiceTest {
                     .searchJobsForCompanyBatch(eq(USER_ID), eq(profile), eq(company), sourcesCaptor.capture());
         }
         final List<List<String>> batches = sourcesCaptor.getAllValues();
-        assertThat(batches).hasSize(2 * BATCHES_PER_COMPANY).allSatisfy(batch -> assertThat(batch).hasSize(2));
-        // Each company gets the same batches, which between them cover six different sources.
-        assertThat(batches.subList(0, BATCHES_PER_COMPANY)).isEqualTo(batches.subList(BATCHES_PER_COMPANY, 6));
+        assertThat(batches).hasSize(2 * BATCHES_PER_COMPANY)
+                .allSatisfy(batch -> assertThat(batch).hasSizeBetween(1, SOURCES_PER_BATCH));
+        // Each company gets the same batches, which between them cover every source once.
+        assertThat(batches.subList(0, BATCHES_PER_COMPANY))
+                .isEqualTo(batches.subList(BATCHES_PER_COMPANY, 2 * BATCHES_PER_COMPANY));
         assertThat(batches.subList(0, BATCHES_PER_COMPANY).stream().flatMap(List::stream))
-                .hasSize(6)
+                .hasSize(SOURCE_COUNT)
                 .doesNotHaveDuplicates()
                 .anySatisfy(source -> assertThat(source).contains("official careers"))
                 .anySatisfy(source -> assertThat(source).contains("LinkedIn"));
@@ -101,20 +123,22 @@ class JobSearchServiceTest {
 
     @Test
     void filtersEachBatchWithTheProfilesRecencyWindow_thenSavesWhatIsLeft() {
-        final JobSearchResponse fresh = new JobSearchResponse(List.of(new CompanySearchResult("Acme Corp", List.of())));
-        when(jobSearchResultFilterService.filterStaleJobs(anyString(), any(), any())).thenReturn(fresh);
+        final JobListing fresh = job("fresh", "LinkedIn");
+        // doReturn, so re-stubbing doesn't run setUp's answer with the matchers' null arguments.
+        doReturn(new JobFilterResult(List.of(fresh), List.of()))
+                .when(jobSearchResultFilterService).filterStaleJobs(anyString(), any(), any());
 
         service.searchJobs(profile(30, List.of("Acme Corp")));
 
-        final ArgumentCaptor<JobSearchResponse> unfiltered = ArgumentCaptor.forClass(JobSearchResponse.class);
+        final ArgumentCaptor<CompanySearchResult> unfiltered = ArgumentCaptor.forClass(CompanySearchResult.class);
         verify(jobSearchResultFilterService, times(BATCHES_PER_COMPANY))
                 .filterStaleJobs(eq(USER_ID), eq(30), unfiltered.capture());
-        assertThat(unfiltered.getAllValues()).allSatisfy(response -> {
-            assertThat(response.companies()).hasSize(1);
-            assertThat(response.companies().get(0).companyName()).isEqualTo("Acme Corp");
-            assertThat(response.companies().get(0).jobs()).hasSize(1);
+        assertThat(unfiltered.getAllValues()).allSatisfy(batchResult -> {
+            assertThat(batchResult.companyName()).isEqualTo("Acme Corp");
+            assertThat(batchResult.jobs()).hasSize(1);
         });
-        verify(jobSearchResultPersistenceService, times(BATCHES_PER_COMPANY)).persist(USER_ID, fresh);
+        verify(jobSearchResultPersistenceService, times(BATCHES_PER_COMPANY)).persist(USER_ID,
+                new CompanySearchResult("Acme Corp", List.of(fresh)));
     }
 
     @Test
@@ -142,19 +166,19 @@ class JobSearchServiceTest {
                 .doAnswer(call -> found(call.getArgument(2), call.<List<String>>getArgument(3)))
                 .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
 
-        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Globex"));
+        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Globex", "Initech"));
 
-        assertThat(outcome).isEqualTo(new JobSearchOutcome(2 * BATCHES_PER_COMPANY, 2));
+        assertThat(outcome).isEqualTo(new JobSearchOutcome(3 * BATCHES_PER_COMPANY, 2));
         assertThat(outcome.someBatchesFailed()).isTrue();
         assertThat(outcome.allBatchesFailed()).isFalse();
-        verify(jobSearchLlmService, times(2 * BATCHES_PER_COMPANY))
+        verify(jobSearchLlmService, times(3 * BATCHES_PER_COMPANY))
                 .searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
-        verify(jobSearchResultPersistenceService, times(2 * BATCHES_PER_COMPANY - 2)).persist(eq(USER_ID), any());
+        verify(jobSearchResultPersistenceService, times(3 * BATCHES_PER_COMPANY - 2)).persist(eq(USER_ID), any());
     }
 
     @Test
     void carriesOn_whenSavingABatchFails() {
-        doThrow(new IllegalStateException("Mongo unavailable")).doNothing()
+        doThrow(new IllegalStateException("Mongo unavailable")).doReturn(List.of())
                 .when(jobSearchResultPersistenceService).persist(eq(USER_ID), any());
 
         final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp"));
@@ -175,6 +199,74 @@ class JobSearchServiceTest {
         verifyNoInteractions(jobSearchResultPersistenceService);
     }
 
+    @Test
+    void recordsAnAuditForEachCompany_countingEachSourcesJobsThroughThePipeline() {
+        final JobListing portalJob = job("portal", "Company portal");
+        final JobListing linkedInSaved = job("linkedin-saved", "LinkedIn");
+        final JobListing linkedInDuplicate = job("linkedin-duplicate", "LinkedIn");
+        final JobListing linkedInStale = job("linkedin-stale", "LinkedIn");
+        final FilteredOutJob stale = new FilteredOutJob(linkedInStale, FilteredOutJob.Reason.OUTSIDE_RECENCY_WINDOW);
+        // The first batch (company portal + LinkedIn) finds four jobs, any other batch finds nothing.
+        doReturn(new CompanySearchResult("Acme Corp",
+                        List.of(portalJob, linkedInSaved, linkedInDuplicate, linkedInStale)))
+                .doReturn(new CompanySearchResult("Acme Corp", List.of()))
+                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
+        doReturn(new JobFilterResult(List.of(portalJob, linkedInSaved, linkedInDuplicate), List.of(stale)))
+                .doReturn(new JobFilterResult(List.of(), List.of()))
+                .when(jobSearchResultFilterService).filterStaleJobs(anyString(), any(), any());
+        doReturn(List.of(portalJob, linkedInSaved))
+                .doReturn(List.of())
+                .when(jobSearchResultPersistenceService).persist(anyString(), any());
+
+        service.searchJobs(profile("Acme Corp"));
+
+        verify(jobSearchAuditRepository).save(auditCaptor.capture());
+        final JobSearchAudit audit = auditCaptor.getValue();
+        assertThat(audit.userId()).isEqualTo(USER_ID);
+        assertThat(audit.companyName()).isEqualTo("Acme Corp");
+        assertThat(audit.sourcesScanned()).isEqualTo(SOURCE_COUNT);
+        assertThat(audit.sourcesFailed()).isZero();
+        assertThat(audit.sources()).extracting(SourceAudit::source)
+                .containsExactlyElementsOf(Arrays.stream(JobSource.values()).map(JobSource::displayName).toList());
+        assertThat(audit.sources().get(0)).isEqualTo(
+                new SourceAudit("Company careers portal", SourceAudit.Status.SCANNED, null, 1, 0, List.of(), 1, 1, 0));
+        assertThat(audit.sources().get(1)).isEqualTo(
+                new SourceAudit("LinkedIn", SourceAudit.Status.SCANNED, null, 3, 1, List.of(stale), 2, 1, 1));
+        assertThat(audit.sources().subList(2, SOURCE_COUNT)).allSatisfy(source -> {
+            assertThat(source.status()).isEqualTo(SourceAudit.Status.SCANNED);
+            assertThat(source.jobsRetrieved()).isZero();
+        });
+    }
+
+    @Test
+    void auditsTheSourcesOfAFailedBatchAsFailed_withTheReason() {
+        doThrow(new IllegalStateException("429 rate limit, retries exhausted"))
+                .doAnswer(call -> found(call.getArgument(2), call.<List<String>>getArgument(3)))
+                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
+
+        service.searchJobs(profile("Acme Corp"));
+
+        verify(jobSearchAuditRepository).save(auditCaptor.capture());
+        final JobSearchAudit audit = auditCaptor.getValue();
+        assertThat(audit.sourcesScanned()).isEqualTo(SOURCE_COUNT - 2);
+        assertThat(audit.sourcesFailed()).isEqualTo(2);
+        assertThat(audit.sources().subList(0, 2)).allSatisfy(source -> {
+            assertThat(source.status()).isEqualTo(SourceAudit.Status.FAILED);
+            assertThat(source.failureReason()).contains("429 rate limit");
+            assertThat(source.jobsRetrieved()).isZero();
+        });
+    }
+
+    @Test
+    void carriesOn_whenRecordingTheAuditFails() {
+        when(jobSearchAuditRepository.save(any())).thenThrow(new IllegalStateException("Mongo unavailable"));
+
+        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Globex"));
+
+        assertThat(outcome).isEqualTo(new JobSearchOutcome(2 * BATCHES_PER_COMPANY, 0));
+        verify(jobSearchAuditRepository, times(2)).save(any());
+    }
+
     @ParameterizedTest
     @NullAndEmptySource
     void searchesNothing_whenTheProfileNamesNoCompanies(final List<String> companyPreferences) {
@@ -182,7 +274,8 @@ class JobSearchServiceTest {
 
         assertThat(outcome.nothingToSearch()).isTrue();
         assertThat(outcome.allBatchesFailed()).isFalse();
-        verifyNoInteractions(jobSearchLlmService, jobSearchResultFilterService, jobSearchResultPersistenceService);
+        verifyNoInteractions(jobSearchLlmService, jobSearchResultFilterService, jobSearchResultPersistenceService,
+                jobSearchAuditRepository);
     }
 
     private static CandidateProfile profile(final String... companyPreferences) {
@@ -192,6 +285,11 @@ class JobSearchServiceTest {
     private static CandidateProfile profile(final Integer recencyWindowDays, final List<String> companyPreferences) {
         return new CandidateProfile("profile-1", USER_ID, "ada@example.com", "Senior Java Developer",
                 List.of("Java", "Spring Boot"), "Builds APIs", companyPreferences, recencyWindowDays);
+    }
+
+    private static JobListing job(final String title, final String source) {
+        return new JobListing("J-" + title, title, "https://example.com/" + title, "London, UK", "17 Aug 2026",
+                "Not specified", "Not specified", source, 85);
     }
 
     private static CompanySearchResult found(final String company, final List<String> sources) {

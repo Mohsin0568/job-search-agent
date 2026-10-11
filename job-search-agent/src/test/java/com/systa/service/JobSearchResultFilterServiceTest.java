@@ -1,8 +1,9 @@
 package com.systa.service;
 
 import com.systa.model.CompanySearchResult;
+import com.systa.model.FilteredOutJob;
+import com.systa.model.JobFilterResult;
 import com.systa.model.JobListing;
-import com.systa.model.JobSearchResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -89,10 +90,10 @@ class JobSearchResultFilterServiceTest {
     void readsADayWrittenWithoutItsLeadingZero() {
         final JobSearchResultFilterService service = serviceOn(LocalDate.of(2026, 8, 9));
 
-        final JobSearchResponse filtered = service.filterStaleJobs(USER_ID, 7, response(company("Acme Corp",
+        final JobFilterResult filtered = service.filterStaleJobs(USER_ID, 7, company("Acme Corp",
                 job("no leading zero", "7 Aug 2026"),
                 job("leading zero", "07 Aug 2026"),
-                job("stale, no leading zero", "1 Aug 2026"))));
+                job("stale, no leading zero", "1 Aug 2026")));
 
         assertThat(titles(filtered)).containsExactly("no leading zero", "leading zero");
     }
@@ -101,10 +102,10 @@ class JobSearchResultFilterServiceTest {
     void windowsCanSpanAMonthAndAYearBoundary() {
         final JobSearchResultFilterService newYearsDay = serviceOn(LocalDate.of(2027, 1, 1));
 
-        final JobSearchResponse filtered = newYearsDay.filterStaleJobs(USER_ID, 7, response(company("Acme Corp",
+        final JobFilterResult filtered = newYearsDay.filterStaleJobs(USER_ID, 7, company("Acme Corp",
                 job("new year's eve", "31 Dec 2026"),
                 job("christmas day", "25 Dec 2026"),
-                job("christmas eve", "24 Dec 2026"))));
+                job("christmas eve", "24 Dec 2026")));
 
         assertThat(titles(filtered)).containsExactly("new year's eve", "christmas day");
     }
@@ -117,53 +118,59 @@ class JobSearchResultFilterServiceTest {
         for (final Locale locale : List.of(Locale.UK, Locale.US, Locale.FRANCE)) {
             Locale.setDefault(locale);
 
-            final JobSearchResponse filtered = september.filterStaleJobs(USER_ID, 7,
-                    response(company("Acme Corp", job("posted in september", "06 Sep 2026"))));
+            final JobFilterResult filtered = september.filterStaleJobs(USER_ID, 7,
+                    company("Acme Corp", job("posted in september", "06 Sep 2026")));
 
             assertThat(titles(filtered)).as("default locale %s", locale).containsExactly("posted in september");
         }
     }
 
     @Test
-    void filtersEachCompanySeparately_keepingCompaniesLeftWithNoJobs() {
-        final JobSearchResponse filtered = service.filterStaleJobs(USER_ID, 7, response(
-                company("Acme Corp", job("fresh", "17 Aug 2026"), job("stale", "01 Aug 2026")),
-                company("Globex", job("also stale", "01 Jul 2026")),
-                company("Initech")));
+    void reportsEachDroppedJobWithTheReasonItWasDropped() {
+        final JobListing fresh = job("fresh", "17 Aug 2026");
+        final JobListing stale = job("stale", "01 Aug 2026");
+        final JobListing future = job("future", "19 Aug 2026");
+        final JobListing undated = job("undated", "Not specified");
 
-        assertThat(filtered.companies()).extracting(CompanySearchResult::companyName)
-                .containsExactly("Acme Corp", "Globex", "Initech");
-        assertThat(filtered.companies().get(0).jobs()).extracting(JobListing::jobTitle).containsExactly("fresh");
-        assertThat(filtered.companies().get(1).jobs()).isEmpty();
-        assertThat(filtered.companies().get(2).jobs()).isEmpty();
+        final JobFilterResult filtered = service.filterStaleJobs(USER_ID, 7,
+                company("Acme Corp", fresh, stale, future, undated));
+
+        assertThat(filtered.validJobs()).containsExactly(fresh);
+        assertThat(filtered.filteredOutJobs()).containsExactly(
+                new FilteredOutJob(stale, FilteredOutJob.Reason.OUTSIDE_RECENCY_WINDOW),
+                new FilteredOutJob(future, FilteredOutJob.Reason.OUTSIDE_RECENCY_WINDOW),
+                new FilteredOutJob(undated, FilteredOutJob.Reason.DATE_POSTED_UNREADABLE));
+    }
+
+    @Test
+    void returnsNothing_whenTheCompanyHasNoJobs() {
+        final JobFilterResult filtered = service.filterStaleJobs(USER_ID, 7, company("Initech"));
+
+        assertThat(filtered.validJobs()).isEmpty();
+        assertThat(filtered.filteredOutJobs()).isEmpty();
     }
 
     @Test
     void returnsKeptJobsUnchanged() {
         final JobListing fresh = job("fresh", "17 Aug 2026");
 
-        final JobSearchResponse filtered = service.filterStaleJobs(USER_ID, 7, response(company("Acme Corp", fresh)));
+        final JobFilterResult filtered = service.filterStaleJobs(USER_ID, 7, company("Acme Corp", fresh));
 
-        assertThat(filtered.companies().get(0).jobs()).containsExactly(fresh);
+        assertThat(filtered.validJobs()).containsExactly(fresh);
     }
 
     private List<String> titlesKept(final Integer recencyWindowDays, final JobListing... jobs) {
-        return titles(service.filterStaleJobs(USER_ID, recencyWindowDays, response(company("Acme Corp", jobs))));
+        return titles(service.filterStaleJobs(USER_ID, recencyWindowDays, company("Acme Corp", jobs)));
     }
 
-    private static List<String> titles(final JobSearchResponse response) {
-        return response.companies().stream()
-                .flatMap(company -> company.jobs().stream())
+    private static List<String> titles(final JobFilterResult filtered) {
+        return filtered.validJobs().stream()
                 .map(JobListing::jobTitle)
                 .toList();
     }
 
     private static JobSearchResultFilterService serviceOn(final LocalDate today) {
         return new JobSearchResultFilterService(Clock.fixed(today.atTime(12, 0).atZone(ZONE).toInstant(), ZONE));
-    }
-
-    private static JobSearchResponse response(final CompanySearchResult... companies) {
-        return new JobSearchResponse(List.of(companies));
     }
 
     private static CompanySearchResult company(final String name, final JobListing... jobs) {
