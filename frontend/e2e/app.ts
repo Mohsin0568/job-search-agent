@@ -27,12 +27,19 @@ type Job = {
   atsScore: number | null
 }
 
+export type Resume = { version: number; latest: boolean; fileName: string; sizeBytes: number; uploadedAt: string }
+
+/** Where the fake backend's download links point; answered by the fake storage below. */
+const STORAGE = 'https://resumes.e2e.test'
+
 export type Backend = {
   /** null means the user hasn't set up a profile yet (the API answers 404). */
   profile: Profile | null
   results: Array<{ id: string; userId: string; jobRunDateTime: string; companyName: string; job: Job }>
   companies: string[]
   skills: string[]
+  /** The user's resume versions, newest first. */
+  resumes: Resume[]
   /** Every profile the app has saved, oldest first. */
   savedProfiles: Profile[]
   /** When true the API rejects the token, as it does once a session has been revoked. */
@@ -183,10 +190,47 @@ async function fakeBackend(page: Page, backend: Backend) {
       backend.savedProfiles.push(backend.profile)
       return json(backend.profile)
     }
+    if (url.pathname === '/api/profile/resume' && request.method() === 'GET') {
+      return json(backend.resumes)
+    }
+    if (url.pathname === '/api/profile/resume' && request.method() === 'POST') {
+      // Enough of a multipart parser for one file part.
+      const upload = request.postDataBuffer()?.toString('latin1') ?? ''
+      const fileName = upload.match(/filename="([^"]*)"/)?.[1] ?? 'resume.pdf'
+      if (!upload.includes('%PDF-')) return json({ message: 'resume must be a PDF file' }, 400)
+      const created: Resume = {
+        version: (backend.resumes[0]?.version ?? 0) + 1,
+        latest: true,
+        fileName,
+        sizeBytes: 2048,
+        uploadedAt: '2026-10-12T09:00:00Z',
+      }
+      backend.resumes = [created, ...backend.resumes.map((resume) => ({ ...resume, latest: false }))]
+      return json(created, 201)
+    }
+    const download = url.pathname.match(/^\/api\/profile\/resume\/(\d+)\/download$/)
+    if (download) {
+      const resume = backend.resumes.find((candidate) => candidate.version === Number(download[1]))
+      if (!resume) return json({ message: 'Not found' }, 404)
+      return json({ url: `${STORAGE}/v${resume.version}/${resume.fileName}`, expiresAt: '2026-10-12T09:05:00Z' })
+    }
     if (url.pathname === '/api/jobs/results') {
       return json(backend.results)
     }
     return json({ message: `The e2e fake backend has no answer for ${request.method()} ${url.pathname}` }, 500)
+  })
+}
+
+/** Stands in for S3: serves any download link as a file to save, as the real signed links do. */
+async function fakeStorage(page: Page) {
+  await page.route(`${STORAGE}/**`, (route) => {
+    const fileName = decodeURIComponent(new URL(route.request().url()).pathname.split('/').pop() ?? 'resume.pdf')
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/pdf',
+      headers: { 'Content-Disposition': `attachment; filename="${fileName}"` },
+      body: '%PDF-1.7 e2e resume',
+    })
   })
 }
 
@@ -198,12 +242,14 @@ export const test = base.extend<{ backend: Backend }>({
       results: [],
       companies: ['Deliveroo', 'Dell', 'Deloitte', 'Monzo'],
       skills: ['Java', 'JavaScript', 'Spring Boot'],
+      resumes: [],
       savedProfiles: [],
       rejectTokens: false,
       rejectPassword: false,
     }
     await fakeCognito(page, backend)
     await fakeBackend(page, backend)
+    await fakeStorage(page)
     await provide(backend)
   },
 })

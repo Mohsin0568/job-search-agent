@@ -3,6 +3,7 @@ import { useProfile } from '../api/hooks'
 import { useAuth } from '../auth/AuthContext'
 import { FullPageSpinner } from '../auth/routes'
 import { ProfileForm } from '../profile/ProfileForm'
+import { ResumeSection } from '../resume/ResumeSection'
 
 export function OnboardingPage() {
   const navigate = useNavigate()
@@ -21,8 +22,12 @@ export function OnboardingPage() {
       <p className="mt-2 text-slate-500">
         Tell us what you’re looking for and which companies to watch. You can change this any time.
       </p>
+      {/* Before the form, whose button leaves this page. Optional: the search runs without a resume. */}
       <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <ProfileForm submitLabel="Save and continue" onSaved={() => navigate('/', { replace: true })} />
+        <ResumeSection />
+      </div>
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <ProfileForm submitLabel="Save and continue" autoFocus={false} onSaved={() => navigate('/', { replace: true })} />
       </div>
     </div>
   )

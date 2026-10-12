@@ -1,4 +1,4 @@
-import type { CandidateProfile, JobListing, JobSearchResult } from '../api/types'
+import type { CandidateProfile, JobListing, JobSearchResult, ResumeVersion } from '../api/types'
 
 export function profile(overrides: Partial<CandidateProfile> = {}): CandidateProfile {
   return {
@@ -7,6 +7,17 @@ export function profile(overrides: Partial<CandidateProfile> = {}): CandidatePro
     currentJobDescription: 'Builds APIs',
     companyPreferences: ['Acme Corp', 'Globex'],
     recencyWindowDays: 14,
+    ...overrides,
+  }
+}
+
+export function resumeVersion(overrides: Partial<ResumeVersion> = {}): ResumeVersion {
+  return {
+    version: 1,
+    latest: true,
+    fileName: 'cv.pdf',
+    sizeBytes: 2048,
+    uploadedAt: '2026-10-12T09:00:00Z',
     ...overrides,
   }
 }

@@ -1,5 +1,12 @@
 import { ApiError, apiFetch } from './client'
-import type { CandidateProfile, JobSearchResult, Suggestion, SuggestionSource } from './types'
+import type {
+  CandidateProfile,
+  JobSearchResult,
+  ResumeDownload,
+  ResumeVersion,
+  Suggestion,
+  SuggestionSource,
+} from './types'
 
 /** Returns null when the user hasn't set up a profile yet (backend responds 404). */
 export async function getProfile(): Promise<CandidateProfile | null> {
@@ -16,6 +23,22 @@ export function saveProfile(profile: CandidateProfile): Promise<CandidateProfile
     method: 'PUT',
     body: JSON.stringify(profile),
   })
+}
+
+/** Every resume version the user has uploaded, newest first. Empty until they upload one. */
+export function getResumeVersions(): Promise<ResumeVersion[]> {
+  return apiFetch<ResumeVersion[]>('/api/profile/resume')
+}
+
+/** Uploads a PDF as the user's next resume version, which becomes their latest. */
+export function uploadResume(file: File): Promise<ResumeVersion> {
+  const body = new FormData()
+  body.append('file', file)
+  return apiFetch<ResumeVersion>('/api/profile/resume', { method: 'POST', body })
+}
+
+export function getResumeDownload(version: number): Promise<ResumeDownload> {
+  return apiFetch<ResumeDownload>(`/api/profile/resume/${version}/download`)
 }
 
 /** Results are produced by the backend's daily job search; there is no way to start one from here. */

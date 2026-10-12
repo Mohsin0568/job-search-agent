@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { useProfile } from '../api/hooks'
 import { Alert } from '../components/form/Alert'
 import { ProfileForm } from '../profile/ProfileForm'
+import { ResumeSection } from '../resume/ResumeSection'
 
 export function ProfilePage() {
   // RequireProfile has already loaded the profile, so this reads from the cache.
@@ -26,6 +27,10 @@ export function ProfilePage() {
           }}
           onChange={hideSavedMessage}
         />
+      </div>
+
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <ResumeSection />
       </div>
     </div>
   )

@@ -3,7 +3,15 @@ import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { API, server } from '../test/server'
 import { ApiError, apiFetch, setUnauthorizedHandler } from './client'
-import { getJobResults, getProfile, saveProfile, suggestNames } from './endpoints'
+import {
+  getJobResults,
+  getProfile,
+  getResumeDownload,
+  getResumeVersions,
+  saveProfile,
+  suggestNames,
+  uploadResume,
+} from './endpoints'
 
 vi.mock('aws-amplify/auth', () => ({ fetchAuthSession: vi.fn() }))
 
@@ -66,6 +74,18 @@ describe('apiFetch', () => {
     const sent = await apiFetch('/echo', { method: 'PUT', body: JSON.stringify({ a: 1 }) })
 
     expect(sent).toEqual({ contentType: 'application/json', body: { a: 1 } })
+  })
+
+  it('leaves the content type of a file upload to fetch, which adds the multipart boundary', async () => {
+    server.use(
+      http.post(`${API}/echo`, ({ request }) => HttpResponse.json({ contentType: request.headers.get('content-type') })),
+    )
+    const body = new FormData()
+    body.append('file', new File(['%PDF-'], 'cv.pdf', { type: 'application/pdf' }))
+
+    const sent = await apiFetch<{ contentType: string }>('/echo', { method: 'POST', body })
+
+    expect(sent.contentType).toMatch(/^multipart\/form-data; boundary=/)
   })
 
   it('returns undefined for an empty response, such as 202 Accepted', async () => {
@@ -179,5 +199,41 @@ describe('endpoints', () => {
     )
 
     expect(await suggestNames('skills', 'c++ & c#')).toEqual([{ name: 'c++ & c#' }])
+  })
+
+  it('getResumeVersions returns the versions, newest first as the backend sends them', async () => {
+    const versions = [
+      { version: 2, latest: true, fileName: 'cv-2.pdf', sizeBytes: 2048, uploadedAt: '2026-10-12T09:00:00Z' },
+      { version: 1, latest: false, fileName: 'cv-1.pdf', sizeBytes: 1024, uploadedAt: '2026-10-01T09:00:00Z' },
+    ]
+    server.use(http.get(`${API}/api/profile/resume`, () => HttpResponse.json(versions)))
+
+    await expect(getResumeVersions()).resolves.toEqual(versions)
+  })
+
+  it('uploadResume POSTs the file as the "file" part and returns the new version', async () => {
+    const created = { version: 1, latest: true, fileName: 'cv.pdf', sizeBytes: 5, uploadedAt: '2026-10-12T09:00:00Z' }
+    let received = ''
+    server.use(
+      http.post(`${API}/api/profile/resume`, async ({ request }) => {
+        received = await request.text()
+        return HttpResponse.json(created, { status: 201 })
+      }),
+    )
+
+    const uploaded = await uploadResume(new File(['%PDF-1.7 resume'], 'cv.pdf', { type: 'application/pdf' }))
+
+    expect(uploaded).toEqual(created)
+    // The file's name and bytes aren't checked here: jsdom's File reaches Node's fetch as an empty,
+    // unnamed blob. The e2e tests, which run in a real browser, cover both.
+    expect(received).toContain('Content-Disposition: form-data; name="file"; filename=')
+    expect(received).toContain('Content-Type: application/pdf')
+  })
+
+  it('getResumeDownload asks for a link to the given version', async () => {
+    const link = { url: 'https://storage.test/v3', expiresAt: '2026-10-12T09:05:00Z' }
+    server.use(http.get(`${API}/api/profile/resume/3/download`, () => HttpResponse.json(link)))
+
+    await expect(getResumeDownload(3)).resolves.toEqual(link)
   })
 })
