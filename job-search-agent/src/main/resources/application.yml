@@ -46,7 +46,7 @@ resume:
   s3:
     # AWS credentials are not configured here: the SDK finds them itself - ~/.aws/credentials or
     # AWS_* environment variables locally, the task/instance role when running on AWS.
-    bucket: ${RESUME_S3_BUCKET}
+    bucket: systa-job-search-agent-resumes
     # Leave unset to use the SDK's own region lookup (AWS_REGION, ~/.aws/config, or the AWS runtime).
     region: ${RESUME_S3_REGION:}
   # How long a resume download link stays valid.
