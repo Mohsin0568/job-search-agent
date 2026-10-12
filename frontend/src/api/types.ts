@@ -29,6 +29,22 @@ export type JobSearchResult = {
   job: JobListing
 }
 
+/** One uploaded version of the user's resume. Every version is kept; the newest is marked latest. */
+export type ResumeVersion = {
+  version: number
+  latest: boolean
+  fileName: string
+  sizeBytes: number
+  /** ISO instant, e.g. "2026-10-12T09:00:00Z". */
+  uploadedAt: string
+}
+
+/** A short-lived link that downloads a resume straight from storage. */
+export type ResumeDownload = {
+  url: string
+  expiresAt: string
+}
+
 /** Which seeded list to autocomplete from; also the path segment of its endpoint. */
 export type SuggestionSource = 'companies' | 'skills'
 
@@ -40,3 +56,5 @@ export type Suggestion = {
 export const MAX_COMPANY_PREFERENCES = 10
 export const MAX_SKILLS = 50
 export const DEFAULT_RECENCY_WINDOW_DAYS = 7
+// Backend limit (spring.servlet.multipart.max-file-size) - keep in sync.
+export const MAX_RESUME_SIZE_BYTES = 5 * 1024 * 1024
