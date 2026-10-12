@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -35,5 +36,29 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .orElse("Request is invalid");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(message));
+    }
+
+    @ExceptionHandler(InvalidResumeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidResume(final InvalidResumeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleUploadTooLarge(final MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
+                .body(new ErrorResponse("resume file is too large - the limit is 5MB"));
+    }
+
+    @ExceptionHandler(ResumeUploadConflictException.class)
+    public ResponseEntity<ErrorResponse> handleResumeUploadConflict(final ResumeUploadConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("another resume upload was in progress, please try again"));
+    }
+
+    @ExceptionHandler(ResumeStorageException.class)
+    public ResponseEntity<ErrorResponse> handleResumeStorageFailure(final ResumeStorageException ex) {
+        LOGGER.error("Resume storage failed", ex);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse("we couldn't reach resume storage right now, please try again"));
     }
 }

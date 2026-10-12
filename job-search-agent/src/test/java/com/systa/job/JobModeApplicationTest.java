@@ -38,6 +38,8 @@ import static org.mockito.Mockito.when;
         "FIRECRAWL_API_KEY=test-firecrawl-key",
         "COGNITO_ISSUER_URI=https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_test",
         "COGNITO_CLIENT_ID=test-client",
+        "RESUME_S3_BUCKET=test-resumes",
+        "RESUME_S3_REGION=eu-west-2",
         "spring.ai.mcp.client.initialized=false",
         "job-search.daily-run.page-size=1",
         "job-search.daily-run.delay-between-users=0s"
