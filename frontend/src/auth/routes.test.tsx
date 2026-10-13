@@ -58,6 +58,13 @@ describe('PublicOnlyRoute', () => {
     expect(router.state.location.pathname).toBe('/')
   })
 
+  it('sends a signed-in user on to the page they were asked to sign in for', () => {
+    const { router } = renderRoutes(routes, { at: { pathname: '/login', state: { from: '/profile' } } })
+
+    expect(screen.getByText('Private page')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/profile')
+  })
+
   it('waits while the session is loading', () => {
     const { router } = renderRoutes(routes, { at: '/login', auth: LOADING })
 
