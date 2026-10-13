@@ -22,6 +22,9 @@ public class ChatConfig {
     /** Qualifier of the chat client that can only scrape a page - see {@link #jobPostingChatClient}. */
     public static final String JOB_POSTING_CHAT_CLIENT = "jobPostingChatClient";
 
+    /** Qualifier of the chat client with no tools at all - see {@link #resumeTailoringChatClient}. */
+    public static final String RESUME_TAILORING_CHAT_CLIENT = "resumeTailoringChatClient";
+
     private static final String SCRAPE_TOOL_NAME = "firecrawl_scrape";
 
     private final TokenAuditAdvisor tokenAuditAdvisor;
@@ -44,6 +47,15 @@ public class ChatConfig {
                                            final ToolCallbackProvider toolCallbackProvider) {
         return chatClientBuilder
                 .defaultTools(scrapeToolOnly(toolCallbackProvider))
+                .defaultAdvisors(List.of(new SimpleLoggerAdvisor(), tokenAuditAdvisor))
+                .build();
+    }
+
+    // Tailoring a resume is rewriting text it is handed - a resume and a job description, both written
+    // by other people - so it gets no tools: nothing in either can make the model fetch or search.
+    @Bean(RESUME_TAILORING_CHAT_CLIENT)
+    public ChatClient resumeTailoringChatClient(final ChatClient.Builder chatClientBuilder) {
+        return chatClientBuilder
                 .defaultAdvisors(List.of(new SimpleLoggerAdvisor(), tokenAuditAdvisor))
                 .build();
     }

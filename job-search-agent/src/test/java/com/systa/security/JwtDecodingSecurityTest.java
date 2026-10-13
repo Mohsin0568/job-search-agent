@@ -14,6 +14,7 @@ import com.systa.controller.JobSearchController;
 import com.systa.service.JobDescriptionService;
 import com.systa.service.JobSearchResultQueryService;
 import com.systa.service.JobSearchService;
+import com.systa.service.TailoredResumeService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +72,9 @@ class JwtDecodingSecurityTest {
 
     @MockitoBean
     private JobDescriptionService jobDescriptionService;
+
+    @MockitoBean
+    private TailoredResumeService tailoredResumeService;
 
     @DynamicPropertySource
     static void issuer(final DynamicPropertyRegistry registry) {
