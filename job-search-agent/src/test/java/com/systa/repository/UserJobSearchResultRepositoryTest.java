@@ -48,6 +48,17 @@ class UserJobSearchResultRepositoryTest {
     }
 
     @Test
+    void findByIdAndUserId_findsAResultOnlyForTheUserItBelongsTo() {
+        repository.saveAll(List.of(
+                result("r-1", USER_ID, FIRST_RUN, "Acme Corp", "J-1"),
+                result("r-2", OTHER_USER_ID, FIRST_RUN, "Acme Corp", "J-1")));
+
+        assertThat(repository.findByIdAndUserId("r-1", USER_ID)).map(UserJobSearchResult::id).contains("r-1");
+        assertThat(repository.findByIdAndUserId("r-2", USER_ID)).isEmpty();
+        assertThat(repository.findByIdAndUserId("no-such-result", USER_ID)).isEmpty();
+    }
+
+    @Test
     void findByUserId_pagesThroughResults_newestRunFirst() {
         repository.saveAll(List.of(
                 result("oldest", USER_ID, FIRST_RUN, "Acme Corp", "J-1"),

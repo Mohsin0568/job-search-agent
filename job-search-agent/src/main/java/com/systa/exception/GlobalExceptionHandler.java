@@ -61,4 +61,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ErrorResponse("we couldn't reach resume storage right now, please try again"));
     }
+
+    @ExceptionHandler(JobDescriptionUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleJobDescriptionUnavailable(final JobDescriptionUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(new ErrorResponse(ex.getMessage()));
+    }
 }

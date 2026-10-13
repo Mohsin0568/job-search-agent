@@ -39,8 +39,11 @@ export function ProtectedRoute() {
 /** Login/register screens: a user who is already signed in goes straight to the app. */
 export function PublicOnlyRoute() {
   const { status } = useAuth()
+  const { from } = (useLocation().state ?? {}) as AuthLocationState
 
   if (status === 'loading') return <FullPageSpinner />
-  if (status === 'signedIn') return <Navigate to="/" replace />
+  // To the page they were on their way to, if any. Signing in flips the status while the sign-in
+  // page is still up, so this redirect races the page's own: both must lead to the same place.
+  if (status === 'signedIn') return <Navigate to={from ?? '/'} replace />
   return <Outlet />
 }
