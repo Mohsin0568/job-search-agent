@@ -66,4 +66,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleJobDescriptionUnavailable(final JobDescriptionUnavailableException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(new ErrorResponse(ex.getMessage()));
     }
+
+    // 409: the request is fine, but the user's account isn't yet in a state where it can be done.
+    @ExceptionHandler(ResumeRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleResumeRequired(final ResumeRequiredException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(ex.getMessage()));
+    }
 }
