@@ -11,6 +11,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.sun.net.httpserver.HttpServer;
 import com.systa.controller.JobSearchController;
+import com.systa.service.JobDescriptionService;
 import com.systa.service.JobSearchResultQueryService;
 import com.systa.service.JobSearchService;
 import org.junit.jupiter.api.AfterAll;
@@ -67,6 +68,9 @@ class JwtDecodingSecurityTest {
 
     @MockitoBean
     private JobSearchResultQueryService jobSearchResultQueryService;
+
+    @MockitoBean
+    private JobDescriptionService jobDescriptionService;
 
     @DynamicPropertySource
     static void issuer(final DynamicPropertyRegistry registry) {

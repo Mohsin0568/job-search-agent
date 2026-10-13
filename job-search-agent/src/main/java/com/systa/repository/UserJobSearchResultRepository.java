@@ -12,5 +12,8 @@ public interface UserJobSearchResultRepository extends MongoRepository<UserJobSe
     Optional<UserJobSearchResult> findByUserIdAndCompanyNameAndJob_JobId(
             final String userId, final String companyName, final String jobId);
 
+    /** One of the user's own results - empty for an id that exists but belongs to someone else. */
+    Optional<UserJobSearchResult> findByIdAndUserId(final String id, final String userId);
+
     List<UserJobSearchResult> findByUserId(final String userId, final Pageable pageable);
 }
