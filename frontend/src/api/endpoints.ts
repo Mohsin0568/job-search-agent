@@ -4,6 +4,7 @@ import type {
   JobSearchResult,
   ResumeDownload,
   ResumeVersion,
+  TailoredResume,
   Suggestion,
   SuggestionSource,
 } from './types'
@@ -39,6 +40,25 @@ export function uploadResume(file: File): Promise<ResumeVersion> {
 
 export function getResumeDownload(version: number): Promise<ResumeDownload> {
   return apiFetch<ResumeDownload>(`/api/profile/resume/${version}/download`)
+}
+
+/** Every tailored resume the user has asked for, one per job, in whatever state it is. */
+export function getTailoredResumes(): Promise<TailoredResume[]> {
+  return apiFetch<TailoredResume[]>('/api/jobs/tailored-resumes')
+}
+
+/**
+ * Asks for the user's latest resume to be tailored to a job. Comes back PENDING while the server
+ * works on it (or READY if it already has one); getTailoredResumes shows when it is done.
+ */
+export function requestTailoredResume(jobResultId: string): Promise<TailoredResume> {
+  return apiFetch<TailoredResume>(`/api/jobs/results/${encodeURIComponent(jobResultId)}/tailored-resume`, {
+    method: 'POST',
+  })
+}
+
+export function getTailoredResumeDownload(jobResultId: string): Promise<ResumeDownload> {
+  return apiFetch<ResumeDownload>(`/api/jobs/results/${encodeURIComponent(jobResultId)}/tailored-resume/download`)
 }
 
 /** Results are produced by the backend's daily job search; there is no way to start one from here. */

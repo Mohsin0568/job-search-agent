@@ -1,4 +1,4 @@
-import type { CandidateProfile, JobListing, JobSearchResult, ResumeVersion } from '../api/types'
+import type { CandidateProfile, JobListing, JobSearchResult, ResumeVersion, TailoredResume } from '../api/types'
 
 export function profile(overrides: Partial<CandidateProfile> = {}): CandidateProfile {
   return {
@@ -18,6 +18,18 @@ export function resumeVersion(overrides: Partial<ResumeVersion> = {}): ResumeVer
     fileName: 'cv.pdf',
     sizeBytes: 2048,
     uploadedAt: '2026-10-12T09:00:00Z',
+    ...overrides,
+  }
+}
+
+export function tailoredResume(overrides: Partial<TailoredResume> = {}): TailoredResume {
+  return {
+    jobResultId: 'r-1',
+    status: 'READY',
+    resumeVersion: 3,
+    failureReason: null,
+    requestedAt: '2026-10-13T09:00:00Z',
+    completedAt: '2026-10-13T09:00:40Z',
     ...overrides,
   }
 }

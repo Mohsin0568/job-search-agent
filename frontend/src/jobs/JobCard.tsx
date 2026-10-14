@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { JobListing } from '../api/types'
 import { AtsBadge } from './AtsBadge'
 import { safeUrl, specified } from './format'
@@ -13,7 +14,13 @@ function Detail({ label, value }: { label: string; value: string | null }) {
   )
 }
 
-export function JobCard({ job }: { job: JobListing }) {
+type Props = {
+  job: JobListing
+  /** Actions for this job, shown along the bottom of the card. */
+  children?: ReactNode
+}
+
+export function JobCard({ job, children }: Props) {
   const title = specified(job.jobTitle) ?? 'Untitled role'
   const url = safeUrl(job.url)
   const source = specified(job.source)
@@ -48,6 +55,8 @@ export function JobCard({ job }: { job: JobListing }) {
           <span className="shrink-0 text-xs text-slate-400">No link available</span>
         )}
       </div>
+
+      {children && <div className="mt-3 border-t border-slate-100 pt-3 text-sm">{children}</div>}
     </article>
   )
 }
