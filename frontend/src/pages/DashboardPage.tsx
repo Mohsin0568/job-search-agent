@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
-import { useJobResults, useProfile } from '../api/hooks'
+import { useJobResults, useProfile, useResumeVersions, useTailoredResumes } from '../api/hooks'
 import { useAuth } from '../auth/AuthContext'
-import { formatRunDateTime } from '../jobs/format'
+import { formatRunDateTime, specified } from '../jobs/format'
 import { companiesWithoutResults, groupByCompany } from '../jobs/groupByCompany'
 import { JobCard } from '../jobs/JobCard'
+import { TailoredResumeAction } from '../resume/TailoredResumeAction'
 
 // The newest page of results; older ones aren't shown on the dashboard.
 const LATEST_RESULTS_LIMIT = 100
@@ -13,12 +14,25 @@ export function DashboardPage() {
   // RequireProfile has already loaded the profile, so this reads from the cache.
   const { data: profile } = useProfile()
   const results = useJobResults(0, LATEST_RESULTS_LIMIT)
+  const resumeVersions = useResumeVersions()
+  const tailoredResumes = useTailoredResumes()
 
   const preferred = profile?.companyPreferences ?? []
   const groups = groupByCompany(results.data ?? [], preferred)
   const missing = companiesWithoutResults(groups, preferred)
   // Results are sorted newest first, so the first one is the latest run.
   const lastUpdated = results.data?.[0]?.jobRunDateTime
+
+  // Tailoring needs both lists: which resume is the latest, and what has been tailored already.
+  const tailoring =
+    resumeVersions.data && tailoredResumes.data
+      ? {
+          latestResumeVersion:
+            (resumeVersions.data.find((resume) => resume.latest) ?? resumeVersions.data[0])?.version ?? null,
+          byJob: new Map(tailoredResumes.data.map((tailored) => [tailored.jobResultId, tailored])),
+        }
+      : undefined
+  const tailoringUnavailable = resumeVersions.isError || tailoredResumes.isError
 
   return (
     <div>
@@ -70,7 +84,18 @@ export function DashboardPage() {
                 </h2>
                 <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {group.results.map((result) => (
-                    <JobCard key={result.id} job={result.job} />
+                    <JobCard key={result.id} job={result.job}>
+                      {tailoring ? (
+                        <TailoredResumeAction
+                          jobResultId={result.id}
+                          jobTitle={specified(result.job.jobTitle) ?? 'Untitled role'}
+                          tailored={tailoring.byJob.get(result.id)}
+                          latestResumeVersion={tailoring.latestResumeVersion}
+                        />
+                      ) : tailoringUnavailable ? (
+                        <p className="text-xs text-slate-400">Resume tailoring is unavailable right now.</p>
+                      ) : null}
+                    </JobCard>
                   ))}
                 </div>
               </section>

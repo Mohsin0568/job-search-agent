@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -106,7 +108,7 @@ public class TailoredResumeService {
         }
 
         final TailoredResume pending = new TailoredResume(jobResultId, userId, Status.PENDING, resume.version(),
-                null, null, null, clock.instant(), null);
+                null, null, null, now(), null);
         if (existing.isPresent()) {
             tailoredResumeRepository.save(pending);
         } else {
@@ -126,6 +128,11 @@ public class TailoredResumeService {
     public Optional<TailoredResume> find(final String userId, final String jobResultId) {
         return tailoredResumeRepository.findById(jobResultId)
                 .filter(tailoredResume -> tailoredResume.userId().equals(userId));
+    }
+
+    /** Every tailored resume the user has asked for, in whatever state - one per job. */
+    public List<TailoredResume> findAll(final String userId) {
+        return tailoredResumeRepository.findByUserId(userId);
     }
 
     /** A download link for the tailored resume, or empty unless it is ready. */
@@ -162,17 +169,17 @@ public class TailoredResumeService {
 
             final String s3Key = "tailored/%s/%s/v%d.pdf".formatted(userId, jobResultId, resume.version());
             resumeStorageService.store(s3Key, pdf, MediaType.APPLICATION_PDF_VALUE);
-            outcome = pending.ready(s3Key, fileName(content.name(), jobResult.companyName()), clock.instant());
+            outcome = pending.ready(s3Key, fileName(content.name(), jobResult.companyName()), now());
             log.info("Tailored resume ready - userId={}, jobResultId={}, resumeVersion={}", userId, jobResultId,
                     resume.version());
         } catch (final JobDescriptionUnavailableException | ResumeTailoringException e) {
             // Both carry a reason written for the user.
             log.warn("Tailored resume failed - userId={}, jobResultId={}, reason={}", userId, jobResultId,
                     e.getMessage());
-            outcome = pending.failed(e.getMessage(), clock.instant());
+            outcome = pending.failed(e.getMessage(), now());
         } catch (final Exception e) {
             log.error("Tailored resume failed unexpectedly - userId={}, jobResultId={}", userId, jobResultId, e);
-            outcome = pending.failed(UNEXPECTED_FAILURE, clock.instant());
+            outcome = pending.failed(UNEXPECTED_FAILURE, now());
         }
         record(pending, outcome);
     }
@@ -194,6 +201,12 @@ public class TailoredResumeService {
             log.error("Could not record the tailored resume's outcome - userId={}, jobResultId={}, status={}",
                     pending.userId(), pending.jobResultId(), outcome.status(), e);
         }
+    }
+
+    // MongoDB keeps dates to the millisecond, so anything finer would not survive a save - and record()
+    // compares the requestedAt it holds with the one read back to tell whether the record is still ours.
+    private Instant now() {
+        return clock.instant().truncatedTo(ChronoUnit.MILLIS);
     }
 
     // "Jane-Doe-Acme-Corp-resume.pdf". Ends up in a Content-Disposition header, so only plain characters.

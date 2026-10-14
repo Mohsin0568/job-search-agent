@@ -56,4 +56,17 @@ describe('JobCard', () => {
 
     expect(screen.getByText('0% match')).toBeInTheDocument()
   })
+
+  it('shows the actions it is given along the bottom, and no empty row without any', () => {
+    const { rerender, container } = render(
+      <JobCard job={job()}>
+        <button type="button">Tailor resume</button>
+      </JobCard>,
+    )
+    expect(screen.getByRole('button', { name: 'Tailor resume' })).toBeInTheDocument()
+
+    rerender(<JobCard job={job()} />)
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(container.querySelector('.border-t')).toBeNull()
+  })
 })

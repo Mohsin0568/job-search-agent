@@ -14,6 +14,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -134,5 +135,25 @@ class TailoredResumeControllerTest {
 
         mockMvc.perform(get(URL + "/download").with(jwt().jwt(token -> token.subject(USER_ID))))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getAll_listsTheTokenSubjectsTailoredResumes() throws Exception {
+        when(tailoredResumeService.findAll(USER_ID)).thenReturn(List.of(READY,
+                new TailoredResume("r-2", USER_ID, Status.PENDING, 3, null, null, null, REQUESTED_AT, null)));
+
+        mockMvc.perform(get("/api/jobs/tailored-resumes").with(jwt().jwt(token -> token.subject(USER_ID))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].jobResultId").value("r-1"))
+                .andExpect(jsonPath("$[0].status").value("READY"))
+                .andExpect(jsonPath("$[1].jobResultId").value("r-2"))
+                .andExpect(jsonPath("$[1].status").value("PENDING"))
+                .andExpect(jsonPath("$[0].s3Key").doesNotExist());
+    }
+
+    @Test
+    void getAll_withoutAToken_isUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/jobs/tailored-resumes")).andExpect(status().isUnauthorized());
     }
 }

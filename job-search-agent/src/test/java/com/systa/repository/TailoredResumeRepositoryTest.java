@@ -54,4 +54,15 @@ class TailoredResumeRepositoryTest {
 
         assertThatThrownBy(() -> repository.insert(PENDING)).isInstanceOf(DuplicateKeyException.class);
     }
+
+    @Test
+    void listsOnlyThatUsersTailoredResumes() {
+        repository.insert(PENDING);
+        repository.insert(new TailoredResume("r-2", "user-1", Status.PENDING, 3, null, null, null, REQUESTED_AT, null));
+        repository.insert(new TailoredResume("r-3", "user-2", Status.PENDING, 1, null, null, null, REQUESTED_AT, null));
+
+        assertThat(repository.findByUserId("user-1")).extracting(TailoredResume::jobResultId)
+                .containsExactlyInAnyOrder("r-1", "r-2");
+        assertThat(repository.findByUserId("user-with-none")).isEmpty();
+    }
 }

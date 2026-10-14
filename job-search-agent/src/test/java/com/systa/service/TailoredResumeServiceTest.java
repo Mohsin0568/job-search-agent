@@ -26,6 +26,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -129,6 +130,23 @@ class TailoredResumeServiceTest {
         verify(resumeStorageService).store(S3_KEY, PDF, "application/pdf");
         assertThat(stored).isEqualTo(new TailoredResume(JOB_RESULT_ID, USER_ID, Status.READY, 3, S3_KEY,
                 "Jane-Doe-Acme-Corp-resume.pdf", null, NOW, NOW));
+    }
+
+    @Test
+    void marksItReady_whenTheClockIsFinerThanMongoKeepsDates() {
+        // The system clock ticks in microseconds or finer; MongoDB keeps only milliseconds.
+        service = new TailoredResumeService(userJobSearchResultRepository, tailoredResumeRepository, resumeService,
+                jobDescriptionService, resumeTailoringLlmService, tailoredResumePdfRenderer, resumeStorageService,
+                queued::add, Clock.fixed(NOW.plusNanos(123_456_789), ZoneOffset.UTC));
+        when(tailoredResumeRepository.insert(any(TailoredResume.class)))
+                .thenAnswer(call -> stored = asMongoKeepsIt(call.getArgument(0)));
+        when(tailoredResumeRepository.save(any())).thenAnswer(call -> stored = asMongoKeepsIt(call.getArgument(0)));
+
+        service.request(USER_ID, JOB_RESULT_ID);
+        runBackgroundWork();
+
+        assertThat(stored.status()).isEqualTo(Status.READY);
+        assertThat(stored.requestedAt()).isEqualTo(NOW.plusMillis(123));
     }
 
     @Test
@@ -277,6 +295,13 @@ class TailoredResumeServiceTest {
     }
 
     @Test
+    void listsEveryTailoredResumeTheUserHas() {
+        when(tailoredResumeRepository.findByUserId(USER_ID)).thenReturn(List.of(ready(3)));
+
+        assertThat(service.findAll(USER_ID)).containsExactly(ready(3));
+    }
+
+    @Test
     void givesADownloadLinkOnceItIsReady() {
         final ResumeDownload link = new ResumeDownload("https://s3.example/tailored", NOW.plusSeconds(300));
         stored = ready(3);
@@ -314,6 +339,14 @@ class TailoredResumeServiceTest {
     private static TailoredResume pendingSince(final Instant requestedAt, final int resumeVersion) {
         return new TailoredResume(JOB_RESULT_ID, USER_ID, Status.PENDING, resumeVersion, null, null, null,
                 requestedAt, null);
+    }
+
+    // What a save and a read back hand you: MongoDB drops anything finer than a millisecond.
+    private static TailoredResume asMongoKeepsIt(final TailoredResume saved) {
+        return new TailoredResume(saved.jobResultId(), saved.userId(), saved.status(), saved.resumeVersion(),
+                saved.s3Key(), saved.fileName(), saved.failureReason(),
+                saved.requestedAt().truncatedTo(ChronoUnit.MILLIS),
+                saved.completedAt() == null ? null : saved.completedAt().truncatedTo(ChronoUnit.MILLIS));
     }
 
     private static TailoredResume ready(final int resumeVersion) {

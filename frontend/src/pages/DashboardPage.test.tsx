@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { JobSearchResult } from '../api/types'
-import { profile, result } from '../test/fixtures'
+import { profile, result, resumeVersion, tailoredResume } from '../test/fixtures'
 import { renderRoutes } from '../test/render'
 import { API, server } from '../test/server'
 import { DashboardPage } from './DashboardPage'
@@ -15,7 +15,12 @@ function jobResults(results: JobSearchResult[]) {
 }
 
 beforeEach(() => {
-  server.use(http.get(`${API}/api/profile`, () => HttpResponse.json(profile())))
+  server.use(
+    http.get(`${API}/api/profile`, () => HttpResponse.json(profile())),
+    // By default the user has a resume and has tailored nothing yet.
+    http.get(`${API}/api/profile/resume`, () => HttpResponse.json([resumeVersion({ version: 3 })])),
+    http.get(`${API}/api/jobs/tailored-resumes`, () => HttpResponse.json([])),
+  )
 })
 
 describe('DashboardPage', () => {
@@ -107,5 +112,44 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Staff Engineer' })).toBeInTheDocument()
     expect(screen.queryByText('We couldn’t load your job matches')).not.toBeInTheDocument()
+  })
+
+  it('offers on each job to tailor the resume, or to download one already tailored', async () => {
+    server.use(
+      jobResults([
+        result('r-1', 'Acme Corp', { jobTitle: 'Staff Engineer' }),
+        result('r-2', 'Acme Corp', { jobTitle: 'Platform Engineer', atsScore: 60 }),
+      ]),
+      http.get(`${API}/api/jobs/tailored-resumes`, () =>
+        HttpResponse.json([tailoredResume({ jobResultId: 'r-1', status: 'READY', resumeVersion: 3 })]),
+      ),
+    )
+    renderRoutes(routes)
+
+    expect(await screen.findByRole('button', { name: 'Download tailored resume for Staff Engineer' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tailor resume for Platform Engineer' })).toBeInTheDocument()
+  })
+
+  it('points a user with no resume at uploading one', async () => {
+    server.use(
+      jobResults([result('r-1', 'Acme Corp')]),
+      http.get(`${API}/api/profile/resume`, () => HttpResponse.json([])),
+    )
+    renderRoutes(routes)
+
+    expect(await screen.findByRole('link', { name: 'Upload your resume' })).toHaveAttribute('href', '/profile')
+    expect(screen.queryByRole('button', { name: /Tailor resume/ })).not.toBeInTheDocument()
+  })
+
+  it('still shows the jobs when tailoring cannot be loaded', async () => {
+    server.use(
+      jobResults([result('r-1', 'Acme Corp', { jobTitle: 'Staff Engineer' })]),
+      http.get(`${API}/api/jobs/tailored-resumes`, () => HttpResponse.json({ message: 'down' }, { status: 503 })),
+    )
+    renderRoutes(routes)
+
+    expect(await screen.findByRole('heading', { name: 'Staff Engineer' })).toBeInTheDocument()
+    expect(await screen.findByText('Resume tailoring is unavailable right now.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Tailor resume/ })).not.toBeInTheDocument()
   })
 })

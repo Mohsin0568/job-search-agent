@@ -8,6 +8,9 @@ import {
   getProfile,
   getResumeDownload,
   getResumeVersions,
+  getTailoredResumeDownload,
+  getTailoredResumes,
+  requestTailoredResume,
   saveProfile,
   suggestNames,
   uploadResume,
@@ -235,5 +238,35 @@ describe('endpoints', () => {
     server.use(http.get(`${API}/api/profile/resume/3/download`, () => HttpResponse.json(link)))
 
     await expect(getResumeDownload(3)).resolves.toEqual(link)
+  })
+
+  it('getTailoredResumes returns every tailored resume the user has', async () => {
+    const tailored = [
+      { jobResultId: 'r-1', status: 'READY', resumeVersion: 3, failureReason: null, requestedAt: '2026-10-13T09:00:00Z', completedAt: '2026-10-13T09:00:40Z' },
+    ]
+    server.use(http.get(`${API}/api/jobs/tailored-resumes`, () => HttpResponse.json(tailored)))
+
+    await expect(getTailoredResumes()).resolves.toEqual(tailored)
+  })
+
+  it('requestTailoredResume POSTs for the job, encoding its id, and returns the pending record', async () => {
+    const pending = { jobResultId: 'r/1', status: 'PENDING', resumeVersion: 3, failureReason: null, requestedAt: '2026-10-13T09:00:00Z', completedAt: null }
+    let path = ''
+    server.use(
+      http.post(`${API}/api/jobs/results/:id/tailored-resume`, ({ request }) => {
+        path = new URL(request.url).pathname
+        return HttpResponse.json(pending, { status: 202 })
+      }),
+    )
+
+    await expect(requestTailoredResume('r/1')).resolves.toEqual(pending)
+    expect(path).toBe('/api/jobs/results/r%2F1/tailored-resume')
+  })
+
+  it('getTailoredResumeDownload asks for a link to the job’s tailored resume', async () => {
+    const link = { url: 'https://storage.test/tailored/r-1', expiresAt: '2026-10-13T09:05:00Z' }
+    server.use(http.get(`${API}/api/jobs/results/r-1/tailored-resume/download`, () => HttpResponse.json(link)))
+
+    await expect(getTailoredResumeDownload('r-1')).resolves.toEqual(link)
   })
 })

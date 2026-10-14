@@ -29,6 +29,15 @@ type Job = {
 
 export type Resume = { version: number; latest: boolean; fileName: string; sizeBytes: number; uploadedAt: string }
 
+export type TailoredResume = {
+  jobResultId: string
+  status: 'PENDING' | 'READY' | 'FAILED'
+  resumeVersion: number
+  failureReason: string | null
+  requestedAt: string
+  completedAt: string | null
+}
+
 /** Where the fake backend's download links point; answered by the fake storage below. */
 const STORAGE = 'https://resumes.e2e.test'
 
@@ -40,6 +49,8 @@ export type Backend = {
   skills: string[]
   /** The user's resume versions, newest first. */
   resumes: Resume[]
+  /** The user's tailored resumes, one per job. A pending one is ready the next time the list is read. */
+  tailoredResumes: TailoredResume[]
   /** Every profile the app has saved, oldest first. */
   savedProfiles: Profile[]
   /** When true the API rejects the token, as it does once a session has been revoked. */
@@ -214,6 +225,39 @@ async function fakeBackend(page: Page, backend: Backend) {
       if (!resume) return json({ message: 'Not found' }, 404)
       return json({ url: `${STORAGE}/v${resume.version}/${resume.fileName}`, expiresAt: '2026-10-12T09:05:00Z' })
     }
+    if (url.pathname === '/api/jobs/tailored-resumes') {
+      const listed = backend.tailoredResumes
+      // Tailoring "takes" one poll: whatever was pending when listed is ready the time after.
+      backend.tailoredResumes = listed.map((tailored) =>
+        tailored.status === 'PENDING' ? { ...tailored, status: 'READY', completedAt: new Date().toISOString() } : tailored,
+      )
+      return json(listed)
+    }
+    const tailoring = url.pathname.match(/^\/api\/jobs\/results\/([^/]+)\/tailored-resume(\/download)?$/)
+    if (tailoring) {
+      const jobResultId = decodeURIComponent(tailoring[1])
+      const existing = backend.tailoredResumes.find((tailored) => tailored.jobResultId === jobResultId)
+      if (tailoring[2]) {
+        return existing?.status === 'READY'
+          ? json({ url: `${STORAGE}/tailored/${jobResultId}/Ada-Lovelace-resume.pdf`, expiresAt: '2026-10-13T09:05:00Z' })
+          : json({ message: 'Not found' }, 404)
+      }
+      if (request.method() === 'POST') {
+        const latest = backend.resumes.find((resume) => resume.latest)
+        if (!latest) return json({ message: 'upload your resume before tailoring it to a job' }, 409)
+        const pending: TailoredResume = {
+          jobResultId,
+          status: 'PENDING',
+          resumeVersion: latest.version,
+          failureReason: null,
+          requestedAt: new Date().toISOString(),
+          completedAt: null,
+        }
+        backend.tailoredResumes = [...backend.tailoredResumes.filter((tailored) => tailored !== existing), pending]
+        return json(pending, 202)
+      }
+      return existing ? json(existing) : json({ message: 'Not found' }, 404)
+    }
     if (url.pathname === '/api/jobs/results') {
       return json(backend.results)
     }
@@ -243,6 +287,7 @@ export const test = base.extend<{ backend: Backend }>({
       companies: ['Deliveroo', 'Dell', 'Deloitte', 'Monzo'],
       skills: ['Java', 'JavaScript', 'Spring Boot'],
       resumes: [],
+      tailoredResumes: [],
       savedProfiles: [],
       rejectTokens: false,
       rejectPassword: false,

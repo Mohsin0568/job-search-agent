@@ -14,9 +14,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 // The user is always the token's subject (Cognito "sub") - never a client-supplied id.
 @RestController
-@RequestMapping("/api/jobs/results/{id}/tailored-resume")
+@RequestMapping("/api/jobs")
 public class TailoredResumeController {
 
     private final TailoredResumeService tailoredResumeService;
@@ -30,7 +32,7 @@ public class TailoredResumeController {
      * 202 when tailoring has started or is under way - poll the GET until it is READY or FAILED.
      * 404 if the user has no such job, 409 if they haven't uploaded a resume.
      */
-    @PostMapping
+    @PostMapping("/results/{id}/tailored-resume")
     public ResponseEntity<TailoredResumeDto> request(@AuthenticationPrincipal final Jwt jwt,
                                                      @PathVariable final String id) {
         return tailoredResumeService.request(jwt.getSubject(), id)
@@ -41,15 +43,23 @@ public class TailoredResumeController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /** Every tailored resume the user has asked for, so a page of jobs can show them all in one call. */
+    @GetMapping("/tailored-resumes")
+    public List<TailoredResumeDto> getAll(@AuthenticationPrincipal final Jwt jwt) {
+        return tailoredResumeService.findAll(jwt.getSubject()).stream()
+                .map(TailoredResumeDto::from)
+                .toList();
+    }
+
     /** Where tailoring has got to. 404 if it was never asked for. */
-    @GetMapping
+    @GetMapping("/results/{id}/tailored-resume")
     public ResponseEntity<TailoredResumeDto> get(@AuthenticationPrincipal final Jwt jwt,
                                                  @PathVariable final String id) {
         return ResponseEntity.of(tailoredResumeService.find(jwt.getSubject(), id).map(TailoredResumeDto::from));
     }
 
     /** A short-lived link to download the tailored resume. 404 unless it is ready. */
-    @GetMapping("/download")
+    @GetMapping("/results/{id}/tailored-resume/download")
     public ResponseEntity<ResumeDownload> getDownloadLink(@AuthenticationPrincipal final Jwt jwt,
                                                           @PathVariable final String id) {
         return ResponseEntity.of(tailoredResumeService.downloadLink(jwt.getSubject(), id));

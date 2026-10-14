@@ -1,0 +1,167 @@
+import { screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { useTailoredResumes } from '../api/hooks'
+import type { TailoredResume } from '../api/types'
+import { tailoredResume } from '../test/fixtures'
+import { renderRoutes } from '../test/render'
+import { API, server } from '../test/server'
+import { startDownload } from './download'
+import { TailoredResumeAction } from './TailoredResumeAction'
+
+vi.mock('./download', () => ({ startDownload: vi.fn() }))
+// Poll quickly, so a test that waits for tailoring to finish doesn't wait seconds.
+vi.mock('./tailoring', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./tailoring')>()),
+  TAILORING_POLL_INTERVAL_MS: 20,
+}))
+
+const JOB = 'r-1'
+const now = () => new Date().toISOString()
+
+/** The action fed from the tailored-resume list, the way the dashboard feeds it. */
+function Harness({ latestResumeVersion }: { latestResumeVersion: number | null }) {
+  const { data } = useTailoredResumes()
+  if (!data) return null
+  return (
+    <TailoredResumeAction
+      jobResultId={JOB}
+      jobTitle="Staff Engineer"
+      tailored={data.find((tailored) => tailored.jobResultId === JOB)}
+      latestResumeVersion={latestResumeVersion}
+    />
+  )
+}
+
+function renderAction(latestResumeVersion: number | null = 3) {
+  renderRoutes([
+    { path: '/', element: <Harness latestResumeVersion={latestResumeVersion} /> },
+    { path: '/profile', element: <p>Profile page</p> },
+  ])
+  return userEvent.setup()
+}
+
+/** What the server's list holds; tests change it to play the server finishing its work. */
+let onServer: TailoredResume[]
+
+beforeEach(() => {
+  vi.mocked(startDownload).mockReset()
+  onServer = []
+  server.use(http.get(`${API}/api/jobs/tailored-resumes`, () => HttpResponse.json(onServer)))
+})
+
+describe('TailoredResumeAction', () => {
+  it('tailors the resume on request, waits while the server works, then offers the download', async () => {
+    server.use(
+      http.post(`${API}/api/jobs/results/${JOB}/tailored-resume`, () => {
+        onServer = [tailoredResume({ status: 'PENDING', requestedAt: now(), completedAt: null })]
+        return HttpResponse.json(onServer[0], { status: 202 })
+      }),
+    )
+    const user = renderAction()
+
+    await user.click(await screen.findByRole('button', { name: 'Tailor resume for Staff Engineer' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Tailoring your resume to this job…')
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+
+    // The server finishes; the next poll picks it up.
+    onServer = [tailoredResume({ status: 'READY' })]
+
+    expect(await screen.findByRole('button', { name: 'Download tailored resume for Staff Engineer' })).toBeEnabled()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('downloads a tailored resume that is ready, through a fresh link', async () => {
+    onServer = [tailoredResume({ status: 'READY' })]
+    server.use(
+      http.get(`${API}/api/jobs/results/${JOB}/tailored-resume/download`, () =>
+        HttpResponse.json({ url: 'https://storage.test/tailored/r-1', expiresAt: '2026-10-13T09:05:00Z' }),
+      ),
+    )
+    const user = renderAction()
+
+    await user.click(await screen.findByRole('button', { name: 'Download tailored resume for Staff Engineer' }))
+
+    await waitFor(() => expect(startDownload).toHaveBeenCalledWith('https://storage.test/tailored/r-1'))
+    expect(screen.queryByRole('button', { name: /Tailor/ })).not.toBeInTheDocument()
+  })
+
+  it('sends a user with no resume to upload one, instead of offering to tailor', async () => {
+    const user = renderAction(null)
+
+    expect(await screen.findByText(/to tailor it to this job/)).toBeInTheDocument()
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('link', { name: 'Upload your resume' }))
+    expect(await screen.findByText('Profile page')).toBeInTheDocument()
+  })
+
+  it('says why tailoring failed and lets the user try again', async () => {
+    onServer = [tailoredResume({ status: 'FAILED', failureReason: "we couldn't find this job posting" })]
+    const requests = vi.fn()
+    server.use(
+      http.post(`${API}/api/jobs/results/${JOB}/tailored-resume`, () => {
+        requests()
+        onServer = [tailoredResume({ status: 'PENDING', requestedAt: now(), completedAt: null })]
+        return HttpResponse.json(onServer[0], { status: 202 })
+      }),
+    )
+    const user = renderAction()
+
+    expect(await screen.findByText("We couldn't find this job posting.")).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Try again for Staff Engineer' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Tailoring your resume')
+    expect(requests).toHaveBeenCalledOnce()
+    expect(screen.queryByText(/couldn't find this job posting/)).not.toBeInTheDocument()
+  })
+
+  it('offers to tailor again when the user has uploaded a newer resume, keeping the old download', async () => {
+    onServer = [tailoredResume({ status: 'READY', resumeVersion: 2 })]
+    renderAction(3)
+
+    expect(await screen.findByText('Tailored from an earlier version of your resume.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Download tailored resume for Staff Engineer' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Tailor again for Staff Engineer' })).toBeEnabled()
+  })
+
+  it('lets the user start again when tailoring has been pending far too long', async () => {
+    onServer = [tailoredResume({ status: 'PENDING', requestedAt: '2020-01-01T00:00:00Z', completedAt: null })]
+    renderAction()
+
+    expect(await screen.findByText('Tailoring is taking longer than it should.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again for Staff Engineer' })).toBeEnabled()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it("shows the server's reason when it refuses to start tailoring", async () => {
+    server.use(
+      http.post(`${API}/api/jobs/results/${JOB}/tailored-resume`, () =>
+        HttpResponse.json({ message: 'upload your resume before tailoring it to a job' }, { status: 409 }),
+      ),
+    )
+    const user = renderAction()
+
+    await user.click(await screen.findByRole('button', { name: 'Tailor resume for Staff Engineer' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Upload your resume before tailoring it to a job')
+    expect(screen.getByRole('button', { name: 'Tailor resume for Staff Engineer' })).toBeEnabled()
+  })
+
+  it('says so when a download link cannot be made', async () => {
+    onServer = [tailoredResume({ status: 'READY' })]
+    server.use(
+      http.get(`${API}/api/jobs/results/${JOB}/tailored-resume/download`, () =>
+        HttpResponse.json({ message: "we couldn't reach resume storage right now, please try again" }, { status: 503 }),
+      ),
+    )
+    const user = renderAction()
+
+    await user.click(await screen.findByRole('button', { name: 'Download tailored resume for Staff Engineer' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't reach resume storage right now")
+    expect(startDownload).not.toHaveBeenCalled()
+  })
+})

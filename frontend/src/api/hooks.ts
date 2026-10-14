@@ -5,17 +5,22 @@ import {
   getProfile,
   getResumeDownload,
   getResumeVersions,
+  getTailoredResumeDownload,
+  getTailoredResumes,
+  requestTailoredResume,
   saveProfile,
   suggestNames,
   uploadResume,
 } from './endpoints'
-import type { CandidateProfile, ResumeVersion, SuggestionSource } from './types'
+import { isTailoring, TAILORING_POLL_INTERVAL_MS } from '../resume/tailoring'
+import type { CandidateProfile, ResumeVersion, SuggestionSource, TailoredResume } from './types'
 
 // Query keys include the user id so one user's cached data is never shown to the next user on this browser.
 const keys = {
   profile: (userId: string) => ['profile', userId] as const,
   jobResults: (userId: string, page: number, size: number) => ['jobResults', userId, page, size] as const,
   resumeVersions: (userId: string) => ['resumeVersions', userId] as const,
+  tailoredResumes: (userId: string) => ['tailoredResumes', userId] as const,
 }
 
 function useUserId(): string {
@@ -67,6 +72,36 @@ export function useUploadResume() {
 /** Asks for a fresh download link each time: they expire after a few minutes. */
 export function useResumeDownload() {
   return useMutation({ mutationFn: (version: number) => getResumeDownload(version) })
+}
+
+/** The user's tailored resumes. Asks again every few seconds for as long as one is being tailored. */
+export function useTailoredResumes() {
+  const userId = useUserId()
+  return useQuery({
+    queryKey: keys.tailoredResumes(userId),
+    queryFn: getTailoredResumes,
+    refetchInterval: (query) =>
+      query.state.data?.some((tailored) => isTailoring(tailored)) ? TAILORING_POLL_INTERVAL_MS : false,
+  })
+}
+
+export function useRequestTailoredResume() {
+  const userId = useUserId()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (jobResultId: string) => requestTailoredResume(jobResultId),
+    // Putting the PENDING record in the list is what starts useTailoredResumes polling for it.
+    onSuccess: (requested) =>
+      queryClient.setQueryData<TailoredResume[]>(keys.tailoredResumes(userId), (tailoredResumes = []) => [
+        ...tailoredResumes.filter((tailored) => tailored.jobResultId !== requested.jobResultId),
+        requested,
+      ]),
+  })
+}
+
+/** Asks for a fresh download link each time: they expire after a few minutes. */
+export function useTailoredResumeDownload() {
+  return useMutation({ mutationFn: (jobResultId: string) => getTailoredResumeDownload(jobResultId) })
 }
 
 // Skills can be a single letter ("C", "R"), so they suggest from the first keystroke.
