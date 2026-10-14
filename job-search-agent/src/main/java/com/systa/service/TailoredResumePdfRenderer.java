@@ -45,13 +45,25 @@ public class TailoredResumePdfRenderer {
     private static final Font FALLBACK = new Font("Liberation Sans", 400, FontStyle.NORMAL,
             "/org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf");
 
+    private static final List<Font> PT_SERIF = family("PT Serif", "ptserif/PT_Serif-Web-Regular.ttf",
+            "ptserif/PT_Serif-Web-Bold.ttf", "ptserif/PT_Serif-Web-Italic.ttf");
+    private static final List<Font> LATO = family("Lato", "lato/Lato-Regular.ttf", "lato/Lato-Bold.ttf",
+            "lato/Lato-Italic.ttf");
+    private static final List<Font> CARLITO = family("Carlito", "carlito/Carlito-Regular.ttf",
+            "carlito/Carlito-Bold.ttf", "carlito/Carlito-Italic.ttf");
+    private static final List<Font> ARIMO = family("Arimo", "arimo/Arimo-Regular.ttf", "arimo/Arimo-Bold.ttf",
+            "arimo/Arimo-Italic.ttf");
+    private static final List<Font> OPEN_SANS = family("Open Sans", "opensans/OpenSans-Regular.ttf",
+            "opensans/OpenSans-Bold.ttf", "opensans/OpenSans-Italic.ttf");
+
+    // The typeface each template names first in its font-family.
     private static final Map<ResumeTemplate, List<Font>> TYPEFACES = Map.of(
-            ResumeTemplate.CLASSIC, family("PT Serif", "ptserif/PT_Serif-Web-Regular.ttf",
-                    "ptserif/PT_Serif-Web-Bold.ttf", "ptserif/PT_Serif-Web-Italic.ttf"),
-            ResumeTemplate.MODERN, family("Lato", "lato/Lato-Regular.ttf", "lato/Lato-Bold.ttf",
-                    "lato/Lato-Italic.ttf"),
-            ResumeTemplate.COMPACT, family("Carlito", "carlito/Carlito-Regular.ttf", "carlito/Carlito-Bold.ttf",
-                    "carlito/Carlito-Italic.ttf"));
+            ResumeTemplate.CLASSIC, PT_SERIF,
+            ResumeTemplate.MODERN, LATO,
+            ResumeTemplate.COMPACT, CARLITO,
+            ResumeTemplate.EVEN, LATO,
+            ResumeTemplate.STACK_OVERFLOW, ARIMO,
+            ResumeTemplate.KENDALL, OPEN_SANS);
 
     private final TemplateEngine templateEngine;
     private final Map<String, byte[]> fontData;
@@ -67,8 +79,9 @@ public class TailoredResumePdfRenderer {
         templateEngine = new TemplateEngine();
         templateEngine.setTemplateResolver(resolver);
 
+        // Distinct: templates may share a typeface.
         final List<Font> allFonts = Stream.concat(Stream.of(FALLBACK),
-                TYPEFACES.values().stream().flatMap(List::stream)).toList();
+                TYPEFACES.values().stream().flatMap(List::stream)).distinct().toList();
         fontData = allFonts.stream().collect(Collectors.toUnmodifiableMap(Font::path,
                 font -> withoutLigatures(read(font.path()))));
 

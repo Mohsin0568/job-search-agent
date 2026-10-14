@@ -46,7 +46,7 @@ export type ResumeDownload = {
 }
 
 /** The layouts a tailored resume can be laid out in (the backend's ResumeTemplate - keep in sync). */
-export type ResumeTemplate = 'CLASSIC' | 'MODERN' | 'COMPACT'
+export type ResumeTemplate = 'CLASSIC' | 'MODERN' | 'COMPACT' | 'EVEN' | 'STACK_OVERFLOW' | 'KENDALL'
 
 /** The user's resume tailored to one saved job. Tailoring runs in the background on the server. */
 export type TailoredResume = {

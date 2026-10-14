@@ -33,7 +33,7 @@ export type TailoredResume = {
   jobResultId: string
   status: 'PENDING' | 'READY' | 'FAILED'
   resumeVersion: number
-  template: 'CLASSIC' | 'MODERN' | 'COMPACT'
+  template: 'CLASSIC' | 'MODERN' | 'COMPACT' | 'EVEN' | 'STACK_OVERFLOW' | 'KENDALL'
   failureReason: string | null
   requestedAt: string
   completedAt: string | null

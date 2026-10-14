@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!--
+    Even: a grey masthead, then section headings set to the left of their content.
+    Ported from jsonresume-theme-even, Copyright (c) 2018 Rafael Bardini, MIT License -
+    see licenses/jsonresume-theme-even.txt.
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="${resume.name()}">Resume</title>
+    <style>
+        /* No side margins on the page, so the masthead can run edge to edge; the body sets them instead. */
+        @page { size: A4; margin: 14mm 0 14mm 0; }
+        @page :first { margin-top: 0; }
+        body { font-family: 'Lato', 'Liberation Sans'; font-size: 10pt; line-height: 1.5; color: #191e23; margin: 0 17mm; }
+        p, li, .details { white-space: pre-line; word-wrap: break-word; margin: 0; }
+        .masthead { background-color: #f3f4f5; margin: 0 -17mm 6pt -17mm; padding: 24pt 17mm 18pt 17mm; }
+        .masthead-body { margin-left: 35mm; }
+        .name { font-size: 26pt; line-height: 1.2; color: #191e23; }
+        .headline { font-size: 17pt; line-height: 1.2; color: #6c7781; }
+        .summary { margin-top: 8pt; }
+        .contact { margin-top: 8pt; word-wrap: break-word; }
+        /* A two-cell row per section, not a floated heading: openhtmltopdf writes floats out of reading order. */
+        .section { width: 100%; border-collapse: collapse; margin-top: 13pt; }
+        .section td { padding: 0; vertical-align: top; }
+        .section .side { width: 30mm; padding-right: 5mm; text-align: right; }
+        h2 { font-size: 14pt; font-weight: normal; line-height: 1.2; color: #6c7781; margin: 0; }
+        .entry { page-break-inside: auto; }
+        .entry + .entry { margin-top: 10pt; }
+        .entry-head { page-break-inside: avoid; page-break-after: avoid; }
+        .title { font-size: 12pt; font-weight: bold; line-height: 1.25; word-wrap: break-word; }
+        .meta { color: #6c7781; word-wrap: break-word; }
+        .meta .org { font-weight: bold; color: #0073aa; }
+        ul { margin: 5pt 0 0 0; padding-left: 12pt; }
+        .content > ul:first-child { margin-top: 2pt; }
+        li { page-break-inside: avoid; }
+        li + li { margin-top: 3pt; }
+        .tags { line-height: 1.9; }
+        .tag { display: inline-block; background-color: #f3f4f5; padding: 0 5pt; margin-right: 3pt; }
+    </style>
+</head>
+<body>
+<div class="masthead">
+    <div class="masthead-body">
+        <div class="name" th:if="${resume.name() != null}" th:text="${resume.name()}">Jane Doe</div>
+        <div class="headline" th:if="${resume.headline() != null}" th:text="${resume.headline()}">Headline</div>
+        <p class="summary" th:if="${resume.summary() != null}" th:text="${resume.summary()}">Summary</p>
+        <div class="contact" th:unless="${resume.contact().isEmpty()}"><th:block th:each="item, it : ${resume.contact()}"><span th:text="${item}">contact</span><span th:unless="${it.last}">   ·   </span></th:block></div>
+    </div>
+</div>
+
+<table class="section" th:unless="${resume.skills().isEmpty()}"><tr>
+    <td class="side"><h2>Skills</h2></td>
+    <td class="content tags"><th:block th:each="skill : ${resume.skills()}"><span class="tag" th:text="${skill}">skill</span><span> </span></th:block></td>
+</tr></table>
+
+<table class="section" th:unless="${resume.experience().isEmpty()}"><tr>
+    <td class="side"><h2>Experience</h2></td>
+    <td class="content">
+        <div class="entry" th:each="role : ${resume.experience()}">
+            <div class="entry-head">
+                <div class="title" th:text="${role.title() != null ? role.title() : role.company()}">Title</div>
+                <div class="meta" th:if="${role.title() != null and role.company() != null}"><span class="org" th:text="${role.company()}">Company</span></div>
+                <div class="meta" th:if="${role.dates() != null}" th:text="${role.dates()}">Dates</div>
+                <div class="meta" th:if="${role.location() != null}" th:text="${role.location()}">Location</div>
+            </div>
+            <ul th:unless="${role.bullets().isEmpty()}">
+                <li th:each="bullet : ${role.bullets()}" th:text="${bullet}">Bullet</li>
+            </ul>
+        </div>
+    </td>
+</tr></table>
+
+<table class="section" th:unless="${resume.education().isEmpty()}"><tr>
+    <td class="side"><h2>Education</h2></td>
+    <td class="content">
+        <div class="entry" th:each="entry : ${resume.education()}">
+            <div class="entry-head">
+                <div class="title" th:text="${entry.institution() != null ? entry.institution() : entry.qualification()}">Institution</div>
+                <div class="meta" th:if="${entry.institution() != null and entry.qualification() != null}"><span class="org" th:text="${entry.qualification()}">Qualification</span></div>
+                <div class="meta" th:if="${entry.dates() != null}" th:text="${entry.dates()}">Dates</div>
+            </div>
+            <p class="details" th:if="${entry.details() != null}" th:text="${entry.details()}">Details</p>
+        </div>
+    </td>
+</tr></table>
+
+<table class="section" th:unless="${resume.certifications().isEmpty()}"><tr>
+    <td class="side"><h2>Certifications</h2></td>
+    <td class="content">
+        <ul><li th:each="item : ${resume.certifications()}" th:text="${item}">Certification</li></ul>
+    </td>
+</tr></table>
+
+<table class="section" th:each="section : ${resume.additionalSections()}"><tr>
+    <td class="side"><h2 th:text="${section.heading()}">Section</h2></td>
+    <td class="content">
+        <ul><li th:each="item : ${section.items()}" th:text="${item}">Item</li></ul>
+    </td>
+</tr></table>
+</body>
+</html>

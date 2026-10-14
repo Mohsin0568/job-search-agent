@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<!--
+    Kendall: a navy band, a centred upper-case header, teal section headings, shaded role headers
+    and dark skill pills. Adapted to one column from jsonresume-theme-kendall,
+    Copyright (c) 2014 M. Adam Kendall, MIT License - see licenses/jsonresume-theme-kendall.txt.
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="${resume.name()}">Resume</title>
+    <style>
+        /* No side margins on the page, so the band can run edge to edge; the body sets them instead. */
+        @page { size: A4; margin: 14mm 0 14mm 0; }
+        @page :first { margin-top: 0; }
+        body { font-family: 'Open Sans', 'Liberation Sans'; font-size: 9.5pt; line-height: 1.45; color: #363636; margin: 0 16mm; }
+        p, li, .details { white-space: pre-line; word-wrap: break-word; margin: 0; }
+        .band { background-color: #32475c; height: 9mm; margin: 0 -16mm 0 -16mm; }
+        .header { text-align: center; border-bottom: 0.75pt solid #cccccc; padding: 13pt 0 10pt 0; }
+        .name { font-size: 22pt; font-weight: bold; text-transform: uppercase; line-height: 1.15; color: #363636; }
+        .headline { font-size: 12pt; font-weight: bold; text-transform: uppercase; color: #6b7c8f; margin-top: 2pt; }
+        .contact { color: #32475c; margin-top: 6pt; word-wrap: break-word; }
+        h2 { font-size: 13pt; font-weight: bold; text-transform: uppercase; color: #227c74; margin: 13pt 0 5pt 0;
+             page-break-after: avoid; }
+        .entry + .entry { margin-top: 9pt; }
+        .entry-box { background-color: #eeeeee; padding: 5pt 8pt; page-break-inside: avoid; page-break-after: avoid; }
+        .entry-head { width: 100%; border-collapse: collapse; }
+        .entry-head td { padding: 0; vertical-align: top; word-wrap: break-word; }
+        .org { font-size: 10.5pt; font-weight: bold; }
+        .where { width: 1%; white-space: nowrap; text-align: right; padding-left: 10pt; font-weight: bold; }
+        .dates { color: #666666; font-size: 9pt; }
+        .position { font-size: 10.5pt; font-weight: bold; margin: 5pt 0 0 8pt; page-break-after: avoid; }
+        .details { margin: 4pt 0 0 8pt; }
+        /* Each highlight in its own ruled row, as Kendall draws them. */
+        ul.highlights { list-style: none; margin: 4pt 0 0 8pt; padding: 0; border: 0.75pt solid #dddddd; }
+        ul.highlights li { padding: 3pt 7pt; border-top: 0.75pt solid #dddddd; page-break-inside: avoid; }
+        ul.highlights li:first-child { border-top: none; }
+        ul.plain { margin: 0; padding-left: 13pt; }
+        ul.plain li { margin-bottom: 1.5pt; page-break-inside: avoid; }
+        .pills { line-height: 2; }
+        .pill { display: inline-block; background-color: #32475c; color: #ffffff; font-size: 8.5pt; font-weight: bold;
+                padding: 0 6pt; margin-right: 3pt; border-radius: 6pt; }
+    </style>
+</head>
+<body>
+<div class="band"></div>
+<div class="header">
+    <div class="name" th:if="${resume.name() != null}" th:text="${resume.name()}">Jane Doe</div>
+    <div class="headline" th:if="${resume.headline() != null}" th:text="${resume.headline()}">Headline</div>
+    <div class="contact" th:unless="${resume.contact().isEmpty()}"><th:block th:each="item, it : ${resume.contact()}"><span th:text="${item}">contact</span><span th:unless="${it.last}">  ·  </span></th:block></div>
+</div>
+
+<th:block th:if="${resume.summary() != null}">
+    <h2>About</h2>
+    <p th:text="${resume.summary()}">Summary</p>
+</th:block>
+
+<th:block th:unless="${resume.skills().isEmpty()}">
+    <h2>Skills</h2>
+    <div class="pills"><th:block th:each="skill : ${resume.skills()}"><span class="pill" th:text="${skill}">skill</span><span> </span></th:block></div>
+</th:block>
+
+<th:block th:unless="${resume.experience().isEmpty()}">
+    <h2>Work Experience</h2>
+    <div class="entry" th:each="role : ${resume.experience()}">
+        <div class="entry-box">
+            <table class="entry-head"><tr>
+                <td class="org" th:text="${role.company() != null ? role.company() : role.title()}">Company</td>
+                <td class="where" th:if="${role.location() != null}" th:text="${role.location()}">Location</td>
+            </tr></table>
+            <div class="dates" th:if="${role.dates() != null}" th:text="${role.dates()}">Dates</div>
+        </div>
+        <div class="position" th:if="${role.title() != null and role.company() != null}" th:text="${role.title()}">Title</div>
+        <ul class="highlights" th:unless="${role.bullets().isEmpty()}">
+            <li th:each="bullet : ${role.bullets()}" th:text="${bullet}">Bullet</li>
+        </ul>
+    </div>
+</th:block>
+
+<th:block th:unless="${resume.education().isEmpty()}">
+    <h2>Education</h2>
+    <div class="entry" th:each="entry : ${resume.education()}">
+        <div class="entry-box">
+            <table class="entry-head"><tr>
+                <td class="org" th:text="${entry.institution() != null ? entry.institution() : entry.qualification()}">Institution</td>
+                <td class="where" th:if="${entry.dates() != null}" th:text="${entry.dates()}">Dates</td>
+            </tr></table>
+        </div>
+        <div class="position" th:if="${entry.institution() != null and entry.qualification() != null}" th:text="${entry.qualification()}">Qualification</div>
+        <p class="details" th:if="${entry.details() != null}" th:text="${entry.details()}">Details</p>
+    </div>
+</th:block>
+
+<th:block th:unless="${resume.certifications().isEmpty()}">
+    <h2>Certifications</h2>
+    <ul class="plain"><li th:each="item : ${resume.certifications()}" th:text="${item}">Certification</li></ul>
+</th:block>
+
+<th:block th:each="section : ${resume.additionalSections()}">
+    <h2 th:text="${section.heading()}">Section</h2>
+    <ul class="plain"><li th:each="item : ${section.items()}" th:text="${item}">Item</li></ul>
+</th:block>
+</body>
+</html>
