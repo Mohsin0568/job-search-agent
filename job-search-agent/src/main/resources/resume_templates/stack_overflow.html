@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!--
+    Stack Overflow: orange section labels with a rule, a tinted summary box and skill tags.
+    Ported from jsonresume-theme-stackoverflow, Copyright (c) 2019-present Francesco Esposito, MIT License -
+    see licenses/jsonresume-theme-stackoverflow.txt. Arimo stands in for its Helvetica/Arial.
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="${resume.name()}">Resume</title>
+    <style>
+        @page { size: A4; margin: 14mm 15mm; }
+        body { font-family: 'Arimo', 'Liberation Sans'; font-size: 10pt; line-height: 1.4; color: #40484f; margin: 0; }
+        p, li, .details { white-space: pre-line; word-wrap: break-word; margin: 0; }
+        .name { font-size: 25pt; line-height: 1.15; color: #202931; }
+        .headline { font-size: 14pt; line-height: 1.3; color: #202931; margin-top: 2pt; }
+        .contact { font-size: 9.5pt; color: #0b72c6; margin-top: 5pt; word-wrap: break-word; }
+        .contact .gap { padding-right: 12pt; }
+        .summary { background-color: #f1f8ff; border: 0.75pt solid #dfeaf1; padding: 8pt 10pt; margin-top: 11pt; }
+        .section-title { width: 100%; border-collapse: collapse; margin: 14pt 0 6pt 0; page-break-after: avoid; }
+        .section-title td { padding: 0; }
+        .section-title .label { width: 1%; white-space: nowrap; padding-right: 7pt; color: #ff6d1f; font-size: 8.5pt;
+                                font-weight: bold; text-transform: uppercase; }
+        .section-title .rule { vertical-align: middle; }
+        .section-title .rule div { border-top: 0.75pt solid #cccccc; }
+        .entry + .entry { margin-top: 10pt; }
+        .entry-head { width: 100%; border-collapse: collapse; page-break-inside: avoid; page-break-after: avoid; }
+        .entry-head td { padding: 0; vertical-align: top; word-wrap: break-word; font-size: 11pt; }
+        .position { font-weight: bold; color: #202931; }
+        .org { color: #606d76; }
+        .dates { width: 1%; white-space: nowrap; text-align: right; padding-left: 10pt; font-weight: bold; color: #202931; font-size: 9.5pt; }
+        .location { font-size: 9pt; font-weight: bold; color: #606d76; margin-top: 2pt; }
+        ul { list-style-type: square; margin: 4pt 0 0 0; padding-left: 15pt; }
+        li { margin-bottom: 1.5pt; page-break-inside: avoid; }
+        .tags { line-height: 1.9; }
+        .tag { display: inline-block; background-color: #dfeaf1; color: #2c5777; font-size: 9pt; padding: 0 4pt; margin-right: 3pt; }
+    </style>
+</head>
+<body>
+<div class="name" th:if="${resume.name() != null}" th:text="${resume.name()}">Jane Doe</div>
+<div class="headline" th:if="${resume.headline() != null}" th:text="${resume.headline()}">Headline</div>
+<div class="contact" th:unless="${resume.contact().isEmpty()}"><th:block th:each="item, it : ${resume.contact()}"><span th:text="${item}">contact</span><span class="gap" th:unless="${it.last}"> </span></th:block></div>
+
+<p class="summary" th:if="${resume.summary() != null}" th:text="${resume.summary()}">Summary</p>
+
+<th:block th:unless="${resume.skills().isEmpty()}">
+    <table class="section-title"><tr><td class="label">Skills</td><td class="rule"><div></div></td></tr></table>
+    <div class="tags"><th:block th:each="skill : ${resume.skills()}"><span class="tag" th:text="${skill}">skill</span><span> </span></th:block></div>
+</th:block>
+
+<th:block th:unless="${resume.experience().isEmpty()}">
+    <table class="section-title"><tr><td class="label">Work Experience</td><td class="rule"><div></div></td></tr></table>
+    <div class="entry" th:each="role : ${resume.experience()}">
+        <table class="entry-head"><tr>
+            <td><span class="position" th:text="${role.title()}">Title</span><span class="org" th:if="${role.company() != null}" th:text="${role.title() != null ? ' at ' : ''}"> at </span><span class="org" th:text="${role.company()}">Company</span></td>
+            <td class="dates" th:if="${role.dates() != null}" th:text="${role.dates()}">Dates</td>
+        </tr></table>
+        <div class="location" th:if="${role.location() != null}" th:text="${role.location()}">Location</div>
+        <ul th:unless="${role.bullets().isEmpty()}">
+            <li th:each="bullet : ${role.bullets()}" th:text="${bullet}">Bullet</li>
+        </ul>
+    </div>
+</th:block>
+
+<th:block th:unless="${resume.education().isEmpty()}">
+    <table class="section-title"><tr><td class="label">Education</td><td class="rule"><div></div></td></tr></table>
+    <div class="entry" th:each="entry : ${resume.education()}">
+        <table class="entry-head"><tr>
+            <td><span class="position" th:text="${entry.qualification()}">Qualification</span><span class="org" th:if="${entry.institution() != null}" th:text="${entry.qualification() != null ? ' at ' : ''}"> at </span><span class="org" th:text="${entry.institution()}">Institution</span></td>
+            <td class="dates" th:if="${entry.dates() != null}" th:text="${entry.dates()}">Dates</td>
+        </tr></table>
+        <p class="details" th:if="${entry.details() != null}" th:text="${entry.details()}">Details</p>
+    </div>
+</th:block>
+
+<th:block th:unless="${resume.certifications().isEmpty()}">
+    <table class="section-title"><tr><td class="label">Certifications</td><td class="rule"><div></div></td></tr></table>
+    <ul><li th:each="item : ${resume.certifications()}" th:text="${item}">Certification</li></ul>
+</th:block>
+
+<th:block th:each="section : ${resume.additionalSections()}">
+    <table class="section-title"><tr><td class="label" th:text="${section.heading()}">Section</td><td class="rule"><div></div></td></tr></table>
+    <ul><li th:each="item : ${section.items()}" th:text="${item}">Item</li></ul>
+</th:block>
+</body>
+</html>

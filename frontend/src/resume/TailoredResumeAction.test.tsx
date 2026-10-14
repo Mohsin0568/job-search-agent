@@ -94,6 +94,14 @@ describe('TailoredResumeAction', () => {
 
     const picker = await screen.findByRole('combobox', { name: 'Resume template for Staff Engineer' })
     expect(picker).toHaveValue('CLASSIC')
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Classic',
+      'Modern',
+      'Compact',
+      'Even',
+      'Stack Overflow',
+      'Kendall',
+    ])
     await user.selectOptions(picker, 'Modern')
     // Picking alone asks nothing of the server: it waits for the button.
     expect(bodies).toEqual([])

@@ -66,5 +66,8 @@ describe('templateLabel', () => {
     expect(templateLabel('CLASSIC')).toBe('Classic')
     expect(templateLabel('MODERN')).toBe('Modern')
     expect(templateLabel('COMPACT')).toBe('Compact')
+    expect(templateLabel('EVEN')).toBe('Even')
+    expect(templateLabel('STACK_OVERFLOW')).toBe('Stack Overflow')
+    expect(templateLabel('KENDALL')).toBe('Kendall')
   })
 })

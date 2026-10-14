@@ -5,6 +5,9 @@ export const RESUME_TEMPLATES: { id: ResumeTemplate; label: string }[] = [
   { id: 'CLASSIC', label: 'Classic' },
   { id: 'MODERN', label: 'Modern' },
   { id: 'COMPACT', label: 'Compact' },
+  { id: 'EVEN', label: 'Even' },
+  { id: 'STACK_OVERFLOW', label: 'Stack Overflow' },
+  { id: 'KENDALL', label: 'Kendall' },
 ]
 
 export function templateLabel(template: ResumeTemplate): string {

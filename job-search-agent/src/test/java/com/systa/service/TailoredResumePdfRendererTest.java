@@ -39,7 +39,7 @@ class TailoredResumePdfRendererTest {
                 "Jane Doe",
                 "Senior Java Developer",
                 List.of("jane.doe@example.com", "+44 7700 900123", "London, UK", "linkedin.com/in/janedoe"),
-                "Backend engineer with nine years of experience building payment and ledger systems on the JVM. "
+                "Backend engineer with nine years building payment and ledger systems on the JVM. "
                         + "Leads small teams, owns services from design through to production, and has run the "
                         + "migration of a monolith to event-driven services handling 40 million requests a day.",
                 List.of("Java", "Spring Boot", "Kafka", "PostgreSQL", "AWS", "Kubernetes", "Terraform", "REST APIs",
@@ -60,20 +60,23 @@ class TailoredResumePdfRendererTest {
     @EnumSource(ResumeTemplate.class)
     void writesEverySectionOfTheResume(final ResumeTemplate template) throws IOException {
         final String text = textOf(renderer.render(sample(), template));
+        // Templates set headings (and some the name) in their own case - "SKILLS", "Skills" - and some put
+        // the summary under the name with no heading at all.
+        final String headings = text.toUpperCase(Locale.ROOT);
 
-        assertThat(text).contains("Jane Doe", "Senior Java Developer", "jane.doe@example.com", "London, UK",
-                "SUMMARY", "Backend engineer with nine years",
-                "SKILLS", "Spring Boot", "Kafka",
-                "EXPERIENCE", "Senior Software Engineer", "Globex Payments", "Mar 2021 – Present",
-                "cutting p99 latency", "Initech", "Sep 2017 – Feb 2021",
-                "EDUCATION", "BSc Computer Science (First Class)", "University of Leeds", "2014 – 2017",
-                "CERTIFICATIONS", "AWS Certified Solutions Architect",
-                "LANGUAGES", "French (conversational)");
+        assertThat(headings).contains("JANE DOE", "SENIOR JAVA DEVELOPER");
+        assertThat(text).contains("jane.doe@example.com", "London, UK",
+                "Backend engineer with nine years", "Spring Boot", "Kafka",
+                "Senior Software Engineer", "Globex Payments", "Mar 2021 – Present",
+                "cutting p99", "Initech", "Sep 2017 – Feb 2021",
+                "BSc Computer Science (First Class)", "University of Leeds", "2014 – 2017",
+                "AWS Certified Solutions Architect", "French (conversational)");
+        assertThat(headings).contains("SKILLS", "EXPERIENCE", "EDUCATION", "CERTIFICATIONS", "LANGUAGES");
         // In reading order: the header, then the sections as laid out.
-        assertThat(text.indexOf("Jane Doe")).isLessThan(text.indexOf("SUMMARY"));
-        assertThat(text.indexOf("SUMMARY")).isLessThan(text.indexOf("EXPERIENCE"));
+        assertThat(headings.indexOf("JANE DOE")).isLessThan(text.indexOf("Backend engineer with nine years"));
+        assertThat(text.indexOf("Backend engineer with nine years")).isLessThan(headings.indexOf("EXPERIENCE"));
         assertThat(text.indexOf("Globex Payments")).isLessThan(text.indexOf("Initech"));
-        assertThat(text.indexOf("EXPERIENCE")).isLessThan(text.indexOf("EDUCATION"));
+        assertThat(headings.indexOf("EXPERIENCE")).isLessThan(headings.indexOf("EDUCATION"));
     }
 
     // Applicant tracking systems read the PDF's text in the order it was written, not as it looks.
@@ -101,7 +104,8 @@ class TailoredResumePdfRendererTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"CLASSIC, PTSerif", "MODERN, Lato", "COMPACT, Carlito"})
+    @CsvSource({"CLASSIC, PTSerif", "MODERN, Lato", "COMPACT, Carlito", "EVEN, Lato", "STACK_OVERFLOW, Arimo",
+            "KENDALL, OpenSans"})
     void setsEachTemplateInItsOwnTypeface(final ResumeTemplate template, final String typeface) throws IOException {
         final List<String> fonts = fontsIn(renderer.render(sample(), template));
 
@@ -143,7 +147,8 @@ class TailoredResumePdfRendererTest {
 
         final String text = textOf(renderer.render(content, template));
 
-        assertThat(text.strip()).isEqualTo("Jane Doe");
+        // Some templates set the name in capitals.
+        assertThat(text.strip()).isEqualToIgnoringCase("Jane Doe");
     }
 
     @ParameterizedTest
@@ -155,8 +160,11 @@ class TailoredResumePdfRendererTest {
 
         final String text = textOf(renderer.render(content, template));
 
-        assertThat(text).contains("Łukasz Żółć", "Désirée Nguyễn", "Ελληνικά", "Привет", "emoji rocket", "tab andbell",
-                "Chinese is skipped, this stays.");
+        // The name and headline may be set in capitals.
+        for (final String inHeader : List.of("Łukasz Żółć", "Désirée Nguyễn", "Ελληνικά", "Привет")) {
+            assertThat(text).containsIgnoringCase(inHeader);
+        }
+        assertThat(text).contains("emoji rocket", "tab andbell", "Chinese is skipped, this stays.");
         assertThat(text).doesNotContain("🚀", "中文", "#");
     }
 
@@ -169,7 +177,8 @@ class TailoredResumePdfRendererTest {
 
         final String text = textOf(renderer.render(content, template));
 
-        assertThat(text).contains("Jane <b>Doe</b>", "R&D", "\"quoted\" & 'single'",
+        assertThat(text).containsIgnoringCase("Jane <b>Doe</b>");
+        assertThat(text).contains("R&D", "\"quoted\" & 'single'",
                 "Built <script>alert(1)</script> tools & APIs.", "C++", "<T>");
     }
 
