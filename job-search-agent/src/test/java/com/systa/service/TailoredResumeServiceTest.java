@@ -7,6 +7,7 @@ import com.systa.exception.ResumeTailoringException;
 import com.systa.model.JobDescription;
 import com.systa.model.JobListing;
 import com.systa.model.ResumeDownload;
+import com.systa.model.ResumeTemplate;
 import com.systa.model.TailoredResume;
 import com.systa.model.TailoredResume.Status;
 import com.systa.model.TailoredResumeContent;
@@ -35,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -49,7 +51,7 @@ class TailoredResumeServiceTest {
     private static final String JOB_RESULT_ID = "r-1";
     private static final Instant NOW = Instant.parse("2026-10-13T09:00:00Z");
     private static final byte[] PDF = "%PDF-tailored".getBytes();
-    private static final String S3_KEY = "tailored/user-1/r-1/v3.pdf";
+    private static final String S3_KEY = "tailored/user-1/r-1/v3-classic.pdf";
 
     private static final UserJobSearchResult JOB_RESULT = new UserJobSearchResult(JOB_RESULT_ID, USER_ID,
             LocalDateTime.of(2026, 10, 12, 9, 0), "Acme Corp", new JobListing("J-1", "Staff Engineer",
@@ -106,15 +108,15 @@ class TailoredResumeServiceTest {
         lenient().when(jobDescriptionService.getOrFetch(USER_ID, JOB_RESULT_ID)).thenReturn(Optional.of(JOB_DESCRIPTION));
         lenient().when(resumeTailoringLlmService.tailor(USER_ID, "resume text v3", "Acme Corp", "Staff Engineer",
                 JOB_DESCRIPTION)).thenReturn(CONTENT);
-        lenient().when(tailoredResumePdfRenderer.render(CONTENT)).thenReturn(PDF);
+        lenient().when(tailoredResumePdfRenderer.render(eq(CONTENT), any())).thenReturn(PDF);
     }
 
     @Test
     void answersStraightAwayAsPending_andTailorsInTheBackground() {
-        final Optional<TailoredResume> requested = service.request(USER_ID, JOB_RESULT_ID);
+        final Optional<TailoredResume> requested = service.request(USER_ID, JOB_RESULT_ID, null);
 
-        final TailoredResume pending = new TailoredResume(JOB_RESULT_ID, USER_ID, Status.PENDING, 3, null, null, null,
-                NOW, null);
+        final TailoredResume pending = new TailoredResume(JOB_RESULT_ID, USER_ID, Status.PENDING, 3,
+                ResumeTemplate.CLASSIC, null, null, null, NOW, null, null);
         assertThat(requested).contains(pending);
         assertThat(stored).isEqualTo(pending);
         // Nothing slow has happened yet: it is all waiting in the background queue.
@@ -124,12 +126,14 @@ class TailoredResumeServiceTest {
 
     @Test
     void tailorsTheLatestResumeToTheJob_storesThePdf_andMarksItReady() {
-        service.request(USER_ID, JOB_RESULT_ID);
+        service.request(USER_ID, JOB_RESULT_ID, null);
         runBackgroundWork();
 
         verify(resumeStorageService).store(S3_KEY, PDF, "application/pdf");
-        assertThat(stored).isEqualTo(new TailoredResume(JOB_RESULT_ID, USER_ID, Status.READY, 3, S3_KEY,
-                "Jane-Doe-Acme-Corp-resume.pdf", null, NOW, NOW));
+        verify(tailoredResumePdfRenderer).render(CONTENT, ResumeTemplate.CLASSIC);
+        // The content is kept with it, so it can be laid out in another template later.
+        assertThat(stored).isEqualTo(new TailoredResume(JOB_RESULT_ID, USER_ID, Status.READY, 3,
+                ResumeTemplate.CLASSIC, S3_KEY, "Jane-Doe-Acme-Corp-resume.pdf", null, NOW, NOW, CONTENT));
     }
 
     @Test
@@ -142,7 +146,7 @@ class TailoredResumeServiceTest {
                 .thenAnswer(call -> stored = asMongoKeepsIt(call.getArgument(0)));
         when(tailoredResumeRepository.save(any())).thenAnswer(call -> stored = asMongoKeepsIt(call.getArgument(0)));
 
-        service.request(USER_ID, JOB_RESULT_ID);
+        service.request(USER_ID, JOB_RESULT_ID, null);
         runBackgroundWork();
 
         assertThat(stored.status()).isEqualTo(Status.READY);
@@ -153,7 +157,7 @@ class TailoredResumeServiceTest {
     void returnsTheReadyResume_withoutTailoringAgain() {
         stored = ready(3);
 
-        assertThat(service.request(USER_ID, JOB_RESULT_ID)).contains(ready(3));
+        assertThat(service.request(USER_ID, JOB_RESULT_ID, null)).contains(ready(3));
 
         assertThat(queued).isEmpty();
         verify(tailoredResumeRepository, never()).save(any());
@@ -163,7 +167,7 @@ class TailoredResumeServiceTest {
     void returnsTheOneAlreadyUnderWay_withoutStartingAnother() {
         stored = pendingSince(NOW.minusSeconds(60), 3);
 
-        assertThat(service.request(USER_ID, JOB_RESULT_ID)).contains(stored);
+        assertThat(service.request(USER_ID, JOB_RESULT_ID, null)).contains(stored);
 
         assertThat(queued).isEmpty();
     }
@@ -172,7 +176,7 @@ class TailoredResumeServiceTest {
     void startsAgain_whenTheOneUnderWayHasBeenPendingTooLong() {
         stored = pendingSince(NOW.minus(TailoredResumeService.PENDING_TIMEOUT).minusSeconds(1), 3);
 
-        final Optional<TailoredResume> requested = service.request(USER_ID, JOB_RESULT_ID);
+        final Optional<TailoredResume> requested = service.request(USER_ID, JOB_RESULT_ID, null);
 
         assertThat(requested).map(TailoredResume::requestedAt).contains(NOW);
         assertThat(queued).hasSize(1);
@@ -183,7 +187,7 @@ class TailoredResumeServiceTest {
         stored = ready(2);
         when(resumeTailoringLlmService.tailor(any(), any(), any(), any(), any())).thenReturn(CONTENT);
 
-        final Optional<TailoredResume> requested = service.request(USER_ID, JOB_RESULT_ID);
+        final Optional<TailoredResume> requested = service.request(USER_ID, JOB_RESULT_ID, null);
         assertThat(requested).map(TailoredResume::status).contains(Status.PENDING);
         assertThat(requested).map(TailoredResume::resumeVersion).contains(3);
 
@@ -196,15 +200,82 @@ class TailoredResumeServiceTest {
     void tailorsAgain_afterAFailure() {
         stored = pendingSince(NOW.minusSeconds(60), 3).failed("we couldn't find this job posting", NOW.minusSeconds(30));
 
-        assertThat(service.request(USER_ID, JOB_RESULT_ID)).map(TailoredResume::status).contains(Status.PENDING);
+        assertThat(service.request(USER_ID, JOB_RESULT_ID, null)).map(TailoredResume::status).contains(Status.PENDING);
         assertThat(queued).hasSize(1);
+    }
+
+    @Test
+    void tailorsInTheTemplateAskedFor() {
+        final Optional<TailoredResume> requested = service.request(USER_ID, JOB_RESULT_ID, ResumeTemplate.MODERN);
+        assertThat(requested).map(TailoredResume::template).contains(ResumeTemplate.MODERN);
+
+        runBackgroundWork();
+
+        verify(tailoredResumePdfRenderer).render(CONTENT, ResumeTemplate.MODERN);
+        verify(resumeStorageService).store("tailored/user-1/r-1/v3-modern.pdf", PDF, "application/pdf");
+        assertThat(stored.status()).isEqualTo(Status.READY);
+        assertThat(stored.template()).isEqualTo(ResumeTemplate.MODERN);
+    }
+
+    @Test
+    void laysAReadyResumeOutInAnotherTemplate_straightAway_withoutTailoringItAgain() {
+        stored = ready(3);
+
+        final Optional<TailoredResume> requested = service.request(USER_ID, JOB_RESULT_ID, ResumeTemplate.COMPACT);
+
+        final TailoredResume relaidOut = ready(3).relaidOut(ResumeTemplate.COMPACT,
+                "tailored/user-1/r-1/v3-compact.pdf", NOW);
+        assertThat(requested).contains(relaidOut);
+        assertThat(stored).isEqualTo(relaidOut);
+        verify(tailoredResumePdfRenderer).render(CONTENT, ResumeTemplate.COMPACT);
+        verify(resumeStorageService).store("tailored/user-1/r-1/v3-compact.pdf", PDF, "application/pdf");
+        assertThat(queued).isEmpty();
+        verifyNoInteractions(jobDescriptionService, resumeTailoringLlmService);
+    }
+
+    @Test
+    void keepsTheJobsTemplate_whenNoneIsAskedFor() {
+        stored = ready(3).relaidOut(ResumeTemplate.MODERN, "tailored/user-1/r-1/v3-modern.pdf", NOW);
+        assertThat(service.request(USER_ID, JOB_RESULT_ID, null)).contains(stored);
+        verifyNoInteractions(tailoredResumePdfRenderer);
+
+        // Trying again after a failure, too.
+        stored = stored.failed("we couldn't find this job posting", NOW);
+        assertThat(service.request(USER_ID, JOB_RESULT_ID, null)).map(TailoredResume::template)
+                .contains(ResumeTemplate.MODERN);
+    }
+
+    @Test
+    void tailorsAgain_toChangeTheTemplateOfOneTailoredBeforeItsContentWasKept() {
+        stored = new TailoredResume(JOB_RESULT_ID, USER_ID, Status.READY, 3, null, "tailored/user-1/r-1/v3.pdf",
+                "Jane-Doe-Acme-Corp-resume.pdf", null, NOW.minusSeconds(120), NOW.minusSeconds(60), null);
+
+        // Asking for the template it already shows as changes nothing.
+        assertThat(service.request(USER_ID, JOB_RESULT_ID, ResumeTemplate.CLASSIC)).contains(stored);
+        assertThat(queued).isEmpty();
+
+        final Optional<TailoredResume> requested = service.request(USER_ID, JOB_RESULT_ID, ResumeTemplate.MODERN);
+
+        assertThat(requested).map(TailoredResume::status).contains(Status.PENDING);
+        assertThat(requested).map(TailoredResume::template).contains(ResumeTemplate.MODERN);
+        assertThat(queued).hasSize(1);
+    }
+
+    @Test
+    void leavesOneUnderWay_inTheTemplateItWasAskedFor() {
+        stored = pendingSince(NOW.minusSeconds(60), 3);
+
+        assertThat(service.request(USER_ID, JOB_RESULT_ID, ResumeTemplate.MODERN)).contains(stored);
+
+        assertThat(queued).isEmpty();
+        verifyNoInteractions(tailoredResumePdfRenderer);
     }
 
     @Test
     void refusesAUserWhoHasNotUploadedAResume() {
         when(resumeService.findLatest(USER_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.request(USER_ID, JOB_RESULT_ID))
+        assertThatThrownBy(() -> service.request(USER_ID, JOB_RESULT_ID, null))
                 .isInstanceOf(ResumeRequiredException.class)
                 .hasMessage("upload your resume before tailoring it to a job");
 
@@ -216,7 +287,7 @@ class TailoredResumeServiceTest {
     void doesNothing_forAJobTheUserDoesNotHave() {
         when(userJobSearchResultRepository.findByIdAndUserId("someone-elses", USER_ID)).thenReturn(Optional.empty());
 
-        assertThat(service.request(USER_ID, "someone-elses")).isEmpty();
+        assertThat(service.request(USER_ID, "someone-elses", null)).isEmpty();
 
         assertThat(queued).isEmpty();
         verifyNoInteractions(tailoredResumeRepository, resumeService);
@@ -230,7 +301,7 @@ class TailoredResumeServiceTest {
             throw new DuplicateKeyException("tailored_resume _id");
         });
 
-        assertThat(service.request(USER_ID, JOB_RESULT_ID)).contains(theirs);
+        assertThat(service.request(USER_ID, JOB_RESULT_ID, null)).contains(theirs);
 
         assertThat(queued).isEmpty();
     }
@@ -240,11 +311,13 @@ class TailoredResumeServiceTest {
         when(jobDescriptionService.getOrFetch(USER_ID, JOB_RESULT_ID)).thenThrow(new JobDescriptionUnavailableException(
                 "we couldn't find this job posting - it may have been removed or need a sign-in to view"));
 
-        service.request(USER_ID, JOB_RESULT_ID);
+        service.request(USER_ID, JOB_RESULT_ID, null);
         runBackgroundWork();
 
-        assertThat(stored).isEqualTo(new TailoredResume(JOB_RESULT_ID, USER_ID, Status.FAILED, 3, null, null,
-                "we couldn't find this job posting - it may have been removed or need a sign-in to view", NOW, NOW));
+        assertThat(stored).isEqualTo(new TailoredResume(JOB_RESULT_ID, USER_ID, Status.FAILED, 3,
+                ResumeTemplate.CLASSIC, null, null,
+                "we couldn't find this job posting - it may have been removed or need a sign-in to view", NOW, NOW,
+                null));
         verifyNoInteractions(resumeTailoringLlmService, resumeStorageService);
     }
 
@@ -253,7 +326,7 @@ class TailoredResumeServiceTest {
         when(resumeTailoringLlmService.tailor(any(), any(), any(), any(), any()))
                 .thenThrow(new ResumeTailoringException("we couldn't make sense of your resume"));
 
-        service.request(USER_ID, JOB_RESULT_ID);
+        service.request(USER_ID, JOB_RESULT_ID, null);
         runBackgroundWork();
 
         assertThat(stored.status()).isEqualTo(Status.FAILED);
@@ -265,7 +338,7 @@ class TailoredResumeServiceTest {
         doThrow(new ResumeStorageException("Could not store the resume in S3 - key=tailored/user-1/r-1/v3.pdf", null))
                 .when(resumeStorageService).store(anyString(), any(), anyString());
 
-        service.request(USER_ID, JOB_RESULT_ID);
+        service.request(USER_ID, JOB_RESULT_ID, null);
         runBackgroundWork();
 
         assertThat(stored.status()).isEqualTo(Status.FAILED);
@@ -276,7 +349,7 @@ class TailoredResumeServiceTest {
 
     @Test
     void discardsAResult_whenTheUserHasAskedAgainSinceItStarted() {
-        service.request(USER_ID, JOB_RESULT_ID);
+        service.request(USER_ID, JOB_RESULT_ID, null);
         // While that one runs, a newer request takes over the record.
         final TailoredResume newer = pendingSince(NOW.plusSeconds(700), 4);
         stored = newer;
@@ -337,20 +410,22 @@ class TailoredResumeServiceTest {
     }
 
     private static TailoredResume pendingSince(final Instant requestedAt, final int resumeVersion) {
-        return new TailoredResume(JOB_RESULT_ID, USER_ID, Status.PENDING, resumeVersion, null, null, null,
-                requestedAt, null);
+        return new TailoredResume(JOB_RESULT_ID, USER_ID, Status.PENDING, resumeVersion, ResumeTemplate.CLASSIC, null,
+                null, null, requestedAt, null, null);
     }
 
     // What a save and a read back hand you: MongoDB drops anything finer than a millisecond.
     private static TailoredResume asMongoKeepsIt(final TailoredResume saved) {
         return new TailoredResume(saved.jobResultId(), saved.userId(), saved.status(), saved.resumeVersion(),
-                saved.s3Key(), saved.fileName(), saved.failureReason(),
+                saved.template(), saved.s3Key(), saved.fileName(), saved.failureReason(),
                 saved.requestedAt().truncatedTo(ChronoUnit.MILLIS),
-                saved.completedAt() == null ? null : saved.completedAt().truncatedTo(ChronoUnit.MILLIS));
+                saved.completedAt() == null ? null : saved.completedAt().truncatedTo(ChronoUnit.MILLIS),
+                saved.content());
     }
 
     private static TailoredResume ready(final int resumeVersion) {
         return pendingSince(NOW.minusSeconds(120), resumeVersion)
-                .ready("tailored/user-1/r-1/v" + resumeVersion + ".pdf", "Jane-Doe-Acme-Corp-resume.pdf", NOW.minusSeconds(60));
+                .ready("tailored/user-1/r-1/v" + resumeVersion + "-classic.pdf", "Jane-Doe-Acme-Corp-resume.pdf", CONTENT,
+                        NOW.minusSeconds(60));
     }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { tailoredResume } from '../test/fixtures'
-import { isTailoring, TAILORING_TIMEOUT_MS, tailoringState } from './tailoring'
+import { isTailoring, preferredTemplate, TAILORING_TIMEOUT_MS, tailoringState, templateLabel } from './tailoring'
 
 const REQUESTED_AT = '2026-10-13T09:00:00Z'
 const requested = new Date(REQUESTED_AT).getTime()
@@ -42,5 +42,29 @@ describe('isTailoring', () => {
 
   it('treats a request with an unreadable time as just started', () => {
     expect(isTailoring({ ...pending, requestedAt: 'not a date' })).toBe(true)
+  })
+})
+
+describe('preferredTemplate', () => {
+  it('is the template of the most recently requested tailored resume', () => {
+    expect(
+      preferredTemplate([
+        tailoredResume({ jobResultId: 'r-1', template: 'COMPACT', requestedAt: '2026-10-13T09:00:00Z' }),
+        tailoredResume({ jobResultId: 'r-2', template: 'MODERN', requestedAt: '2026-10-14T09:00:00.5Z' }),
+        tailoredResume({ jobResultId: 'r-3', template: 'CLASSIC', requestedAt: '2026-10-14T09:00:00Z' }),
+      ]),
+    ).toBe('MODERN')
+  })
+
+  it('is Classic before anything has been tailored', () => {
+    expect(preferredTemplate([])).toBe('CLASSIC')
+  })
+})
+
+describe('templateLabel', () => {
+  it('names each template for people', () => {
+    expect(templateLabel('CLASSIC')).toBe('Classic')
+    expect(templateLabel('MODERN')).toBe('Modern')
+    expect(templateLabel('COMPACT')).toBe('Compact')
   })
 })

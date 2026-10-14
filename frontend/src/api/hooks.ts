@@ -13,7 +13,7 @@ import {
   uploadResume,
 } from './endpoints'
 import { isTailoring, TAILORING_POLL_INTERVAL_MS } from '../resume/tailoring'
-import type { CandidateProfile, ResumeVersion, SuggestionSource, TailoredResume } from './types'
+import type { CandidateProfile, ResumeTemplate, ResumeVersion, SuggestionSource, TailoredResume } from './types'
 
 // Query keys include the user id so one user's cached data is never shown to the next user on this browser.
 const keys = {
@@ -89,7 +89,8 @@ export function useRequestTailoredResume() {
   const userId = useUserId()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (jobResultId: string) => requestTailoredResume(jobResultId),
+    mutationFn: ({ jobResultId, template }: { jobResultId: string; template?: ResumeTemplate }) =>
+      requestTailoredResume(jobResultId, template),
     // Putting the PENDING record in the list is what starts useTailoredResumes polling for it.
     onSuccess: (requested) =>
       queryClient.setQueryData<TailoredResume[]>(keys.tailoredResumes(userId), (tailoredResumes = []) => [

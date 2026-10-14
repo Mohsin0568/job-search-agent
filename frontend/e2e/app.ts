@@ -33,6 +33,7 @@ export type TailoredResume = {
   jobResultId: string
   status: 'PENDING' | 'READY' | 'FAILED'
   resumeVersion: number
+  template: 'CLASSIC' | 'MODERN' | 'COMPACT'
   failureReason: string | null
   requestedAt: string
   completedAt: string | null
@@ -245,10 +246,19 @@ async function fakeBackend(page: Page, backend: Backend) {
       if (request.method() === 'POST') {
         const latest = backend.resumes.find((resume) => resume.latest)
         if (!latest) return json({ message: 'upload your resume before tailoring it to a job' }, 409)
+        const body = (request.postDataJSON() ?? {}) as { template?: TailoredResume['template'] }
+        const template = body.template ?? existing?.template ?? 'CLASSIC'
+        if (existing?.status === 'READY' && existing.resumeVersion === latest.version) {
+          // Only the template changed: laid out again straight away, as the server does.
+          const relaidOut = { ...existing, template }
+          backend.tailoredResumes = backend.tailoredResumes.map((tailored) => (tailored === existing ? relaidOut : tailored))
+          return json(relaidOut)
+        }
         const pending: TailoredResume = {
           jobResultId,
           status: 'PENDING',
           resumeVersion: latest.version,
+          template,
           failureReason: null,
           requestedAt: new Date().toISOString(),
           completedAt: null,

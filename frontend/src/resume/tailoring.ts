@@ -1,4 +1,24 @@
-import type { TailoredResume } from '../api/types'
+import type { ResumeTemplate, TailoredResume } from '../api/types'
+
+/** Every template, in the order to offer them. */
+export const RESUME_TEMPLATES: { id: ResumeTemplate; label: string }[] = [
+  { id: 'CLASSIC', label: 'Classic' },
+  { id: 'MODERN', label: 'Modern' },
+  { id: 'COMPACT', label: 'Compact' },
+]
+
+export function templateLabel(template: ResumeTemplate): string {
+  return RESUME_TEMPLATES.find(({ id }) => id === template)?.label ?? template
+}
+
+/** The template the user asked for most recently, to offer first on a job they haven't tailored to yet. */
+export function preferredTemplate(tailoredResumes: TailoredResume[]): ResumeTemplate {
+  const latest = tailoredResumes.reduce<TailoredResume | undefined>(
+    (latest, tailored) => (!latest || Date.parse(tailored.requestedAt) > Date.parse(latest.requestedAt) ? tailored : latest),
+    undefined,
+  )
+  return latest?.template ?? 'CLASSIC'
+}
 
 /** How often to ask the server whether a resume being tailored is done. */
 export const TAILORING_POLL_INTERVAL_MS = 3000

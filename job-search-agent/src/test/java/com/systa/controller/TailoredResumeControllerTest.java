@@ -2,14 +2,17 @@ package com.systa.controller;
 
 import com.systa.exception.ResumeRequiredException;
 import com.systa.model.ResumeDownload;
+import com.systa.model.ResumeTemplate;
 import com.systa.model.TailoredResume;
 import com.systa.model.TailoredResume.Status;
+import com.systa.model.TailoredResumeContent;
 import com.systa.security.SecurityConfig;
 import com.systa.service.TailoredResumeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -17,6 +20,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -37,10 +41,11 @@ class TailoredResumeControllerTest {
     private static final String URL = "/api/jobs/results/r-1/tailored-resume";
     private static final Instant REQUESTED_AT = Instant.parse("2026-10-13T09:00:00Z");
 
-    private static final TailoredResume PENDING = new TailoredResume("r-1", USER_ID, Status.PENDING, 3, null, null,
-            null, REQUESTED_AT, null);
-    private static final TailoredResume READY = PENDING.ready("tailored/u/r-1/v3.pdf", "Jane-Doe-Acme-resume.pdf",
-            REQUESTED_AT.plusSeconds(40));
+    private static final TailoredResume PENDING = new TailoredResume("r-1", USER_ID, Status.PENDING, 3,
+            ResumeTemplate.MODERN, null, null, null, REQUESTED_AT, null, null);
+    private static final TailoredResume READY = PENDING.ready("tailored/u/r-1/v3-modern.pdf",
+            "Jane-Doe-Acme-resume.pdf", new TailoredResumeContent("Jane Doe", null, null, "Summary", null, null, null,
+                    null, null), REQUESTED_AT.plusSeconds(40));
 
     @Autowired
     private MockMvc mockMvc;
@@ -50,20 +55,21 @@ class TailoredResumeControllerTest {
 
     @Test
     void request_whenTailoringStarts_isAccepted_withThePendingStatus() throws Exception {
-        when(tailoredResumeService.request(USER_ID, "r-1")).thenReturn(Optional.of(PENDING));
+        when(tailoredResumeService.request(USER_ID, "r-1", null)).thenReturn(Optional.of(PENDING));
 
         mockMvc.perform(post(URL).with(jwt().jwt(token -> token.subject(USER_ID))))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.jobResultId").value("r-1"))
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.resumeVersion").value(3))
+                .andExpect(jsonPath("$.template").value("MODERN"))
                 .andExpect(jsonPath("$.requestedAt").value("2026-10-13T09:00:00Z"))
                 .andExpect(jsonPath("$.completedAt").doesNotExist());
     }
 
     @Test
     void request_whenOneIsAlreadyReady_isOk_withoutSayingWhereItIsStored() throws Exception {
-        when(tailoredResumeService.request(USER_ID, "r-1")).thenReturn(Optional.of(READY));
+        when(tailoredResumeService.request(USER_ID, "r-1", null)).thenReturn(Optional.of(READY));
 
         mockMvc.perform(post(URL).with(jwt().jwt(token -> token.subject(USER_ID))))
                 .andExpect(status().isOk())
@@ -71,12 +77,44 @@ class TailoredResumeControllerTest {
                 .andExpect(jsonPath("$.completedAt").value("2026-10-13T09:00:40Z"))
                 .andExpect(jsonPath("$.s3Key").doesNotExist())
                 .andExpect(jsonPath("$.fileName").doesNotExist())
+                .andExpect(jsonPath("$.content").doesNotExist())
                 .andExpect(jsonPath("$.userId").doesNotExist());
     }
 
     @Test
+    void request_passesOnTheTemplateAskedFor() throws Exception {
+        when(tailoredResumeService.request(USER_ID, "r-1", ResumeTemplate.COMPACT)).thenReturn(Optional.of(READY));
+
+        mockMvc.perform(post(URL).with(jwt().jwt(token -> token.subject(USER_ID)))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"template\":\"COMPACT\"}"))
+                .andExpect(status().isOk());
+
+        verify(tailoredResumeService).request(USER_ID, "r-1", ResumeTemplate.COMPACT);
+    }
+
+    @Test
+    void request_withAnEmptyBody_keepsTheCurrentTemplate() throws Exception {
+        when(tailoredResumeService.request(USER_ID, "r-1", null)).thenReturn(Optional.of(PENDING));
+
+        mockMvc.perform(post(URL).with(jwt().jwt(token -> token.subject(USER_ID)))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isAccepted());
+
+        verify(tailoredResumeService).request(USER_ID, "r-1", null);
+    }
+
+    @Test
+    void request_forATemplateThatDoesNotExist_isBadRequest() throws Exception {
+        mockMvc.perform(post(URL).with(jwt().jwt(token -> token.subject(USER_ID)))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"template\":\"FANCY\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(tailoredResumeService);
+    }
+
+    @Test
     void request_forAJobTheUserDoesNotHave_isNotFound() throws Exception {
-        when(tailoredResumeService.request(USER_ID, "r-1")).thenReturn(Optional.empty());
+        when(tailoredResumeService.request(USER_ID, "r-1", null)).thenReturn(Optional.empty());
 
         mockMvc.perform(post(URL).with(jwt().jwt(token -> token.subject(USER_ID))))
                 .andExpect(status().isNotFound());
@@ -84,7 +122,7 @@ class TailoredResumeControllerTest {
 
     @Test
     void request_beforeUploadingAResume_isConflict_withWhatToDo() throws Exception {
-        when(tailoredResumeService.request(USER_ID, "r-1"))
+        when(tailoredResumeService.request(USER_ID, "r-1", null))
                 .thenThrow(new ResumeRequiredException("upload your resume before tailoring it to a job"));
 
         mockMvc.perform(post(URL).with(jwt().jwt(token -> token.subject(USER_ID))))
@@ -140,7 +178,8 @@ class TailoredResumeControllerTest {
     @Test
     void getAll_listsTheTokenSubjectsTailoredResumes() throws Exception {
         when(tailoredResumeService.findAll(USER_ID)).thenReturn(List.of(READY,
-                new TailoredResume("r-2", USER_ID, Status.PENDING, 3, null, null, null, REQUESTED_AT, null)));
+                new TailoredResume("r-2", USER_ID, Status.PENDING, 3, null, null, null, null, REQUESTED_AT, null,
+                        null)));
 
         mockMvc.perform(get("/api/jobs/tailored-resumes").with(jwt().jwt(token -> token.subject(USER_ID))))
                 .andExpect(status().isOk())
@@ -149,6 +188,8 @@ class TailoredResumeControllerTest {
                 .andExpect(jsonPath("$[0].status").value("READY"))
                 .andExpect(jsonPath("$[1].jobResultId").value("r-2"))
                 .andExpect(jsonPath("$[1].status").value("PENDING"))
+                // Tailored before there was a choice of template: shown as the one it was laid out in.
+                .andExpect(jsonPath("$[1].template").value("CLASSIC"))
                 .andExpect(jsonPath("$[0].s3Key").doesNotExist());
     }
 

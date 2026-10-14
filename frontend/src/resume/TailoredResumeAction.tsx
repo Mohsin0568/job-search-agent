@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRequestTailoredResume, useTailoredResumeDownload } from '../api/hooks'
-import type { TailoredResume } from '../api/types'
+import type { ResumeTemplate, TailoredResume } from '../api/types'
 import { startDownload } from './download'
-import { tailoringState } from './tailoring'
+import { RESUME_TEMPLATES, tailoringState, templateLabel } from './tailoring'
 
 const primaryButtonClass =
   'rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-60'
@@ -23,22 +23,40 @@ type Props = {
   tailored: TailoredResume | undefined
   /** The version of the user's current resume, or null if they haven't uploaded one. */
   latestResumeVersion: number | null
+  /** The template to offer when this job has none yet. */
+  defaultTemplate: ResumeTemplate
 }
 
 /** On a job card: tailor the user's resume to this job, then download the result. */
-export function TailoredResumeAction({ jobResultId, jobTitle, tailored, latestResumeVersion }: Props) {
+export function TailoredResumeAction({ jobResultId, jobTitle, tailored, latestResumeVersion, defaultTemplate }: Props) {
   const request = useRequestTailoredResume()
   const download = useTailoredResumeDownload()
   const [problem, setProblem] = useState<string>()
+  // The template picked here, until the server's record catches up with it.
+  const [picked, setPicked] = useState<ResumeTemplate>()
 
   const state = tailoringState(tailored, latestResumeVersion)
+  const template = picked ?? tailored?.template ?? defaultTemplate
+  // A ready resume changes template straight away: the server lays the same content out again.
+  const switching = state === 'ready' && request.isPending
 
-  const onTailor = async () => {
+  const tailorIn = async (wanted: ResumeTemplate) => {
     setProblem(undefined)
     try {
-      await request.mutateAsync(jobResultId)
+      await request.mutateAsync({ jobResultId, template: wanted })
+      return true
     } catch (error) {
       setProblem(error instanceof Error ? sentence(error.message) : 'Couldn’t start tailoring. Please try again.')
+      return false
+    }
+  }
+
+  const onTailor = () => void tailorIn(template)
+
+  const onPick = async (wanted: ResumeTemplate) => {
+    setPicked(wanted)
+    if (state === 'ready' && !(await tailorIn(wanted))) {
+      setPicked(undefined)
     }
   }
 
@@ -55,7 +73,7 @@ export function TailoredResumeAction({ jobResultId, jobTitle, tailored, latestRe
   const tailorButton = (label: string, className: string) => (
     <button
       type="button"
-      onClick={() => void onTailor()}
+      onClick={onTailor}
       disabled={request.isPending}
       aria-label={`${label} for ${jobTitle}`}
       className={className}
@@ -68,12 +86,31 @@ export function TailoredResumeAction({ jobResultId, jobTitle, tailored, latestRe
     <button
       type="button"
       onClick={() => void onDownload()}
-      disabled={download.isPending}
+      disabled={download.isPending || switching}
       aria-label={`Download tailored resume for ${jobTitle}`}
       className={primaryButtonClass}
     >
       Download tailored resume
     </button>
+  )
+
+  const picker = (
+    <label className="flex items-center gap-2 text-xs text-slate-500">
+      Template
+      <select
+        aria-label={`Resume template for ${jobTitle}`}
+        value={template}
+        disabled={request.isPending}
+        onChange={(event) => void onPick(event.target.value as ResumeTemplate)}
+        className="rounded-md border border-slate-300 bg-white py-1.5 pl-2 pr-8 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {RESUME_TEMPLATES.map(({ id, label }) => (
+          <option key={id} value={id}>
+            {label}
+          </option>
+        ))}
+      </select>
+    </label>
   )
 
   return (
@@ -87,7 +124,12 @@ export function TailoredResumeAction({ jobResultId, jobTitle, tailored, latestRe
         </p>
       )}
 
-      {state === 'none' && tailorButton('Tailor resume', primaryButtonClass)}
+      {state === 'none' && (
+        <div className="flex flex-wrap gap-2">
+          {tailorButton('Tailor resume', primaryButtonClass)}
+          {picker}
+        </div>
+      )}
 
       {state === 'tailoring' && (
         <p role="status" className="flex items-center gap-2 text-slate-600">
@@ -96,7 +138,19 @@ export function TailoredResumeAction({ jobResultId, jobTitle, tailored, latestRe
         </p>
       )}
 
-      {state === 'ready' && downloadButton}
+      {state === 'ready' && (
+        <>
+          <div className="flex flex-wrap gap-2">
+            {downloadButton}
+            {picker}
+          </div>
+          {switching && (
+            <p role="status" className="text-xs text-slate-500">
+              Laying it out in {templateLabel(template)}…
+            </p>
+          )}
+        </>
+      )}
 
       {state === 'outdated' && (
         <>
@@ -104,6 +158,7 @@ export function TailoredResumeAction({ jobResultId, jobTitle, tailored, latestRe
           <div className="flex flex-wrap gap-2">
             {downloadButton}
             {tailorButton('Tailor again', secondaryButtonClass)}
+            {picker}
           </div>
         </>
       )}
@@ -113,14 +168,20 @@ export function TailoredResumeAction({ jobResultId, jobTitle, tailored, latestRe
           <p className="text-red-700">
             {sentence(tailored?.failureReason ?? 'something went wrong while tailoring your resume')}.
           </p>
-          {tailorButton('Try again', secondaryButtonClass)}
+          <div className="flex flex-wrap gap-2">
+            {tailorButton('Try again', secondaryButtonClass)}
+            {picker}
+          </div>
         </>
       )}
 
       {state === 'stalled' && (
         <>
           <p className="text-slate-600">Tailoring is taking longer than it should.</p>
-          {tailorButton('Try again', secondaryButtonClass)}
+          <div className="flex flex-wrap gap-2">
+            {tailorButton('Try again', secondaryButtonClass)}
+            {picker}
+          </div>
         </>
       )}
 

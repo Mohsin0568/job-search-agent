@@ -27,6 +27,7 @@ export function tailoredResume(overrides: Partial<TailoredResume> = {}): Tailore
     jobResultId: 'r-1',
     status: 'READY',
     resumeVersion: 3,
+    template: 'CLASSIC',
     failureReason: null,
     requestedAt: '2026-10-13T09:00:00Z',
     completedAt: '2026-10-13T09:00:40Z',
