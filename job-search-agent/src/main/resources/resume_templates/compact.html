@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<!-- Compact: smaller sans-serif type, narrow margins and tight spacing, to keep a long resume short. -->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="${resume.name()}">Resume</title>
+    <style>
+        @page { size: A4; margin: 11mm 13mm; }
+        body { font-family: 'Carlito', 'Liberation Sans'; font-size: 9.5pt; line-height: 1.25; color: #1f2937; margin: 0; }
+        p, li, .details { white-space: pre-line; word-wrap: break-word; margin: 0; }
+        .header { margin-bottom: 2pt; }
+        .name { font-size: 16pt; font-weight: bold; color: #111827; }
+        .headline { font-size: 10.5pt; color: #374151; }
+        .contact { font-size: 8.5pt; color: #4b5563; margin-top: 1pt; word-wrap: break-word; }
+        h2 { font-size: 9.5pt; font-weight: bold; text-transform: uppercase; color: #1e3a8a;
+             border-bottom: 0.5pt solid #9ca3af; padding-bottom: 0.5pt; margin: 7pt 0 2.5pt 0; page-break-after: avoid; }
+        .entry { margin-top: 3pt; }
+        .entry-head { width: 100%; border-collapse: collapse; page-break-inside: avoid; page-break-after: avoid; }
+        .entry-head td { padding: 0; vertical-align: top; word-wrap: break-word; }
+        .title { font-weight: bold; }
+        .location { color: #4b5563; }
+        .dates { width: 1%; white-space: nowrap; text-align: right; font-size: 8.5pt; color: #4b5563; padding-left: 8pt; }
+        ul { margin: 1pt 0 0 0; padding-left: 11pt; }
+        li { margin-bottom: 0.5pt; page-break-inside: avoid; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div><span class="name" th:if="${resume.name() != null}" th:text="${resume.name()}">Jane Doe</span><span th:if="${resume.name() != null and resume.headline() != null}">  </span><span class="headline" th:if="${resume.headline() != null}" th:text="${resume.headline()}">Headline</span></div>
+    <div class="contact" th:unless="${resume.contact().isEmpty()}"><th:block th:each="item, it : ${resume.contact()}"><span th:text="${item}">contact</span><span th:unless="${it.last}">  ·  </span></th:block></div>
+</div>
+
+<th:block th:if="${resume.summary() != null}">
+    <h2>Summary</h2>
+    <p th:text="${resume.summary()}">Summary</p>
+</th:block>
+
+<th:block th:unless="${resume.skills().isEmpty()}">
+    <h2>Skills</h2>
+    <p><th:block th:each="skill, it : ${resume.skills()}"><span th:text="${skill}">skill</span><span th:unless="${it.last}">, </span></th:block></p>
+</th:block>
+
+<th:block th:unless="${resume.experience().isEmpty()}">
+    <h2>Experience</h2>
+    <div class="entry" th:each="role : ${resume.experience()}">
+        <table class="entry-head"><tr>
+            <td><span class="title" th:text="${role.title()}">Title</span><span th:if="${role.title() != null and role.company() != null}"> — </span><span th:text="${role.company()}">Company</span><span th:if="${role.location() != null and (role.title() != null or role.company() != null)}">, </span><span class="location" th:text="${role.location()}">Location</span></td>
+            <td class="dates" th:if="${role.dates() != null}" th:text="${role.dates()}">Dates</td>
+        </tr></table>
+        <ul th:unless="${role.bullets().isEmpty()}">
+            <li th:each="bullet : ${role.bullets()}" th:text="${bullet}">Bullet</li>
+        </ul>
+    </div>
+</th:block>
+
+<th:block th:unless="${resume.education().isEmpty()}">
+    <h2>Education</h2>
+    <div class="entry" th:each="entry : ${resume.education()}">
+        <table class="entry-head"><tr>
+            <td><span class="title" th:text="${entry.qualification()}">Qualification</span><span th:if="${entry.qualification() != null and entry.institution() != null}"> — </span><span th:text="${entry.institution()}">Institution</span></td>
+            <td class="dates" th:if="${entry.dates() != null}" th:text="${entry.dates()}">Dates</td>
+        </tr></table>
+        <div class="details" th:if="${entry.details() != null}" th:text="${entry.details()}">Details</div>
+    </div>
+</th:block>
+
+<th:block th:unless="${resume.certifications().isEmpty()}">
+    <h2>Certifications</h2>
+    <ul><li th:each="item : ${resume.certifications()}" th:text="${item}">Certification</li></ul>
+</th:block>
+
+<th:block th:each="section : ${resume.additionalSections()}">
+    <h2 th:text="${section.heading()}">Section</h2>
+    <ul><li th:each="item : ${section.items()}" th:text="${item}">Item</li></ul>
+</th:block>
+</body>
+</html>

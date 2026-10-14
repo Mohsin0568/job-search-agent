@@ -45,6 +45,9 @@ export type ResumeDownload = {
   expiresAt: string
 }
 
+/** The layouts a tailored resume can be laid out in (the backend's ResumeTemplate - keep in sync). */
+export type ResumeTemplate = 'CLASSIC' | 'MODERN' | 'COMPACT'
+
 /** The user's resume tailored to one saved job. Tailoring runs in the background on the server. */
 export type TailoredResume = {
   /** The id of the JobSearchResult it is tailored to. */
@@ -52,6 +55,7 @@ export type TailoredResume = {
   status: 'PENDING' | 'READY' | 'FAILED'
   /** The version of the user's resume it was (or is being) tailored from. */
   resumeVersion: number
+  template: ResumeTemplate
   /** Why it failed, in words for the user. Null unless it failed. */
   failureReason: string | null
   /** ISO instants. completedAt is null while pending. */

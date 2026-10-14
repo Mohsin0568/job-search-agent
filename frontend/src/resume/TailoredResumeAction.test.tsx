@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useTailoredResumes } from '../api/hooks'
-import type { TailoredResume } from '../api/types'
+import type { ResumeTemplate, TailoredResume } from '../api/types'
 import { tailoredResume } from '../test/fixtures'
 import { renderRoutes } from '../test/render'
 import { API, server } from '../test/server'
@@ -21,7 +21,13 @@ const JOB = 'r-1'
 const now = () => new Date().toISOString()
 
 /** The action fed from the tailored-resume list, the way the dashboard feeds it. */
-function Harness({ latestResumeVersion }: { latestResumeVersion: number | null }) {
+function Harness({
+  latestResumeVersion,
+  defaultTemplate,
+}: {
+  latestResumeVersion: number | null
+  defaultTemplate: ResumeTemplate
+}) {
   const { data } = useTailoredResumes()
   if (!data) return null
   return (
@@ -30,13 +36,14 @@ function Harness({ latestResumeVersion }: { latestResumeVersion: number | null }
       jobTitle="Staff Engineer"
       tailored={data.find((tailored) => tailored.jobResultId === JOB)}
       latestResumeVersion={latestResumeVersion}
+      defaultTemplate={defaultTemplate}
     />
   )
 }
 
-function renderAction(latestResumeVersion: number | null = 3) {
+function renderAction(latestResumeVersion: number | null = 3, defaultTemplate: ResumeTemplate = 'CLASSIC') {
   renderRoutes([
-    { path: '/', element: <Harness latestResumeVersion={latestResumeVersion} /> },
+    { path: '/', element: <Harness latestResumeVersion={latestResumeVersion} defaultTemplate={defaultTemplate} /> },
     { path: '/profile', element: <p>Profile page</p> },
   ])
   return userEvent.setup()
@@ -65,12 +72,82 @@ describe('TailoredResumeAction', () => {
 
     expect(await screen.findByRole('status')).toHaveTextContent('Tailoring your resume to this job…')
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
 
     // The server finishes; the next poll picks it up.
     onServer = [tailoredResume({ status: 'READY' })]
 
     expect(await screen.findByRole('button', { name: 'Download tailored resume for Staff Engineer' })).toBeEnabled()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('tailors in the template the user picks', async () => {
+    const bodies: unknown[] = []
+    server.use(
+      http.post(`${API}/api/jobs/results/${JOB}/tailored-resume`, async ({ request }) => {
+        bodies.push(await request.json())
+        onServer = [tailoredResume({ status: 'PENDING', template: 'MODERN', requestedAt: now(), completedAt: null })]
+        return HttpResponse.json(onServer[0], { status: 202 })
+      }),
+    )
+    const user = renderAction()
+
+    const picker = await screen.findByRole('combobox', { name: 'Resume template for Staff Engineer' })
+    expect(picker).toHaveValue('CLASSIC')
+    await user.selectOptions(picker, 'Modern')
+    // Picking alone asks nothing of the server: it waits for the button.
+    expect(bodies).toEqual([])
+
+    await user.click(screen.getByRole('button', { name: 'Tailor resume for Staff Engineer' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Tailoring your resume')
+    expect(bodies).toEqual([{ template: 'MODERN' }])
+  })
+
+  it('offers the template the user last picked on a job not tailored yet', async () => {
+    renderAction(3, 'COMPACT')
+
+    expect(await screen.findByRole('combobox', { name: 'Resume template for Staff Engineer' })).toHaveValue('COMPACT')
+  })
+
+  it('lays a ready resume out in another template straight away', async () => {
+    onServer = [tailoredResume({ status: 'READY', template: 'CLASSIC' })]
+    const bodies: unknown[] = []
+    server.use(
+      http.post(`${API}/api/jobs/results/${JOB}/tailored-resume`, async ({ request }) => {
+        bodies.push(await request.json())
+        onServer = [tailoredResume({ status: 'READY', template: 'COMPACT' })]
+        return HttpResponse.json(onServer[0])
+      }),
+    )
+    const user = renderAction()
+
+    const picker = await screen.findByRole('combobox', { name: 'Resume template for Staff Engineer' })
+    expect(picker).toHaveValue('CLASSIC')
+    await user.selectOptions(picker, 'Compact')
+
+    expect(bodies).toEqual([{ template: 'COMPACT' }])
+    await waitFor(() => expect(picker).toBeEnabled())
+    expect(picker).toHaveValue('COMPACT')
+    expect(screen.getByRole('button', { name: 'Download tailored resume for Staff Engineer' })).toBeEnabled()
+    // Nothing to wait for: it never went back to tailoring.
+    expect(screen.queryByText(/Tailoring your resume/)).not.toBeInTheDocument()
+  })
+
+  it('puts the template back and says why when it cannot be changed', async () => {
+    onServer = [tailoredResume({ status: 'READY', template: 'CLASSIC' })]
+    server.use(
+      http.post(`${API}/api/jobs/results/${JOB}/tailored-resume`, () =>
+        HttpResponse.json({ message: "we couldn't reach resume storage right now, please try again" }, { status: 503 }),
+      ),
+    )
+    const user = renderAction()
+
+    const picker = await screen.findByRole('combobox', { name: 'Resume template for Staff Engineer' })
+    await user.selectOptions(picker, 'Modern')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't reach resume storage right now")
+    expect(picker).toHaveValue('CLASSIC')
   })
 
   it('downloads a tailored resume that is ready, through a fresh link', async () => {
@@ -93,6 +170,7 @@ describe('TailoredResumeAction', () => {
 
     expect(await screen.findByText(/to tailor it to this job/)).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: 'Upload your resume' }))
     expect(await screen.findByText('Profile page')).toBeInTheDocument()

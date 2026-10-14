@@ -5,6 +5,7 @@ import com.systa.exception.ResumeRequiredException;
 import com.systa.exception.ResumeTailoringException;
 import com.systa.model.JobDescription;
 import com.systa.model.ResumeDownload;
+import com.systa.model.ResumeTemplate;
 import com.systa.model.TailoredResume;
 import com.systa.model.TailoredResume.Status;
 import com.systa.model.TailoredResumeContent;
@@ -25,6 +26,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -87,13 +89,16 @@ public class TailoredResumeService {
     }
 
     /**
-     * Makes sure the job has a resume tailored from the user's latest upload: returns the one that is
-     * ready or already on its way, and otherwise starts tailoring (again, after a failure or a newer upload).
+     * Makes sure the job has a resume tailored from the user's latest upload, in the template asked for:
+     * returns the one that is ready or already on its way, lays a ready one out again when only the
+     * template has changed, and otherwise starts tailoring (again, after a failure or a newer upload).
      *
+     * @param template the layout wanted, or null to keep the job's current one (the default if it has none)
      * @return empty when the user has no such job
      * @throws ResumeRequiredException when the user hasn't uploaded a resume
      */
-    public Optional<TailoredResume> request(final String userId, final String jobResultId) {
+    public Optional<TailoredResume> request(final String userId, final String jobResultId,
+                                            final ResumeTemplate template) {
         final Optional<UserJobSearchResult> jobResult =
                 userJobSearchResultRepository.findByIdAndUserId(jobResultId, userId);
         if (jobResult.isEmpty()) {
@@ -103,12 +108,22 @@ public class TailoredResumeService {
                 new ResumeRequiredException("upload your resume before tailoring it to a job"));
 
         final Optional<TailoredResume> existing = tailoredResumeRepository.findById(jobResultId);
+        final ResumeTemplate wanted = template != null ? template
+                : existing.map(TailoredResume::templateOrDefault).orElse(ResumeTemplate.DEFAULT);
         if (existing.isPresent() && isCurrent(existing.get(), resume)) {
-            return existing;
+            final TailoredResume current = existing.get();
+            // One under way keeps the template it was asked for: the user can switch once it is ready.
+            if (current.status() != Status.READY || current.templateOrDefault() == wanted) {
+                return existing;
+            }
+            if (current.content() != null) {
+                return Optional.of(layOutAgain(current, wanted));
+            }
+            // Tailored before its content was kept: there is nothing to lay out again, so tailor it afresh.
         }
 
         final TailoredResume pending = new TailoredResume(jobResultId, userId, Status.PENDING, resume.version(),
-                null, null, null, now(), null);
+                wanted, null, null, null, now(), null, null);
         if (existing.isPresent()) {
             tailoredResumeRepository.save(pending);
         } else {
@@ -143,6 +158,16 @@ public class TailoredResumeService {
                         tailoredResume.fileName(), MediaType.APPLICATION_PDF_VALUE));
     }
 
+    // Quick - no LLM, just the PDF - so it happens within the request rather than in the background.
+    private TailoredResume layOutAgain(final TailoredResume current, final ResumeTemplate template) {
+        final byte[] pdf = tailoredResumePdfRenderer.render(current.content(), template);
+        final String s3Key = s3Key(current.userId(), current.jobResultId(), current.resumeVersion(), template);
+        resumeStorageService.store(s3Key, pdf, MediaType.APPLICATION_PDF_VALUE);
+        log.info("Tailored resume laid out again - userId={}, jobResultId={}, template={}", current.userId(),
+                current.jobResultId(), template);
+        return tailoredResumeRepository.save(current.relaidOut(template, s3Key, now()));
+    }
+
     // Nothing to do when it was made from the user's latest resume, or is being made from it right now.
     private boolean isCurrent(final TailoredResume tailoredResume, final UserResume latestResume) {
         if (tailoredResume.resumeVersion() != latestResume.version()) {
@@ -165,13 +190,13 @@ public class TailoredResumeService {
                     .orElseThrow(() -> new JobDescriptionUnavailableException("this job is no longer in your results"));
             final TailoredResumeContent content = resumeTailoringLlmService.tailor(userId, resume.extractedText(),
                     jobResult.companyName(), jobResult.job().jobTitle(), jobDescription);
-            final byte[] pdf = tailoredResumePdfRenderer.render(content);
+            final byte[] pdf = tailoredResumePdfRenderer.render(content, pending.templateOrDefault());
 
-            final String s3Key = "tailored/%s/%s/v%d.pdf".formatted(userId, jobResultId, resume.version());
+            final String s3Key = s3Key(userId, jobResultId, resume.version(), pending.templateOrDefault());
             resumeStorageService.store(s3Key, pdf, MediaType.APPLICATION_PDF_VALUE);
-            outcome = pending.ready(s3Key, fileName(content.name(), jobResult.companyName()), now());
-            log.info("Tailored resume ready - userId={}, jobResultId={}, resumeVersion={}", userId, jobResultId,
-                    resume.version());
+            outcome = pending.ready(s3Key, fileName(content.name(), jobResult.companyName()), content, now());
+            log.info("Tailored resume ready - userId={}, jobResultId={}, resumeVersion={}, template={}", userId,
+                    jobResultId, resume.version(), pending.templateOrDefault());
         } catch (final JobDescriptionUnavailableException | ResumeTailoringException e) {
             // Both carry a reason written for the user.
             log.warn("Tailored resume failed - userId={}, jobResultId={}, reason={}", userId, jobResultId,
@@ -207,6 +232,13 @@ public class TailoredResumeService {
     // compares the requestedAt it holds with the one read back to tell whether the record is still ours.
     private Instant now() {
         return clock.instant().truncatedTo(ChronoUnit.MILLIS);
+    }
+
+    // One PDF per resume version and template, so laying out again never overwrites the one being downloaded.
+    private static String s3Key(final String userId, final String jobResultId, final int resumeVersion,
+                                final ResumeTemplate template) {
+        return "tailored/%s/%s/v%d-%s.pdf".formatted(userId, jobResultId, resumeVersion,
+                template.name().toLowerCase(Locale.ROOT));
     }
 
     // "Jane-Doe-Acme-Corp-resume.pdf". Ends up in a Content-Disposition header, so only plain characters.

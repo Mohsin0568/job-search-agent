@@ -5,6 +5,7 @@ import { formatRunDateTime, specified } from '../jobs/format'
 import { companiesWithoutResults, groupByCompany } from '../jobs/groupByCompany'
 import { JobCard } from '../jobs/JobCard'
 import { TailoredResumeAction } from '../resume/TailoredResumeAction'
+import { preferredTemplate } from '../resume/tailoring'
 
 // The newest page of results; older ones aren't shown on the dashboard.
 const LATEST_RESULTS_LIMIT = 100
@@ -30,6 +31,7 @@ export function DashboardPage() {
           latestResumeVersion:
             (resumeVersions.data.find((resume) => resume.latest) ?? resumeVersions.data[0])?.version ?? null,
           byJob: new Map(tailoredResumes.data.map((tailored) => [tailored.jobResultId, tailored])),
+          defaultTemplate: preferredTemplate(tailoredResumes.data),
         }
       : undefined
   const tailoringUnavailable = resumeVersions.isError || tailoredResumes.isError
@@ -91,6 +93,7 @@ export function DashboardPage() {
                           jobTitle={specified(result.job.jobTitle) ?? 'Untitled role'}
                           tailored={tailoring.byJob.get(result.id)}
                           latestResumeVersion={tailoring.latestResumeVersion}
+                          defaultTemplate={tailoring.defaultTemplate}
                         />
                       ) : tailoringUnavailable ? (
                         <p className="text-xs text-slate-400">Resume tailoring is unavailable right now.</p>

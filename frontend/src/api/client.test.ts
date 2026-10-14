@@ -242,7 +242,7 @@ describe('endpoints', () => {
 
   it('getTailoredResumes returns every tailored resume the user has', async () => {
     const tailored = [
-      { jobResultId: 'r-1', status: 'READY', resumeVersion: 3, failureReason: null, requestedAt: '2026-10-13T09:00:00Z', completedAt: '2026-10-13T09:00:40Z' },
+      { jobResultId: 'r-1', status: 'READY', resumeVersion: 3, template: 'MODERN', failureReason: null, requestedAt: '2026-10-13T09:00:00Z', completedAt: '2026-10-13T09:00:40Z' },
     ]
     server.use(http.get(`${API}/api/jobs/tailored-resumes`, () => HttpResponse.json(tailored)))
 
@@ -250,17 +250,36 @@ describe('endpoints', () => {
   })
 
   it('requestTailoredResume POSTs for the job, encoding its id, and returns the pending record', async () => {
-    const pending = { jobResultId: 'r/1', status: 'PENDING', resumeVersion: 3, failureReason: null, requestedAt: '2026-10-13T09:00:00Z', completedAt: null }
+    const pending = { jobResultId: 'r/1', status: 'PENDING', resumeVersion: 3, template: 'MODERN', failureReason: null, requestedAt: '2026-10-13T09:00:00Z', completedAt: null }
     let path = ''
+    let body: unknown
+    let contentType: string | null = null
     server.use(
-      http.post(`${API}/api/jobs/results/:id/tailored-resume`, ({ request }) => {
+      http.post(`${API}/api/jobs/results/:id/tailored-resume`, async ({ request }) => {
         path = new URL(request.url).pathname
+        contentType = request.headers.get('Content-Type')
+        body = await request.json()
         return HttpResponse.json(pending, { status: 202 })
       }),
     )
 
-    await expect(requestTailoredResume('r/1')).resolves.toEqual(pending)
+    await expect(requestTailoredResume('r/1', 'MODERN')).resolves.toEqual(pending)
     expect(path).toBe('/api/jobs/results/r%2F1/tailored-resume')
+    expect(contentType).toBe('application/json')
+    expect(body).toEqual({ template: 'MODERN' })
+  })
+
+  it('requestTailoredResume without a template leaves the choice to the server', async () => {
+    let body: unknown
+    server.use(
+      http.post(`${API}/api/jobs/results/:id/tailored-resume`, async ({ request }) => {
+        body = await request.json()
+        return HttpResponse.json({}, { status: 202 })
+      }),
+    )
+
+    await requestTailoredResume('r-1')
+    expect(body).toEqual({})
   })
 
   it('getTailoredResumeDownload asks for a link to the job’s tailored resume', async () => {

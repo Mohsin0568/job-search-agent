@@ -35,7 +35,7 @@ test('a user tailors their resume to a job and downloads it', async ({ page, bac
 test('a tailored resume is still there after a reload', async ({ page, backend }) => {
   backend.resumes = [RESUME]
   backend.tailoredResumes = [
-    { jobResultId: 'j2', status: 'READY', resumeVersion: 1, failureReason: null, requestedAt: '2026-10-13T09:00:00Z', completedAt: '2026-10-13T09:00:40Z' },
+    { jobResultId: 'j2', status: 'READY', resumeVersion: 1, template: 'CLASSIC', failureReason: null, requestedAt: '2026-10-13T09:00:00Z', completedAt: '2026-10-13T09:00:40Z' },
   ]
   await signIn(page)
 
@@ -55,4 +55,27 @@ test('a user without a resume is sent to upload one first', async ({ page }) => 
   await card.getByRole('link', { name: 'Upload your resume' }).click()
   await expect(page).toHaveURL('/profile')
   await expect(page.getByRole('region', { name: 'Your resume' })).toBeVisible()
+})
+
+test('a user picks a template before tailoring, then switches a ready resume to another', async ({ page, backend }) => {
+  backend.resumes = [RESUME]
+  await signIn(page)
+
+  const card = page.getByRole('article').filter({ hasText: 'Staff Engineer' })
+  await card.getByRole('combobox', { name: 'Resume template for Staff Engineer' }).selectOption('Modern')
+  await card.getByRole('button', { name: 'Tailor resume for Staff Engineer' }).click()
+
+  await expect(card.getByRole('button', { name: 'Download tailored resume for Staff Engineer' })).toBeVisible({
+    timeout: 15_000,
+  })
+  expect(backend.tailoredResumes.map((tailored) => tailored.template)).toEqual(['MODERN'])
+  // The next job offers the template picked last.
+  await expect(page.getByRole('combobox', { name: 'Resume template for Platform Engineer' })).toHaveValue('MODERN')
+
+  await card.getByRole('combobox', { name: 'Resume template for Staff Engineer' }).selectOption('Compact')
+
+  await expect.poll(() => backend.tailoredResumes.map((tailored) => tailored.template)).toEqual(['COMPACT'])
+  await expect(card.getByRole('combobox', { name: 'Resume template for Staff Engineer' })).toHaveValue('COMPACT')
+  await expect(card.getByRole('button', { name: 'Download tailored resume for Staff Engineer' })).toBeEnabled()
+  await expect(card.getByText(/Tailoring your resume/)).toHaveCount(0)
 })
