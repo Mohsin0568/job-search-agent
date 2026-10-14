@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRequestTailoredResume, useTailoredResumeDownload } from '../api/hooks'
 import type { ResumeTemplate, TailoredResume } from '../api/types'
 import { startDownload } from './download'
 import { RESUME_TEMPLATES, tailoringState, templateLabel } from './tailoring'
+import { TemplateGallery } from './TemplateGallery'
 
 const primaryButtonClass =
   'rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-60'
@@ -34,6 +35,8 @@ export function TailoredResumeAction({ jobResultId, jobTitle, tailored, latestRe
   const [problem, setProblem] = useState<string>()
   // The template picked here, until the server's record catches up with it.
   const [picked, setPicked] = useState<ResumeTemplate>()
+  const [previewing, setPreviewing] = useState(false)
+  const previewButton = useRef<HTMLButtonElement>(null)
 
   const state = tailoringState(tailored, latestResumeVersion)
   const template = picked ?? tailored?.template ?? defaultTemplate
@@ -54,6 +57,7 @@ export function TailoredResumeAction({ jobResultId, jobTitle, tailored, latestRe
   const onTailor = () => void tailorIn(template)
 
   const onPick = async (wanted: ResumeTemplate) => {
+    if (wanted === template) return
     setPicked(wanted)
     if (state === 'ready' && !(await tailorIn(wanted))) {
       setPicked(undefined)
@@ -94,23 +98,46 @@ export function TailoredResumeAction({ jobResultId, jobTitle, tailored, latestRe
     </button>
   )
 
+  const closePreview = useCallback(() => {
+    setPreviewing(false)
+    previewButton.current?.focus()
+  }, [])
+
+  const onChooseInPreview = (wanted: ResumeTemplate) => {
+    closePreview()
+    void onPick(wanted)
+  }
+
   const picker = (
-    <label className="flex items-center gap-2 text-xs text-slate-500">
-      Template
-      <select
-        aria-label={`Resume template for ${jobTitle}`}
-        value={template}
+    <div className="flex items-center gap-2">
+      <label className="flex items-center gap-2 text-xs text-slate-500">
+        Template
+        <select
+          aria-label={`Resume template for ${jobTitle}`}
+          value={template}
+          disabled={request.isPending}
+          onChange={(event) => void onPick(event.target.value as ResumeTemplate)}
+          className="rounded-md border border-slate-300 bg-white py-1.5 pl-2 pr-8 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {RESUME_TEMPLATES.map(({ id, label }) => (
+            <option key={id} value={id}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="button"
+        ref={previewButton}
+        onClick={() => setPreviewing(true)}
         disabled={request.isPending}
-        onChange={(event) => void onPick(event.target.value as ResumeTemplate)}
-        className="rounded-md border border-slate-300 bg-white py-1.5 pl-2 pr-8 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60"
+        aria-label={`Preview templates for ${jobTitle}`}
+        className="text-sm font-medium text-indigo-600 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {RESUME_TEMPLATES.map(({ id, label }) => (
-          <option key={id} value={id}>
-            {label}
-          </option>
-        ))}
-      </select>
-    </label>
+        Preview
+      </button>
+      {previewing && <TemplateGallery selected={template} onChoose={onChooseInPreview} onClose={closePreview} />}
+    </div>
   )
 
   return (
