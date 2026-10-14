@@ -11,6 +11,7 @@ import {
   getTailoredResumeDownload,
   getTailoredResumes,
   requestTailoredResume,
+  templatePreviewUrl,
   saveProfile,
   suggestNames,
   uploadResume,
@@ -280,6 +281,10 @@ describe('endpoints', () => {
 
     await requestTailoredResume('r-1')
     expect(body).toEqual({})
+  })
+
+  it('templatePreviewUrl points at the API’s picture of the template', () => {
+    expect(templatePreviewUrl('STACK_OVERFLOW')).toBe(`${API}/api/resume-templates/STACK_OVERFLOW/preview`)
   })
 
   it('getTailoredResumeDownload asks for a link to the job’s tailored resume', async () => {

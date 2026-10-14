@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -156,6 +156,81 @@ describe('TailoredResumeAction', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't reach resume storage right now")
     expect(picker).toHaveValue('CLASSIC')
+  })
+
+  it('previews every template, then uses the one the user chooses', async () => {
+    const user = renderAction()
+
+    const previewButton = await screen.findByRole('button', { name: 'Preview templates for Staff Engineer' })
+    await user.click(previewButton)
+
+    const gallery = screen.getByRole('dialog', { name: 'Choose a template' })
+    const choices = within(gallery).getAllByRole('button', { name: / template$/ })
+    expect(choices.map((choice) => choice.getAttribute('aria-label'))).toEqual([
+      'Classic template',
+      'Modern template',
+      'Compact template',
+      'Even template',
+      'Stack Overflow template',
+      'Kendall template',
+    ])
+    const kendall = within(gallery).getByRole('button', { name: 'Kendall template' })
+    expect(kendall.querySelector('img')).toHaveAttribute('src', `${API}/api/resume-templates/KENDALL/preview`)
+    // The current choice is marked, and has focus to start from.
+    const classic = within(gallery).getByRole('button', { name: 'Classic template' })
+    expect(classic).toHaveAttribute('aria-pressed', 'true')
+    expect(classic).toHaveFocus()
+
+    await user.click(kendall)
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Resume template for Staff Engineer' })).toHaveValue('KENDALL')
+    expect(previewButton).toHaveFocus()
+  })
+
+  it('lays a ready resume out in the template chosen from the preview', async () => {
+    onServer = [tailoredResume({ status: 'READY', template: 'CLASSIC' })]
+    const bodies: unknown[] = []
+    server.use(
+      http.post(`${API}/api/jobs/results/${JOB}/tailored-resume`, async ({ request }) => {
+        bodies.push(await request.json())
+        onServer = [tailoredResume({ status: 'READY', template: 'EVEN' })]
+        return HttpResponse.json(onServer[0])
+      }),
+    )
+    const user = renderAction()
+
+    await user.click(await screen.findByRole('button', { name: 'Preview templates for Staff Engineer' }))
+    // Choosing the one it already has asks nothing of the server.
+    await user.click(screen.getByRole('button', { name: 'Classic template' }))
+    expect(bodies).toEqual([])
+
+    await user.click(screen.getByRole('button', { name: 'Preview templates for Staff Engineer' }))
+    await user.click(screen.getByRole('button', { name: 'Even template' }))
+
+    await waitFor(() => expect(bodies).toEqual([{ template: 'EVEN' }]))
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Resume template for Staff Engineer' })).toHaveValue('EVEN'),
+    )
+  })
+
+  it('closes the preview without changing anything, by Escape, the close button or clicking outside', async () => {
+    const user = renderAction()
+    const previewButton = await screen.findByRole('button', { name: 'Preview templates for Staff Engineer' })
+
+    await user.click(previewButton)
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await user.click(previewButton)
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await user.click(previewButton)
+    await user.click(screen.getByRole('dialog').parentElement!)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    expect(screen.getByRole('combobox', { name: 'Resume template for Staff Engineer' })).toHaveValue('CLASSIC')
   })
 
   it('downloads a tailored resume that is ready, through a fresh link', async () => {

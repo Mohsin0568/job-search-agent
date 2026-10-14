@@ -1,3 +1,4 @@
+import { env } from '../config/env'
 import { ApiError, apiFetch } from './client'
 import type {
   CandidateProfile,
@@ -59,6 +60,14 @@ export function requestTailoredResume(jobResultId: string, template?: ResumeTemp
     method: 'POST',
     body: JSON.stringify(template ? { template } : {}),
   })
+}
+
+/**
+ * Where a picture of the template, laid out with a sample resume, can be loaded from. Open to anyone,
+ * so it goes straight into an <img> - which couldn't send the user's token.
+ */
+export function templatePreviewUrl(template: ResumeTemplate): string {
+  return `${env.apiBaseUrl}/api/resume-templates/${template}/preview`
 }
 
 export function getTailoredResumeDownload(jobResultId: string): Promise<ResumeDownload> {

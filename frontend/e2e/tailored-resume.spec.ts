@@ -79,3 +79,31 @@ test('a user picks a template before tailoring, then switches a ready resume to 
   await expect(card.getByRole('button', { name: 'Download tailored resume for Staff Engineer' })).toBeEnabled()
   await expect(card.getByText(/Tailoring your resume/)).toHaveCount(0)
 })
+
+test('a user previews the templates and tailors in the one they choose', async ({ page, backend }) => {
+  backend.resumes = [RESUME]
+  await signIn(page)
+
+  const card = page.getByRole('article').filter({ hasText: 'Staff Engineer' })
+  await card.getByRole('button', { name: 'Preview templates for Staff Engineer' }).click()
+
+  const gallery = page.getByRole('dialog', { name: 'Choose a template' })
+  await expect(gallery.getByRole('button', { name: / template$/ })).toHaveCount(6)
+  // Every picture loads, though an <img> sends no token.
+  const pictures = gallery.locator('img')
+  await expect(pictures).toHaveCount(6)
+  for (const picture of await pictures.all()) {
+    await expect(picture).toHaveJSProperty('complete', true)
+    expect(await picture.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0)
+  }
+
+  await gallery.getByRole('button', { name: 'Stack Overflow template' }).click()
+  await expect(gallery).toBeHidden()
+  await expect(card.getByRole('combobox', { name: 'Resume template for Staff Engineer' })).toHaveValue('STACK_OVERFLOW')
+
+  await card.getByRole('button', { name: 'Tailor resume for Staff Engineer' }).click()
+  await expect(card.getByRole('button', { name: 'Download tailored resume for Staff Engineer' })).toBeVisible({
+    timeout: 15_000,
+  })
+  expect(backend.tailoredResumes.map((tailored) => tailored.template)).toEqual(['STACK_OVERFLOW'])
+})

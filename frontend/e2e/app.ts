@@ -42,6 +42,10 @@ export type TailoredResume = {
 /** Where the fake backend's download links point; answered by the fake storage below. */
 const STORAGE = 'https://resumes.e2e.test'
 
+/** A 1×1 PNG, standing in for every template preview. */
+const PREVIEW_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+
 export type Backend = {
   /** null means the user hasn't set up a profile yet (the API answers 404). */
   profile: Profile | null
@@ -180,6 +184,11 @@ async function fakeBackend(page: Page, backend: Backend) {
     const url = new URL(request.url())
     const json = (payload: unknown, status = 200) =>
       route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) })
+
+    // Template previews are open to anyone, as on the real API: they're loaded by plain <img> tags.
+    if (request.method() === 'GET' && /^\/api\/resume-templates\/[A-Z_]+\/preview$/.test(url.pathname)) {
+      return route.fulfill({ status: 200, contentType: 'image/png', body: Buffer.from(PREVIEW_PNG, 'base64') })
+    }
 
     // Like the real API, refuse anything that doesn't carry the signed-in user's access token.
     const token = request.headers()['authorization']?.replace('Bearer ', '') ?? ''
