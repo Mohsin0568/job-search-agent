@@ -66,11 +66,12 @@ public class JobSearchService {
 
         if (candidateProfile.companyPreferences() == null || candidateProfile.companyPreferences().isEmpty()) {
             log.warn("No company preferences set, nothing to search - userId={}", userId);
-            return new JobSearchOutcome(0, 0);
+            return JobSearchOutcome.NOTHING_SEARCHED;
         }
 
         int batchesAttempted = 0;
         int batchesFailed = 0;
+        final List<String> newJobResultIds = new ArrayList<>();
         for (final String company : candidateProfile.companyPreferences()) {
             final List<SourceAudit> sourceAudits = new ArrayList<>();
             for (final List<JobSource> sourceBatch : JOB_SOURCE_BATCHES) {
@@ -84,7 +85,7 @@ public class JobSearchService {
                     final CompanySearchResult batchResult = jobSearchLlmService
                             .searchJobsForCompanyBatch(userId, candidateProfile, company, sourceLabels);
                     sourceAudits.addAll(persistBatchResult(userId, candidateProfile.recencyWindowDays(),
-                            sourceBatch, batchResult));
+                            sourceBatch, batchResult, newJobResultIds));
                 } catch (final Exception e) {
                     // Isolate failures per (company, batch) so one bad/rate-limited call
                     // doesn't stop results already persisted for other batches/companies.
@@ -96,18 +97,20 @@ public class JobSearchService {
             }
             jobSearchAuditService.record(userId, company, sourceAudits);
         }
-        return new JobSearchOutcome(batchesAttempted, batchesFailed);
+        return new JobSearchOutcome(batchesAttempted, batchesFailed, List.copyOf(newJobResultIds));
     }
 
     private List<SourceAudit> persistBatchResult(final String userId, final Integer recencyWindowDays,
                                                   final List<JobSource> sourceBatch,
-                                                  final CompanySearchResult batchResult) {
+                                                  final CompanySearchResult batchResult,
+                                                  final List<String> newJobResultIds) {
         final JobFilterResult filterResult = jobSearchResultFilterService.filterStaleJobs(
                 userId, recencyWindowDays, batchResult);
         final CompanySearchResult validJobsSearchResult =
                 new CompanySearchResult(batchResult.companyName(), filterResult.validJobs());
         final JobPersistResult persistResult =
                 jobSearchResultPersistenceService.persist(userId, validJobsSearchResult);
+        newJobResultIds.addAll(persistResult.savedResultIds());
         return jobSearchAuditService.auditScannedBatch(sourceBatch, batchResult.jobs(), filterResult, persistResult);
     }
 

@@ -12,5 +12,9 @@ public record DailyJobSearchProperties(
         // Users are searched one after another; this spaces them out like the batches within a user.
         @DefaultValue("5s") Duration delayBetweenUsers,
         // Search again for users already searched today, e.g. when trying the job out locally.
-        @DefaultValue("false") boolean force
+        @DefaultValue("false") boolean force,
+        // The most newly saved jobs reviewed for one user in one run; the rest can be reviewed on request.
+        @DefaultValue("20") int reviewsPerUser,
+        // Reviews run one after another; this spaces them out, and from the search before them.
+        @DefaultValue("5s") Duration delayBetweenReviews
 ) {}

@@ -277,6 +277,44 @@ class ResumeReviewServiceTest {
     }
 
     @Test
+    void reviewsANewJobForTheDailyJob_waitingForTheResult() {
+        final Optional<ResumeReview> review = service.reviewNewJob(USER_ID, JOB_RESULT_ID, resume(3));
+
+        final ResumeReview expected = pendingSince(NOW, 3).ready(RESULT, NOW);
+        assertThat(review).contains(expected);
+        assertThat(stored).isEqualTo(expected);
+        // Done there and then, not handed to the background.
+        assertThat(queued).isEmpty();
+    }
+
+    @Test
+    void recordsAndReturnsTheFailure_whenANewJobCannotBeReviewed() {
+        when(jobDescriptionService.getOrFetch(USER_ID, JOB_RESULT_ID)).thenReturn(Optional.empty());
+
+        final Optional<ResumeReview> review = service.reviewNewJob(USER_ID, JOB_RESULT_ID, resume(3));
+
+        assertThat(review).map(ResumeReview::status).contains(Status.FAILED);
+        assertThat(stored.status()).isEqualTo(Status.FAILED);
+    }
+
+    @Test
+    void leavesANewJobAlone_whenItAlreadyHasAReview() {
+        when(resumeReviewRepository.insert(any(ResumeReview.class)))
+                .thenThrow(new DuplicateKeyException("E11000 duplicate key"));
+
+        assertThat(service.reviewNewJob(USER_ID, JOB_RESULT_ID, resume(3))).isEmpty();
+        verifyNoInteractions(jobDescriptionService, resumeReviewLlmService);
+    }
+
+    @Test
+    void reviewsNothing_whenTheNewJobIsNotTheUsers() {
+        when(userJobSearchResultRepository.findByIdAndUserId(JOB_RESULT_ID, USER_ID)).thenReturn(Optional.empty());
+
+        assertThat(service.reviewNewJob(USER_ID, JOB_RESULT_ID, resume(3))).isEmpty();
+        verify(resumeReviewRepository, never()).insert(any(ResumeReview.class));
+    }
+
+    @Test
     void listsEveryReviewTheUserHas() {
         when(resumeReviewRepository.findByUserId(USER_ID)).thenReturn(List.of(ready(3)));
 

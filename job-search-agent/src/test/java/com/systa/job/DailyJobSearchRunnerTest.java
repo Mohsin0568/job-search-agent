@@ -30,7 +30,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -42,7 +44,7 @@ class DailyJobSearchRunnerTest {
 
     private static final Instant NOW = Instant.parse("2026-10-08T02:00:00Z");
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 8);
-    private static final JobSearchOutcome ALL_SEARCHED = new JobSearchOutcome(3, 0);
+    private static final JobSearchOutcome ALL_SEARCHED = new JobSearchOutcome(3, 0, List.of());
 
     @Mock
     private CandidateProfileRepository candidateProfileRepository;
@@ -52,6 +54,9 @@ class DailyJobSearchRunnerTest {
 
     @Mock
     private JobSearchService jobSearchService;
+
+    @Mock
+    private DailyResumeReviewer dailyResumeReviewer;
 
     private DailyJobSearchRunner runner;
 
@@ -89,7 +94,7 @@ class DailyJobSearchRunnerTest {
     @Test
     void recordsEachUsersRun() {
         usersWithProfiles(profile("ada"));
-        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(6, 0));
+        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(6, 0, List.of()));
 
         runner.run(null);
 
@@ -104,10 +109,10 @@ class DailyJobSearchRunnerTest {
         final CandidateProfile rateLimited = profile("rate-limited");
         final CandidateProfile noCompanies = profile("no-companies");
         usersWithProfiles(clean, patchy, rateLimited, noCompanies);
-        when(jobSearchService.searchJobs(clean)).thenReturn(new JobSearchOutcome(3, 0));
-        when(jobSearchService.searchJobs(patchy)).thenReturn(new JobSearchOutcome(3, 1));
-        when(jobSearchService.searchJobs(rateLimited)).thenReturn(new JobSearchOutcome(3, 3));
-        when(jobSearchService.searchJobs(noCompanies)).thenReturn(new JobSearchOutcome(0, 0));
+        when(jobSearchService.searchJobs(clean)).thenReturn(new JobSearchOutcome(3, 0, List.of()));
+        when(jobSearchService.searchJobs(patchy)).thenReturn(new JobSearchOutcome(3, 1, List.of()));
+        when(jobSearchService.searchJobs(rateLimited)).thenReturn(new JobSearchOutcome(3, 3, List.of()));
+        when(jobSearchService.searchJobs(noCompanies)).thenReturn(new JobSearchOutcome(0, 0, List.of()));
 
         runner.run(null);
 
@@ -147,7 +152,7 @@ class DailyJobSearchRunnerTest {
     void exitsNonZero_whenAUsersSearchFailed() {
         final CandidateProfile ada = profile("ada");
         usersWithProfiles(ada, profile("bob"));
-        when(jobSearchService.searchJobs(ada)).thenReturn(new JobSearchOutcome(3, 3));
+        when(jobSearchService.searchJobs(ada)).thenReturn(new JobSearchOutcome(3, 3, List.of()));
 
         runner.run(null);
 
@@ -157,7 +162,7 @@ class DailyJobSearchRunnerTest {
     @Test
     void exitsZero_whenSomeBatchesFailedButEveryUserGotResults() {
         usersWithProfiles(profile("ada"));
-        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 1));
+        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 1, List.of()));
 
         runner.run(null);
 
@@ -218,9 +223,56 @@ class DailyJobSearchRunnerTest {
         verify(jobSearchService).searchJobs(ada);
     }
 
+    @Test
+    void reviewsTheJobsEachUsersSearchSaved_afterRecordingTheirRun() {
+        final CandidateProfile ada = profile("ada");
+        final CandidateProfile bob = profile("bob");
+        usersWithProfiles(ada, bob);
+        when(jobSearchService.searchJobs(ada)).thenReturn(new JobSearchOutcome(3, 0, List.of("job-1", "job-2")));
+        when(jobSearchService.searchJobs(bob)).thenReturn(new JobSearchOutcome(3, 0, List.of()));
+
+        runner.run(null);
+
+        final InOrder inOrder = inOrder(jobSearchService, userJobSearchRunRepository, dailyResumeReviewer);
+        inOrder.verify(jobSearchService).searchJobs(ada);
+        inOrder.verify(userJobSearchRunRepository).save(any());
+        inOrder.verify(dailyResumeReviewer).reviewNewJobs("ada", List.of("job-1", "job-2"));
+        inOrder.verify(jobSearchService).searchJobs(bob);
+        inOrder.verify(dailyResumeReviewer).reviewNewJobs("bob", List.of());
+    }
+
+    @Test
+    void aReviewFailure_leavesTheSearchOutcomeAndTheNextUserAlone() {
+        final CandidateProfile ada = profile("ada");
+        final CandidateProfile bob = profile("bob");
+        usersWithProfiles(ada, bob);
+        when(jobSearchService.searchJobs(ada)).thenReturn(new JobSearchOutcome(3, 0, List.of("job-1")));
+        doThrow(new IllegalStateException("Mongo unavailable"))
+                .when(dailyResumeReviewer).reviewNewJobs(eq("ada"), any());
+
+        runner.run(null);
+
+        verify(jobSearchService).searchJobs(bob);
+        assertThat(savedRuns()).extracting(UserJobSearchRun::userId, UserJobSearchRun::status)
+                .containsExactly(tuple("ada", Status.SUCCEEDED), tuple("bob", Status.SUCCEEDED));
+        assertThat(runner.getExitCode()).isZero();
+    }
+
+    @Test
+    void reviewsNothing_whenTheSearchThrew() {
+        final CandidateProfile ada = profile("ada");
+        usersWithProfiles(ada);
+        when(jobSearchService.searchJobs(ada)).thenThrow(new IllegalStateException("boom"));
+
+        runner.run(null);
+
+        verify(dailyResumeReviewer).reviewNewJobs("ada", List.of());
+    }
+
     private DailyJobSearchRunner runner(final boolean force) {
         return new DailyJobSearchRunner(candidateProfileRepository, userJobSearchRunRepository, jobSearchService,
-                new DailyJobSearchProperties(2, Duration.ZERO, force), Clock.fixed(NOW, ZoneOffset.UTC));
+                dailyResumeReviewer, new DailyJobSearchProperties(2, Duration.ZERO, force, 20, Duration.ZERO),
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private void usersWithProfiles(final CandidateProfile... profiles) {

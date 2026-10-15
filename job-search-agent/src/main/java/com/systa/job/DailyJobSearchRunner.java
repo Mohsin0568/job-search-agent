@@ -31,6 +31,9 @@ import java.util.Map;
  * The daily job search: started with the "job" profile, it searches for every user with a profile,
  * one at a time, and then the process exits (see {@link JobSearchAgentApplication}).
  *
+ * <p>After each user's search, their resume is reviewed against the jobs it newly saved (see
+ * {@link DailyResumeReviewer}); how that goes never changes the search's recorded outcome.
+ *
  * <p>Each user's outcome is recorded, so running the job again on the same day only picks up the
  * users it didn't get to or whose search failed.
  */
@@ -45,6 +48,7 @@ public class DailyJobSearchRunner implements ApplicationRunner, ExitCodeGenerato
     private final CandidateProfileRepository candidateProfileRepository;
     private final UserJobSearchRunRepository userJobSearchRunRepository;
     private final JobSearchService jobSearchService;
+    private final DailyResumeReviewer dailyResumeReviewer;
     private final DailyJobSearchProperties properties;
     private final Clock clock;
 
@@ -54,18 +58,22 @@ public class DailyJobSearchRunner implements ApplicationRunner, ExitCodeGenerato
     public DailyJobSearchRunner(final CandidateProfileRepository candidateProfileRepository,
                                 final UserJobSearchRunRepository userJobSearchRunRepository,
                                 final JobSearchService jobSearchService,
+                                final DailyResumeReviewer dailyResumeReviewer,
                                 final DailyJobSearchProperties properties) {
-        this(candidateProfileRepository, userJobSearchRunRepository, jobSearchService, properties, Clock.systemUTC());
+        this(candidateProfileRepository, userJobSearchRunRepository, jobSearchService, dailyResumeReviewer,
+                properties, Clock.systemUTC());
     }
 
     DailyJobSearchRunner(final CandidateProfileRepository candidateProfileRepository,
                          final UserJobSearchRunRepository userJobSearchRunRepository,
                          final JobSearchService jobSearchService,
+                         final DailyResumeReviewer dailyResumeReviewer,
                          final DailyJobSearchProperties properties,
                          final Clock clock) {
         this.candidateProfileRepository = candidateProfileRepository;
         this.userJobSearchRunRepository = userJobSearchRunRepository;
         this.jobSearchService = jobSearchService;
+        this.dailyResumeReviewer = dailyResumeReviewer;
         this.properties = properties;
         this.clock = clock;
     }
@@ -131,7 +139,7 @@ public class DailyJobSearchRunner implements ApplicationRunner, ExitCodeGenerato
     private Status searchFor(final CandidateProfile profile, final LocalDate runDate) {
         final String userId = profile.userId();
         final Instant startedAt = clock.instant();
-        JobSearchOutcome outcome = new JobSearchOutcome(0, 0);
+        JobSearchOutcome outcome = JobSearchOutcome.NOTHING_SEARCHED;
         Status status;
         try {
             outcome = jobSearchService.searchJobs(profile);
@@ -148,6 +156,13 @@ public class DailyJobSearchRunner implements ApplicationRunner, ExitCodeGenerato
                     status, outcome.batchesAttempted(), outcome.batchesFailed()));
         } catch (final Exception e) {
             log.error("Could not record the job search run - userId={}, status={}", userId, status, e);
+        }
+
+        // After the run is recorded, so a rerun that day skips this user even if the reviews are cut short.
+        try {
+            dailyResumeReviewer.reviewNewJobs(userId, outcome.newJobResultIds());
+        } catch (final Exception e) {
+            log.error("Resume reviews for new jobs failed - userId={}", userId, e);
         }
         return status;
     }

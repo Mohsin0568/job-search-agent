@@ -30,7 +30,7 @@ class JobSearchAuditServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-08-18T12:00:00Z");
     private static final JobFilterResult NOTHING_FILTERED = new JobFilterResult(List.of(), List.of());
-    private static final JobPersistResult NOTHING_SAVED = new JobPersistResult(List.of(), List.of());
+    private static final JobPersistResult NOTHING_SAVED = new JobPersistResult(List.of(), List.of(), List.of());
 
     @Mock
     private JobSearchAuditRepository jobSearchAuditRepository;
@@ -102,7 +102,7 @@ class JobSearchAuditServiceTest {
                 List.of(JobSource.COMPANY_PORTAL, JobSource.LINKEDIN),
                 List.of(saved, duplicate, stale, undated),
                 new JobFilterResult(List.of(saved, duplicate), List.of(staleDropped, undatedDropped)),
-                new JobPersistResult(List.of(saved), List.of(duplicate)));
+                new JobPersistResult(List.of(saved), List.of(duplicate), List.of("result-1")));
 
         assertThat(audits).containsExactly(
                 new SourceAudit("Company careers portal", SourceAudit.Status.SCANNED, null, 1, 1,
@@ -120,7 +120,7 @@ class JobSearchAuditServiceTest {
 
         final List<SourceAudit> audits = service.auditScannedBatch(
                 List.of(JobSource.COMPANY_PORTAL, JobSource.LINKEDIN), duplicates,
-                new JobFilterResult(duplicates, List.of()), new JobPersistResult(List.of(), duplicates));
+                new JobFilterResult(duplicates, List.of()), new JobPersistResult(List.of(), duplicates, List.of()));
 
         assertThat(audits).extracting(SourceAudit::source, SourceAudit::duplicateJobsSkipped,
                         SourceAudit::duplicateJobs)
