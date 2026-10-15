@@ -1,9 +1,11 @@
 package com.systa.model;
 
+import com.systa.model.ResumeReview.RedFlag;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.List;
 
 /** The user's resume tailored to one saved job. One per job; tailoring again replaces it. */
 @Document(collection = "tailored_resume")
@@ -26,8 +28,18 @@ public record TailoredResume(
         Instant completedAt,
         // What the LLM wrote, kept so the PDF can be laid out in another template without asking it again.
         // Null until it is ready, and on resumes tailored before it was kept.
-        TailoredResumeContent content
+        TailoredResumeContent content,
+        // What tailoring was asked to fix from the job's resume review. Null when it was tailored as is.
+        Fix fix
 ) {
+
+    /** Findings from the job's resume review that the tailored resume fixes. */
+    public record Fix(
+            // Missing keywords the user confirmed they have, to work into the resume.
+            List<String> keywords,
+            // Red flags to address by rewording and reordering what the resume already says.
+            List<RedFlag> redFlags
+    ) {}
 
     public enum Status {
         /** Being generated in the background. */
@@ -43,17 +55,17 @@ public record TailoredResume(
     public TailoredResume ready(final String s3Key, final String fileName, final TailoredResumeContent content,
                                 final Instant completedAt) {
         return new TailoredResume(jobResultId, userId, Status.READY, resumeVersion, template, s3Key, fileName, null,
-                requestedAt, completedAt, content);
+                requestedAt, completedAt, content, fix);
     }
 
     public TailoredResume failed(final String failureReason, final Instant completedAt) {
         return new TailoredResume(jobResultId, userId, Status.FAILED, resumeVersion, template, null, null,
-                failureReason, requestedAt, completedAt, null);
+                failureReason, requestedAt, completedAt, null, fix);
     }
 
     /** The same tailored resume, laid out again in another template. */
     public TailoredResume relaidOut(final ResumeTemplate template, final String s3Key, final Instant completedAt) {
         return new TailoredResume(jobResultId, userId, status, resumeVersion, template, s3Key, fileName,
-                failureReason, requestedAt, completedAt, content);
+                failureReason, requestedAt, completedAt, content, fix);
     }
 }

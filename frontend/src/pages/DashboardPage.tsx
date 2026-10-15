@@ -121,6 +121,7 @@ export function DashboardPage() {
                               tailored={tailoring.byJob.get(result.id)}
                               latestResumeVersion={tailoring.latestResumeVersion}
                               defaultTemplate={tailoring.defaultTemplate}
+                              review={review}
                             />
                           ) : tailoringUnavailable ? (
                             <p className="text-xs text-slate-400">Resume tailoring is unavailable right now.</p>

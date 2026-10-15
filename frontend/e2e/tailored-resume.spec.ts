@@ -35,7 +35,7 @@ test('a user tailors their resume to a job and downloads it', async ({ page, bac
 test('a tailored resume is still there after a reload', async ({ page, backend }) => {
   backend.resumes = [RESUME]
   backend.tailoredResumes = [
-    { jobResultId: 'j2', status: 'READY', resumeVersion: 1, template: 'CLASSIC', failureReason: null, requestedAt: '2026-10-13T09:00:00Z', completedAt: '2026-10-13T09:00:40Z' },
+    { jobResultId: 'j2', status: 'READY', resumeVersion: 1, template: 'CLASSIC', failureReason: null, requestedAt: '2026-10-13T09:00:00Z', completedAt: '2026-10-13T09:00:40Z', fix: null },
   ]
   await signIn(page)
 

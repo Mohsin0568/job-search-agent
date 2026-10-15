@@ -264,7 +264,7 @@ describe('endpoints', () => {
       }),
     )
 
-    await expect(requestTailoredResume('r/1', 'MODERN')).resolves.toEqual(pending)
+    await expect(requestTailoredResume('r/1', { template: 'MODERN' })).resolves.toEqual(pending)
     expect(path).toBe('/api/jobs/results/r%2F1/tailored-resume')
     expect(contentType).toBe('application/json')
     expect(body).toEqual({ template: 'MODERN' })
@@ -281,6 +281,19 @@ describe('endpoints', () => {
 
     await requestTailoredResume('r-1')
     expect(body).toEqual({})
+  })
+
+  it('requestTailoredResume sends what to fix', async () => {
+    let body: unknown
+    server.use(
+      http.post(`${API}/api/jobs/results/:id/tailored-resume`, async ({ request }) => {
+        body = await request.json()
+        return HttpResponse.json({}, { status: 202 })
+      }),
+    )
+
+    await requestTailoredResume('r-1', { template: 'EVEN', fix: { keywords: ['Kubernetes'], redFlags: true } })
+    expect(body).toEqual({ template: 'EVEN', fix: { keywords: ['Kubernetes'], redFlags: true } })
   })
 
   it('templatePreviewUrl points at the API’s picture of the template', () => {

@@ -8,6 +8,7 @@ import type {
   ResumeVersion,
   ResumeTemplate,
   TailoredResume,
+  TailoringFix,
   Suggestion,
   SuggestionSource,
 } from './types'
@@ -51,15 +52,19 @@ export function getTailoredResumes(): Promise<TailoredResume[]> {
 }
 
 /**
- * Asks for the user's latest resume to be tailored to a job, in the given template (or the one the job
- * already has). Comes back PENDING while the server works on it; getTailoredResumes shows when it is
- * done. Comes back READY if it already has one - including when only the template changed, which the
- * server does straight away.
+ * Asks for the user's latest resume to be tailored to a job, in the given template and with the given
+ * fixes - leaving either out keeps what the job has now. Comes back PENDING while the server works on it;
+ * getTailoredResumes shows when it is done. Comes back READY if it already has one - including when only
+ * the template changed, which the server does straight away. Fixing anything needs a finished review of
+ * the user's latest resume (409 without one).
  */
-export function requestTailoredResume(jobResultId: string, template?: ResumeTemplate): Promise<TailoredResume> {
+export function requestTailoredResume(
+  jobResultId: string,
+  { template, fix }: { template?: ResumeTemplate; fix?: TailoringFix } = {},
+): Promise<TailoredResume> {
   return apiFetch<TailoredResume>(`/api/jobs/results/${encodeURIComponent(jobResultId)}/tailored-resume`, {
     method: 'POST',
-    body: JSON.stringify(template ? { template } : {}),
+    body: JSON.stringify({ ...(template && { template }), ...(fix && { fix }) }),
   })
 }
 

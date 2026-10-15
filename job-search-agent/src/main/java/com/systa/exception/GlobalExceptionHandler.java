@@ -72,4 +72,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleResumeRequired(final ResumeRequiredException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(ex.getMessage()));
     }
+
+    @ExceptionHandler(ResumeReviewRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleResumeReviewRequired(final ResumeReviewRequiredException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(ex.getMessage()));
+    }
 }

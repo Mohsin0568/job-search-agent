@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { tailoredResume } from '../test/fixtures'
-import { isTailoring, preferredTemplate, TAILORING_TIMEOUT_MS, tailoringState, templateLabel } from './tailoring'
+import { resumeReview, tailoredResume } from '../test/fixtures'
+import {
+  fixableReview,
+  fixSummary,
+  isTailoring,
+  preferredTemplate,
+  TAILORING_TIMEOUT_MS,
+  tailoringState,
+  templateLabel,
+} from './tailoring'
 
 const REQUESTED_AT = '2026-10-13T09:00:00Z'
 const requested = new Date(REQUESTED_AT).getTime()
@@ -69,5 +77,39 @@ describe('templateLabel', () => {
     expect(templateLabel('EVEN')).toBe('Even')
     expect(templateLabel('STACK_OVERFLOW')).toBe('Stack Overflow')
     expect(templateLabel('KENDALL')).toBe('Kendall')
+  })
+})
+
+describe('fixableReview', () => {
+  it('is a finished review of the latest resume that found something', () => {
+    const review = resumeReview({ resumeVersion: 3 })
+    expect(fixableReview(review, 3)).toBe(review)
+    expect(fixableReview(resumeReview({ missingKeywords: [], redFlags: [] }), 3)).toBeUndefined()
+    expect(fixableReview(resumeReview({ missingKeywords: ['Go'], redFlags: [] }), 3)).toBeDefined()
+  })
+
+  it('is undefined for no review, one still running or failed, or one of an older resume', () => {
+    expect(fixableReview(undefined, 3)).toBeUndefined()
+    expect(fixableReview(resumeReview({ status: 'PENDING' }), 3)).toBeUndefined()
+    expect(fixableReview(resumeReview({ status: 'FAILED' }), 3)).toBeUndefined()
+    expect(fixableReview(resumeReview({ resumeVersion: 2 }), 3)).toBeUndefined()
+    expect(fixableReview(resumeReview(), null)).toBeUndefined()
+  })
+})
+
+describe('fixSummary', () => {
+  const flag = { issue: 'Short tenures', explanation: 'Three jobs in two years.' }
+
+  it('says what a tailored resume fixes', () => {
+    expect(fixSummary({ keywords: ['Kubernetes', 'Terraform'], redFlags: [flag] })).toBe(
+      'Adds Kubernetes, Terraform · Addresses 1 red flag',
+    )
+    expect(fixSummary({ keywords: [], redFlags: [flag, flag] })).toBe('Addresses 2 red flags')
+    expect(fixSummary({ keywords: ['Go'], redFlags: [] })).toBe('Adds Go')
+  })
+
+  it('is null for one tailored as is', () => {
+    expect(fixSummary(null)).toBeNull()
+    expect(fixSummary({ keywords: [], redFlags: [] })).toBeNull()
   })
 })

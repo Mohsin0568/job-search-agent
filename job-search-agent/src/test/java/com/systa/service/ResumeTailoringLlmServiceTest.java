@@ -3,6 +3,8 @@ package com.systa.service;
 import com.systa.config.ApplicationProperties;
 import com.systa.exception.ResumeTailoringException;
 import com.systa.model.JobDescription;
+import com.systa.model.ResumeReview.RedFlag;
+import com.systa.model.TailoredResume.Fix;
 import com.systa.model.TailoredResumeContent;
 import com.systa.model.TailoredResumeContent.Experience;
 import org.junit.jupiter.api.BeforeEach;
@@ -87,6 +89,48 @@ class ResumeTailoringLlmServiceTest {
     }
 
     @Test
+    void sendsNoFixes_whenTailoringAsIs() {
+        modelReplies(TAILORED);
+
+        tailor(RESUME_TEXT);
+
+        final ArgumentCaptor<String> userMessage = ArgumentCaptor.forClass(String.class);
+        verify(request).user(userMessage.capture());
+        assertThat(userMessage.getValue()).doesNotContain("FIXES").endsWith("--- END RESUME ---\n");
+    }
+
+    @Test
+    void givesTheModelTheConfirmedKeywordsAndTheRedFlags_andHowFarItMayGo() {
+        modelReplies(TAILORED);
+
+        service.tailor("user-1", RESUME_TEXT, "Acme Corp", "Staff Engineer", JOB, new Fix(List.of("Kafka", "Docker"),
+                List.of(new RedFlag("Vague results", "No numbers on any achievement."))));
+
+        final ArgumentCaptor<String> userMessage = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> systemPrompt = ArgumentCaptor.forClass(String.class);
+        verify(request).user(userMessage.capture());
+        verify(request).system(systemPrompt.capture());
+        assertThat(userMessage.getValue()).contains("--- FIXES ---",
+                "Keywords the candidate confirms they have: Kafka, Docker",
+                "- Vague results: No numbers on any achievement.");
+        assertThat(systemPrompt.getValue()).contains("FIXES THE CANDIDATE ASKED FOR",
+                "Keywords the candidate confirms they have", "leave those alone");
+    }
+
+    @Test
+    void saysThereAreNoKeywords_whenFixingOnlyTheRedFlags() {
+        modelReplies(TAILORED);
+
+        service.tailor("user-1", RESUME_TEXT, "Acme Corp", "Staff Engineer", JOB,
+                new Fix(List.of(), List.of(new RedFlag("Short tenures", "Three jobs in two years."))));
+
+        final ArgumentCaptor<String> userMessage = ArgumentCaptor.forClass(String.class);
+        verify(request).user(userMessage.capture());
+        assertThat(userMessage.getValue()).contains("Keywords the candidate confirms they have: (none)",
+                "- Short tenures: Three jobs in two years.");
+    }
+
+    @Test
     void sendsOnlyTheStartOfAnEnormousResume() {
         modelReplies(TAILORED);
 
@@ -144,7 +188,7 @@ class ResumeTailoringLlmServiceTest {
     }
 
     private TailoredResumeContent tailor(final String resumeText) {
-        return service.tailor("user-1", resumeText, "Acme Corp", "Staff Engineer", JOB);
+        return service.tailor("user-1", resumeText, "Acme Corp", "Staff Engineer", JOB, null);
     }
 
     private void modelReplies(final String content) {

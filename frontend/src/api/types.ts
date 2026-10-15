@@ -61,6 +61,25 @@ export type TailoredResume = {
   /** ISO instants. completedAt is null while pending. */
   requestedAt: string
   completedAt: string | null
+  /** What it fixes from the job's resume review. Null when it was tailored as is. */
+  fix: AppliedFix | null
+}
+
+/** Findings from the job's resume review that a tailored resume fixes. */
+export type AppliedFix = {
+  /** Missing keywords the user confirmed they have, worked into the resume. */
+  keywords: string[]
+  /** Red flags addressed by rewording what the resume already says. */
+  redFlags: RedFlag[]
+}
+
+/**
+ * What to fix when tailoring (the backend's TailoringFix): the missing keywords the user ticked, and
+ * whether to address the red flags. No keywords and no red flags tailors the resume as is.
+ */
+export type TailoringFix = {
+  keywords: string[]
+  redFlags: boolean
 }
 
 /** Something a hiring manager would hold against the resume, and why. */

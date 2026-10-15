@@ -1,6 +1,7 @@
 package com.systa.repository;
 
 import com.systa.MongoTestContainer;
+import com.systa.model.ResumeReview.RedFlag;
 import com.systa.model.ResumeTemplate;
 import com.systa.model.TailoredResume;
 import com.systa.model.TailoredResume.Status;
@@ -27,7 +28,7 @@ class TailoredResumeRepositoryTest {
 
     private static final Instant REQUESTED_AT = Instant.parse("2026-10-13T09:00:00Z");
     private static final TailoredResume PENDING = new TailoredResume("r-1", "user-1", Status.PENDING, 3,
-            ResumeTemplate.MODERN, null, null, null, REQUESTED_AT, null, null);
+            ResumeTemplate.MODERN, null, null, null, REQUESTED_AT, null, null, null);
 
     @Autowired
     private TailoredResumeRepository repository;
@@ -65,6 +66,17 @@ class TailoredResumeRepositoryTest {
         assertThat(repository.count()).isEqualTo(1);
     }
 
+    @Test
+    void keepsWhatItFixes() {
+        final TailoredResume fixing = new TailoredResume("r-1", "user-1", Status.PENDING, 3, ResumeTemplate.MODERN,
+                null, null, null, REQUESTED_AT, null, null, new TailoredResume.Fix(List.of("Kafka", "Docker"),
+                List.of(new RedFlag("Vague results", "No numbers on any achievement."))));
+
+        repository.insert(fixing);
+
+        assertThat(repository.findById("r-1")).contains(fixing);
+    }
+
     // What lets two requests arriving together agree on which of them does the work.
     @Test
     void refusesToInsertASecondRecordForTheSameJob() {
@@ -77,9 +89,9 @@ class TailoredResumeRepositoryTest {
     void listsOnlyThatUsersTailoredResumes() {
         repository.insert(PENDING);
         repository.insert(new TailoredResume("r-2", "user-1", Status.PENDING, 3, null, null, null, null, REQUESTED_AT,
-                null, null));
+                null, null, null));
         repository.insert(new TailoredResume("r-3", "user-2", Status.PENDING, 1, null, null, null, null, REQUESTED_AT,
-                null, null));
+                null, null, null));
 
         assertThat(repository.findByUserId("user-1")).extracting(TailoredResume::jobResultId)
                 .containsExactlyInAnyOrder("r-1", "r-2");

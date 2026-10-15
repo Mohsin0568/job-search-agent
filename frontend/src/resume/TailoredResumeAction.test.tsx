@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useTailoredResumes } from '../api/hooks'
-import type { ResumeTemplate, TailoredResume } from '../api/types'
-import { tailoredResume } from '../test/fixtures'
+import type { ResumeReview, ResumeTemplate, TailoredResume } from '../api/types'
+import { resumeReview, tailoredResume } from '../test/fixtures'
 import { renderRoutes } from '../test/render'
 import { API, server } from '../test/server'
 import { startDownload } from './download'
@@ -24,9 +24,11 @@ const now = () => new Date().toISOString()
 function Harness({
   latestResumeVersion,
   defaultTemplate,
+  review,
 }: {
   latestResumeVersion: number | null
   defaultTemplate: ResumeTemplate
+  review?: ResumeReview
 }) {
   const { data } = useTailoredResumes()
   if (!data) return null
@@ -37,13 +39,21 @@ function Harness({
       tailored={data.find((tailored) => tailored.jobResultId === JOB)}
       latestResumeVersion={latestResumeVersion}
       defaultTemplate={defaultTemplate}
+      review={review}
     />
   )
 }
 
-function renderAction(latestResumeVersion: number | null = 3, defaultTemplate: ResumeTemplate = 'CLASSIC') {
+function renderAction(
+  latestResumeVersion: number | null = 3,
+  defaultTemplate: ResumeTemplate = 'CLASSIC',
+  review?: ResumeReview,
+) {
   renderRoutes([
-    { path: '/', element: <Harness latestResumeVersion={latestResumeVersion} defaultTemplate={defaultTemplate} /> },
+    {
+      path: '/',
+      element: <Harness latestResumeVersion={latestResumeVersion} defaultTemplate={defaultTemplate} review={review} />,
+    },
     { path: '/profile', element: <p>Profile page</p> },
   ])
   return userEvent.setup()
@@ -324,5 +334,136 @@ describe('TailoredResumeAction', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't reach resume storage right now")
     expect(startDownload).not.toHaveBeenCalled()
+  })
+
+  describe('with a review of the latest resume', () => {
+    /** Records each tailoring request's body, and answers as the server would: pending, or a re-layout. */
+    function recordRequests(fix: TailoredResume['fix'] = null) {
+      const bodies: unknown[] = []
+      server.use(
+        http.post(`${API}/api/jobs/results/${JOB}/tailored-resume`, async ({ request }) => {
+          bodies.push(await request.json())
+          onServer = [tailoredResume({ status: 'PENDING', requestedAt: now(), completedAt: null, fix })]
+          return HttpResponse.json(onServer[0], { status: 202 })
+        }),
+      )
+      return bodies
+    }
+
+    it('offers Tailor as is and Tailor and fix instead of a single Tailor button', async () => {
+      renderAction(3, 'CLASSIC', resumeReview())
+
+      expect(await screen.findByRole('button', { name: 'Tailor and fix for Staff Engineer' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'Tailor as is for Staff Engineer' })).toBeEnabled()
+      expect(screen.queryByRole('button', { name: 'Tailor resume for Staff Engineer' })).not.toBeInTheDocument()
+    })
+
+    it('tailors as is, telling the server to fix nothing', async () => {
+      const bodies = recordRequests()
+      const user = renderAction(3, 'CLASSIC', resumeReview())
+
+      await user.click(await screen.findByRole('button', { name: 'Tailor as is for Staff Engineer' }))
+
+      expect(await screen.findByRole('status')).toHaveTextContent('Tailoring your resume')
+      expect(bodies).toEqual([{ template: 'CLASSIC', fix: { keywords: [], redFlags: false } }])
+    })
+
+    it('adds only the keywords the user ticks, and addresses the red flags unless they untick them', async () => {
+      const bodies = recordRequests({ keywords: ['Terraform'], redFlags: resumeReview().redFlags ?? [] })
+      const user = renderAction(3, 'CLASSIC', resumeReview())
+
+      await user.click(await screen.findByRole('button', { name: 'Tailor and fix for Staff Engineer' }))
+
+      const panel = screen.getByRole('region', { name: /What to fix/ })
+      // Nothing is claimed for the user until they tick it.
+      expect(within(panel).getByRole('checkbox', { name: 'Kubernetes' })).not.toBeChecked()
+      expect(within(panel).getByRole('checkbox', { name: 'Terraform' })).not.toBeChecked()
+      expect(within(panel).getByRole('checkbox', { name: 'Address the red flags' })).toBeChecked()
+      expect(within(panel).getByText('No measurable results')).toBeInTheDocument()
+
+      await user.click(within(panel).getByRole('checkbox', { name: 'Terraform' }))
+      await user.click(within(panel).getByRole('button', { name: 'Tailor with these fixes for Staff Engineer' }))
+
+      expect(await screen.findByRole('status')).toHaveTextContent('Tailoring your resume')
+      expect(bodies).toEqual([{ template: 'CLASSIC', fix: { keywords: ['Terraform'], redFlags: true } }])
+      expect(screen.queryByRole('region', { name: /What to fix/ })).not.toBeInTheDocument()
+
+      // Once ready, the card says what was fixed.
+      onServer = [
+        tailoredResume({ status: 'READY', fix: { keywords: ['Terraform'], redFlags: resumeReview().redFlags ?? [] } }),
+      ]
+      expect(await screen.findByText('Adds Terraform · Addresses 1 red flag')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Change fixes for Staff Engineer' })).toBeEnabled()
+    })
+
+    it('goes back to as is when everything is unticked', async () => {
+      const bodies = recordRequests()
+      const user = renderAction(3, 'CLASSIC', resumeReview())
+
+      await user.click(await screen.findByRole('button', { name: 'Tailor and fix for Staff Engineer' }))
+      await user.click(screen.getByRole('checkbox', { name: 'Address the red flags' }))
+      await user.click(screen.getByRole('button', { name: 'Tailor as is for Staff Engineer' }))
+
+      await screen.findByRole('status')
+      expect(bodies).toEqual([{ template: 'CLASSIC', fix: { keywords: [], redFlags: false } }])
+    })
+
+    it('starts from what a ready resume fixes, and keeps it when only the template changes', async () => {
+      const fix = { keywords: ['Kubernetes'], redFlags: [] }
+      onServer = [tailoredResume({ status: 'READY', fix })]
+      const bodies: unknown[] = []
+      server.use(
+        http.post(`${API}/api/jobs/results/${JOB}/tailored-resume`, async ({ request }) => {
+          bodies.push(await request.json())
+          onServer = [tailoredResume({ status: 'READY', template: 'MODERN', fix })]
+          return HttpResponse.json(onServer[0])
+        }),
+      )
+      const user = renderAction(3, 'CLASSIC', resumeReview())
+
+      expect(await screen.findByText('Adds Kubernetes')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Change fixes for Staff Engineer' }))
+      expect(screen.getByRole('checkbox', { name: 'Kubernetes' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Address the red flags' })).not.toBeChecked()
+      await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      await user.selectOptions(screen.getByRole('combobox', { name: 'Resume template for Staff Engineer' }), 'Modern')
+
+      // No fix in the request: the server keeps the one it has.
+      expect(bodies).toEqual([{ template: 'MODERN' }])
+      expect(await screen.findByText('Adds Kubernetes')).toBeInTheDocument()
+    })
+
+    it('says why when the server will not fix without a current review', async () => {
+      server.use(
+        http.post(`${API}/api/jobs/results/${JOB}/tailored-resume`, () =>
+          HttpResponse.json(
+            { message: 'review your latest resume against this job before fixing what the review finds' },
+            { status: 409 },
+          ),
+        ),
+      )
+      const user = renderAction(3, 'CLASSIC', resumeReview())
+
+      await user.click(await screen.findByRole('button', { name: 'Tailor and fix for Staff Engineer' }))
+      await user.click(screen.getByRole('button', { name: 'Tailor with these fixes for Staff Engineer' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Review your latest resume against this job before fixing what the review finds',
+      )
+      // The choices stay open, to try again.
+      expect(screen.getByRole('region', { name: /What to fix/ })).toBeInTheDocument()
+    })
+
+    it.each([
+      ['of an older resume', resumeReview({ resumeVersion: 2 })],
+      ['still running', resumeReview({ status: 'PENDING', missingKeywords: null, redFlags: null })],
+      ['that found nothing', resumeReview({ missingKeywords: [], redFlags: [] })],
+    ])('offers no fixes for a review %s', async (_, review) => {
+      renderAction(3, 'CLASSIC', review)
+
+      expect(await screen.findByRole('button', { name: 'Tailor resume for Staff Engineer' })).toBeEnabled()
+      expect(screen.queryByRole('button', { name: /Tailor and fix/ })).not.toBeInTheDocument()
+    })
   })
 })
