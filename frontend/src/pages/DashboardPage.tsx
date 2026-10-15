@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
-import { useJobResults, useProfile, useResumeVersions, useTailoredResumes } from '../api/hooks'
+import { useJobResults, useProfile, useResumeReviews, useResumeVersions, useTailoredResumes } from '../api/hooks'
 import { useAuth } from '../auth/AuthContext'
 import { formatRunDateTime, specified } from '../jobs/format'
 import { companiesWithoutResults, groupByCompany } from '../jobs/groupByCompany'
 import { JobCard } from '../jobs/JobCard'
+import { ResumeReviewSection } from '../resume/ResumeReviewSection'
 import { TailoredResumeAction } from '../resume/TailoredResumeAction'
 import { preferredTemplate } from '../resume/tailoring'
 
@@ -17,6 +18,7 @@ export function DashboardPage() {
   const results = useJobResults(0, LATEST_RESULTS_LIMIT)
   const resumeVersions = useResumeVersions()
   const tailoredResumes = useTailoredResumes()
+  const resumeReviews = useResumeReviews()
 
   const preferred = profile?.companyPreferences ?? []
   const groups = groupByCompany(results.data ?? [], preferred)
@@ -24,17 +26,24 @@ export function DashboardPage() {
   // Results are sorted newest first, so the first one is the latest run.
   const lastUpdated = results.data?.[0]?.jobRunDateTime
 
+  const latestResumeVersion = resumeVersions.data
+    ? ((resumeVersions.data.find((resume) => resume.latest) ?? resumeVersions.data[0])?.version ?? null)
+    : undefined
   // Tailoring needs both lists: which resume is the latest, and what has been tailored already.
   const tailoring =
-    resumeVersions.data && tailoredResumes.data
+    latestResumeVersion !== undefined && tailoredResumes.data
       ? {
-          latestResumeVersion:
-            (resumeVersions.data.find((resume) => resume.latest) ?? resumeVersions.data[0])?.version ?? null,
+          latestResumeVersion,
           byJob: new Map(tailoredResumes.data.map((tailored) => [tailored.jobResultId, tailored])),
           defaultTemplate: preferredTemplate(tailoredResumes.data),
         }
       : undefined
   const tailoringUnavailable = resumeVersions.isError || tailoredResumes.isError
+  const reviews =
+    latestResumeVersion !== undefined && resumeReviews.data
+      ? { latestResumeVersion, byJob: new Map(resumeReviews.data.map((review) => [review.jobResultId, review])) }
+      : undefined
+  const reviewsUnavailable = resumeVersions.isError || resumeReviews.isError
 
   return (
     <div>
@@ -85,21 +94,41 @@ export function DashboardPage() {
                   </span>
                 </h2>
                 <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {group.results.map((result) => (
-                    <JobCard key={result.id} job={result.job}>
-                      {tailoring ? (
-                        <TailoredResumeAction
-                          jobResultId={result.id}
-                          jobTitle={specified(result.job.jobTitle) ?? 'Untitled role'}
-                          tailored={tailoring.byJob.get(result.id)}
-                          latestResumeVersion={tailoring.latestResumeVersion}
-                          defaultTemplate={tailoring.defaultTemplate}
-                        />
-                      ) : tailoringUnavailable ? (
-                        <p className="text-xs text-slate-400">Resume tailoring is unavailable right now.</p>
-                      ) : null}
-                    </JobCard>
-                  ))}
+                  {group.results.map((result) => {
+                    const jobTitle = specified(result.job.jobTitle) ?? 'Untitled role'
+                    const review = reviews?.byJob.get(result.id)
+                    return (
+                      <JobCard
+                        key={result.id}
+                        job={result.job}
+                        resumeAtsScore={review?.status === 'READY' ? review.resumeAtsScore : null}
+                      >
+                        <div className="space-y-3">
+                          {reviews ? (
+                            <ResumeReviewSection
+                              jobResultId={result.id}
+                              jobTitle={jobTitle}
+                              review={review}
+                              latestResumeVersion={reviews.latestResumeVersion}
+                            />
+                          ) : reviewsUnavailable ? (
+                            <p className="text-xs text-slate-400">Resume review is unavailable right now.</p>
+                          ) : null}
+                          {tailoring ? (
+                            <TailoredResumeAction
+                              jobResultId={result.id}
+                              jobTitle={jobTitle}
+                              tailored={tailoring.byJob.get(result.id)}
+                              latestResumeVersion={tailoring.latestResumeVersion}
+                              defaultTemplate={tailoring.defaultTemplate}
+                            />
+                          ) : tailoringUnavailable ? (
+                            <p className="text-xs text-slate-400">Resume tailoring is unavailable right now.</p>
+                          ) : null}
+                        </div>
+                      </JobCard>
+                    )
+                  })}
                 </div>
               </section>
             ))}

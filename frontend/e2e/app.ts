@@ -39,6 +39,25 @@ export type TailoredResume = {
   completedAt: string | null
 }
 
+export type ResumeReview = {
+  jobResultId: string
+  status: 'PENDING' | 'READY' | 'FAILED'
+  resumeVersion: number
+  resumeAtsScore: number | null
+  missingKeywords: string[] | null
+  redFlags: Array<{ issue: string; explanation: string }> | null
+  failureReason: string | null
+  requestedAt: string
+  reviewedAt: string | null
+}
+
+/** What every review the fake backend finishes finds. */
+export const REVIEW_FINDINGS = {
+  resumeAtsScore: 72,
+  missingKeywords: ['Kubernetes', 'Terraform', 'gRPC'],
+  redFlags: [{ issue: 'No measurable results', explanation: 'Bullets list duties, not outcomes.' }],
+}
+
 /** Where the fake backend's download links point; answered by the fake storage below. */
 const STORAGE = 'https://resumes.e2e.test'
 
@@ -56,6 +75,8 @@ export type Backend = {
   resumes: Resume[]
   /** The user's tailored resumes, one per job. A pending one is ready the next time the list is read. */
   tailoredResumes: TailoredResume[]
+  /** The user's resume reviews, one per job. A pending one is ready the next time the list is read. */
+  resumeReviews: ResumeReview[]
   /** Every profile the app has saved, oldest first. */
   savedProfiles: Profile[]
   /** When true the API rejects the token, as it does once a session has been revoked. */
@@ -277,6 +298,37 @@ async function fakeBackend(page: Page, backend: Backend) {
       }
       return existing ? json(existing) : json({ message: 'Not found' }, 404)
     }
+    if (url.pathname === '/api/jobs/resume-reviews') {
+      const listed = backend.resumeReviews
+      // Reviewing "takes" one poll: whatever was pending when listed is ready the time after.
+      backend.resumeReviews = listed.map((review) =>
+        review.status === 'PENDING'
+          ? { ...review, ...REVIEW_FINDINGS, status: 'READY', reviewedAt: new Date().toISOString() }
+          : review,
+      )
+      return json(listed)
+    }
+    const reviewing = url.pathname.match(/^\/api\/jobs\/results\/([^/]+)\/resume-review$/)
+    if (reviewing && request.method() === 'POST') {
+      const jobResultId = decodeURIComponent(reviewing[1])
+      const latest = backend.resumes.find((resume) => resume.latest)
+      if (!latest) return json({ message: 'upload your resume before it can be reviewed against a job' }, 409)
+      const existing = backend.resumeReviews.find((review) => review.jobResultId === jobResultId)
+      if (existing?.status === 'READY' && existing.resumeVersion === latest.version) return json(existing)
+      const pending: ResumeReview = {
+        jobResultId,
+        status: 'PENDING',
+        resumeVersion: latest.version,
+        resumeAtsScore: null,
+        missingKeywords: null,
+        redFlags: null,
+        failureReason: null,
+        requestedAt: new Date().toISOString(),
+        reviewedAt: null,
+      }
+      backend.resumeReviews = [...backend.resumeReviews.filter((review) => review !== existing), pending]
+      return json(pending, 202)
+    }
     if (url.pathname === '/api/jobs/results') {
       return json(backend.results)
     }
@@ -307,6 +359,7 @@ export const test = base.extend<{ backend: Backend }>({
       skills: ['Java', 'JavaScript', 'Spring Boot'],
       resumes: [],
       tailoredResumes: [],
+      resumeReviews: [],
       savedProfiles: [],
       rejectTokens: false,
       rejectPassword: false,

@@ -1,4 +1,11 @@
-import type { CandidateProfile, JobListing, JobSearchResult, ResumeVersion, TailoredResume } from '../api/types'
+import type {
+  CandidateProfile,
+  JobListing,
+  JobSearchResult,
+  ResumeReview,
+  ResumeVersion,
+  TailoredResume,
+} from '../api/types'
 
 export function profile(overrides: Partial<CandidateProfile> = {}): CandidateProfile {
   return {
@@ -31,6 +38,21 @@ export function tailoredResume(overrides: Partial<TailoredResume> = {}): Tailore
     failureReason: null,
     requestedAt: '2026-10-13T09:00:00Z',
     completedAt: '2026-10-13T09:00:40Z',
+    ...overrides,
+  }
+}
+
+export function resumeReview(overrides: Partial<ResumeReview> = {}): ResumeReview {
+  return {
+    jobResultId: 'r-1',
+    status: 'READY',
+    resumeVersion: 3,
+    resumeAtsScore: 64,
+    missingKeywords: ['Kubernetes', 'Terraform'],
+    redFlags: [{ issue: 'No measurable results', explanation: 'Bullets list duties, not outcomes.' }],
+    failureReason: null,
+    requestedAt: '2026-10-15T09:00:00Z',
+    reviewedAt: '2026-10-15T09:00:40Z',
     ...overrides,
   }
 }

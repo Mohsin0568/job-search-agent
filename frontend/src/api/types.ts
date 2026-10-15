@@ -63,6 +63,35 @@ export type TailoredResume = {
   completedAt: string | null
 }
 
+/** Something a hiring manager would hold against the resume, and why. */
+export type RedFlag = {
+  issue: string
+  explanation: string
+}
+
+/**
+ * A recruiter's-eye review of the user's resume against one saved job (the backend's ResumeReviewDto).
+ * Reviewing runs in the background on the server, on request or in the daily job.
+ */
+export type ResumeReview = {
+  /** The id of the JobSearchResult it is for. */
+  jobResultId: string
+  status: 'PENDING' | 'READY' | 'FAILED'
+  /** The version of the user's resume it reviewed (or is reviewing) - always an original upload. */
+  resumeVersion: number
+  /** 0 to 100. Null until it is ready. */
+  resumeAtsScore: number | null
+  /** Empty when the resume misses nothing. Null until it is ready. */
+  missingKeywords: string[] | null
+  /** Empty when there are none. Null until it is ready. */
+  redFlags: RedFlag[] | null
+  /** Why it failed, in words for the user. Null unless it failed. */
+  failureReason: string | null
+  /** ISO instants. reviewedAt is null while pending. */
+  requestedAt: string
+  reviewedAt: string | null
+}
+
 /** Which seeded list to autocomplete from; also the path segment of its endpoint. */
 export type SuggestionSource = 'companies' | 'skills'
 

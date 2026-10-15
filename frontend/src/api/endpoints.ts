@@ -4,6 +4,7 @@ import type {
   CandidateProfile,
   JobSearchResult,
   ResumeDownload,
+  ResumeReview,
   ResumeVersion,
   ResumeTemplate,
   TailoredResume,
@@ -72,6 +73,21 @@ export function templatePreviewUrl(template: ResumeTemplate): string {
 
 export function getTailoredResumeDownload(jobResultId: string): Promise<ResumeDownload> {
   return apiFetch<ResumeDownload>(`/api/jobs/results/${encodeURIComponent(jobResultId)}/tailored-resume/download`)
+}
+
+/** Every resume review the user has, one per job, in whatever state it is. */
+export function getResumeReviews(): Promise<ResumeReview[]> {
+  return apiFetch<ResumeReview[]>('/api/jobs/resume-reviews')
+}
+
+/**
+ * Asks for the user's latest resume to be reviewed against a job. Comes back PENDING while the server
+ * works on it; getResumeReviews shows when it is done. Comes back READY if it already has one of that resume.
+ */
+export function requestResumeReview(jobResultId: string): Promise<ResumeReview> {
+  return apiFetch<ResumeReview>(`/api/jobs/results/${encodeURIComponent(jobResultId)}/resume-review`, {
+    method: 'POST',
+  })
 }
 
 /** Results are produced by the backend's daily job search; there is no way to start one from here. */

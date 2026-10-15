@@ -16,7 +16,7 @@ test('job matches are grouped by company in the preferred order, best match firs
   await expect(page.getByRole('heading', { level: 2 })).toHaveText([/^Acme Corp\s*2 jobs$/, /^Initech\s*1 job$/])
   const acme = page.getByRole('region', { name: /Acme Corp/ })
   await expect(acme.getByRole('heading', { level: 3 })).toHaveText(['Staff Engineer', 'Junior Developer'])
-  await expect(acme.getByText('92% match')).toBeVisible()
+  await expect(acme.getByText('Profile match 92%')).toBeVisible()
   await expect(page.getByText('No recent openings found at Globex.')).toBeVisible()
 
   const posting = acme.getByRole('link', { name: /View posting.*Staff Engineer/ })

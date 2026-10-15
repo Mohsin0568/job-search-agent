@@ -4,16 +4,26 @@ import {
   getJobResults,
   getProfile,
   getResumeDownload,
+  getResumeReviews,
   getResumeVersions,
   getTailoredResumeDownload,
   getTailoredResumes,
+  requestResumeReview,
   requestTailoredResume,
   saveProfile,
   suggestNames,
   uploadResume,
 } from './endpoints'
+import { isReviewing, REVIEW_POLL_INTERVAL_MS } from '../resume/review'
 import { isTailoring, TAILORING_POLL_INTERVAL_MS } from '../resume/tailoring'
-import type { CandidateProfile, ResumeTemplate, ResumeVersion, SuggestionSource, TailoredResume } from './types'
+import type {
+  CandidateProfile,
+  ResumeReview,
+  ResumeTemplate,
+  ResumeVersion,
+  SuggestionSource,
+  TailoredResume,
+} from './types'
 
 // Query keys include the user id so one user's cached data is never shown to the next user on this browser.
 const keys = {
@@ -21,6 +31,7 @@ const keys = {
   jobResults: (userId: string, page: number, size: number) => ['jobResults', userId, page, size] as const,
   resumeVersions: (userId: string) => ['resumeVersions', userId] as const,
   tailoredResumes: (userId: string) => ['tailoredResumes', userId] as const,
+  resumeReviews: (userId: string) => ['resumeReviews', userId] as const,
 }
 
 function useUserId(): string {
@@ -103,6 +114,31 @@ export function useRequestTailoredResume() {
 /** Asks for a fresh download link each time: they expire after a few minutes. */
 export function useTailoredResumeDownload() {
   return useMutation({ mutationFn: (jobResultId: string) => getTailoredResumeDownload(jobResultId) })
+}
+
+/** The user's resume reviews. Asks again every few seconds for as long as one is being reviewed. */
+export function useResumeReviews() {
+  const userId = useUserId()
+  return useQuery({
+    queryKey: keys.resumeReviews(userId),
+    queryFn: getResumeReviews,
+    refetchInterval: (query) =>
+      query.state.data?.some((review) => isReviewing(review)) ? REVIEW_POLL_INTERVAL_MS : false,
+  })
+}
+
+export function useRequestResumeReview() {
+  const userId = useUserId()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (jobResultId: string) => requestResumeReview(jobResultId),
+    // Putting the PENDING record in the list is what starts useResumeReviews polling for it.
+    onSuccess: (requested) =>
+      queryClient.setQueryData<ResumeReview[]>(keys.resumeReviews(userId), (reviews = []) => [
+        ...reviews.filter((review) => review.jobResultId !== requested.jobResultId),
+        requested,
+      ]),
+  })
 }
 
 // Skills can be a single letter ("C", "R"), so they suggest from the first keystroke.
