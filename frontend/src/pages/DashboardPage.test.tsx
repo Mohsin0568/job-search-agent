@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { JobSearchResult } from '../api/types'
-import { profile, result, resumeVersion, tailoredResume } from '../test/fixtures'
+import { profile, result, resumeReview, resumeVersion, tailoredResume } from '../test/fixtures'
 import { renderRoutes } from '../test/render'
 import { API, server } from '../test/server'
 import { DashboardPage } from './DashboardPage'
@@ -20,6 +20,7 @@ beforeEach(() => {
     // By default the user has a resume and has tailored nothing yet.
     http.get(`${API}/api/profile/resume`, () => HttpResponse.json([resumeVersion({ version: 3 })])),
     http.get(`${API}/api/jobs/tailored-resumes`, () => HttpResponse.json([])),
+    http.get(`${API}/api/jobs/resume-reviews`, () => HttpResponse.json([])),
   )
 })
 
@@ -151,5 +152,38 @@ describe('DashboardPage', () => {
     expect(await screen.findByRole('heading', { name: 'Staff Engineer' })).toBeInTheDocument()
     expect(await screen.findByText('Resume tailoring is unavailable right now.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Tailor resume/ })).not.toBeInTheDocument()
+  })
+
+  it('shows each job’s resume review beside its profile match, and offers a review on jobs without one', async () => {
+    server.use(
+      jobResults([
+        result('r-1', 'Acme Corp', { jobTitle: 'Staff Engineer' }),
+        result('r-2', 'Acme Corp', { jobTitle: 'Platform Engineer', atsScore: 60 }),
+      ]),
+      http.get(`${API}/api/jobs/resume-reviews`, () =>
+        HttpResponse.json([resumeReview({ jobResultId: 'r-1', resumeVersion: 3, resumeAtsScore: 64 })]),
+      ),
+    )
+    renderRoutes(routes)
+
+    const reviewed = (await screen.findByRole('heading', { name: 'Staff Engineer' })).closest('article')!
+    expect(await within(reviewed).findByText('Resume ATS 64%')).toBeInTheDocument()
+    expect(within(reviewed).getByText('Profile match 85%')).toBeInTheDocument()
+    expect(within(reviewed).getByText('2 missing keywords · 1 red flag')).toBeInTheDocument()
+
+    const notReviewed = screen.getByRole('heading', { name: 'Platform Engineer' }).closest('article')!
+    expect(within(notReviewed).getByRole('button', { name: 'Review resume for Platform Engineer' })).toBeInTheDocument()
+    expect(within(notReviewed).queryByText(/Resume ATS/)).not.toBeInTheDocument()
+  })
+
+  it('still shows the jobs, and tailoring, when reviews cannot be loaded', async () => {
+    server.use(
+      jobResults([result('r-1', 'Acme Corp', { jobTitle: 'Staff Engineer' })]),
+      http.get(`${API}/api/jobs/resume-reviews`, () => HttpResponse.json({ message: 'down' }, { status: 503 })),
+    )
+    renderRoutes(routes)
+
+    expect(await screen.findByText('Resume review is unavailable right now.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tailor resume for Staff Engineer' })).toBeInTheDocument()
   })
 })

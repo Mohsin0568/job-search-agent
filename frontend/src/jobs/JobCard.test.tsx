@@ -11,7 +11,7 @@ describe('JobCard', () => {
     expect(screen.getByText('London, UK')).toBeInTheDocument()
     expect(screen.getByText('£50,000 - £60,000')).toBeInTheDocument()
     expect(screen.getByText('via LinkedIn')).toBeInTheDocument()
-    expect(screen.getByText('85% match')).toBeInTheDocument()
+    expect(screen.getByText('Profile match 85%')).toBeInTheDocument()
 
     const link = screen.getByRole('link', { name: /View posting.*for Backend Engineer \(opens in a new tab\)/ })
     expect(link).toHaveAttribute('href', 'https://example.com/jobs/J-1')
@@ -54,7 +54,19 @@ describe('JobCard', () => {
   it('shows a score of zero as a score, not as missing', () => {
     render(<JobCard job={job({ atsScore: 0 })} />)
 
-    expect(screen.getByText('0% match')).toBeInTheDocument()
+    expect(screen.getByText('Profile match 0%')).toBeInTheDocument()
+  })
+
+  it('shows the resume ATS score beside the profile match once the resume has been reviewed', () => {
+    const { rerender } = render(<JobCard job={job()} resumeAtsScore={64} />)
+    expect(screen.getByText('Profile match 85%')).toBeInTheDocument()
+    expect(screen.getByText('Resume ATS 64%')).toBeInTheDocument()
+
+    rerender(<JobCard job={job()} resumeAtsScore={0} />)
+    expect(screen.getByText('Resume ATS 0%')).toBeInTheDocument()
+
+    rerender(<JobCard job={job()} resumeAtsScore={null} />)
+    expect(screen.queryByText(/Resume ATS/)).not.toBeInTheDocument()
   })
 
   it('shows the actions it is given along the bottom, and no empty row without any', () => {
