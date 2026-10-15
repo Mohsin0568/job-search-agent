@@ -14,6 +14,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -46,19 +47,24 @@ public class JobSearchResultPersistenceService {
         final LocalDateTime jobRunDateTime = LocalDateTime.now(clock);
         final List<JobListing> savedJobs = new ArrayList<>();
         final List<JobListing> duplicateJobs = new ArrayList<>();
+        final List<String> savedResultIds = new ArrayList<>();
         for (final JobListing job : companySearchResult.jobs()) {
-            if (persistJob(userId, companySearchResult.companyName(), job, jobRunDateTime)) {
+            final Optional<String> savedResultId =
+                    persistJob(userId, companySearchResult.companyName(), job, jobRunDateTime);
+            if (savedResultId.isPresent()) {
                 savedJobs.add(job);
+                savedResultIds.add(savedResultId.get());
             } else {
                 duplicateJobs.add(job);
             }
         }
 
-        return new JobPersistResult(savedJobs, duplicateJobs);
+        return new JobPersistResult(savedJobs, duplicateJobs, savedResultIds);
     }
 
-    private boolean persistJob(final String userId, final String companyName, final JobListing job,
-                             final LocalDateTime jobRunDateTime) {
+    // Returns the saved record's id, or empty when the user already has the job.
+    private Optional<String> persistJob(final String userId, final String companyName, final JobListing job,
+                                        final LocalDateTime jobRunDateTime) {
         final boolean hasReliableJobId = job.jobId() != null && !NOT_SPECIFIED.equalsIgnoreCase(job.jobId());
 
         if (hasReliableJobId) {
@@ -68,18 +74,19 @@ public class JobSearchResultPersistenceService {
 
             if (alreadyExists) {
                 logDuplicateJob(userId, companyName, job);
-                return false;
+                return Optional.empty();
             }
         }
 
         logNewJob(userId, companyName, job);
+        final String resultId = idGenerator.get();
         userJobSearchResultRepository.save(new UserJobSearchResult(
-                idGenerator.get(),
+                resultId,
                 userId,
                 jobRunDateTime,
                 companyName,
                 job));
-        return true;
+        return Optional.of(resultId);
     }
 
     private void logNewJob(final String userId, final String companyName, final JobListing job) {

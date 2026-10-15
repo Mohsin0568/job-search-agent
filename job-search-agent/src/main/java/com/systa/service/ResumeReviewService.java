@@ -114,6 +114,35 @@ public class ResumeReviewService {
         return Optional.of(pending);
     }
 
+    /**
+     * Reviews a job the daily search has just saved, and returns once the review is ready or has failed -
+     * the daily job runs reviews one at a time, so it waits rather than handing them to the task executor.
+     * A job that already has a review (one requested meanwhile, say) is left alone.
+     *
+     * @param resume the user's latest resume, looked up once by the caller for all of the user's new jobs
+     * @return the finished review, or empty when the user has no such job or it already had a review
+     */
+    public Optional<ResumeReview> reviewNewJob(final String userId, final String jobResultId,
+                                               final UserResume resume) {
+        final Optional<UserJobSearchResult> jobResult =
+                userJobSearchResultRepository.findByIdAndUserId(jobResultId, userId);
+        if (jobResult.isEmpty()) {
+            log.warn("New job to review not found - userId={}, jobResultId={}", userId, jobResultId);
+            return Optional.empty();
+        }
+
+        final ResumeReview pending = new ResumeReview(jobResultId, userId, Status.PENDING, resume.version(),
+                null, null, null, null, now(), null);
+        try {
+            resumeReviewRepository.insert(pending);
+        } catch (final DuplicateKeyException e) {
+            log.info("New job already has a resume review, skipping - userId={}, jobResultId={}", userId,
+                    jobResultId);
+            return Optional.empty();
+        }
+        return Optional.of(review(pending, jobResult.get(), resume));
+    }
+
     /** Every review the user has, in whatever state - one per job. */
     public List<ResumeReview> findAll(final String userId) {
         return resumeReviewRepository.findByUserId(userId);
@@ -131,8 +160,9 @@ public class ResumeReviewService {
         };
     }
 
-    // Runs in the background. Whatever happens ends up on the record: nobody is waiting on this call.
-    private void review(final ResumeReview pending, final UserJobSearchResult jobResult, final UserResume resume) {
+    // Usually runs in the background. Whatever happens ends up on the record, and is returned for a caller
+    // that waited.
+    private ResumeReview review(final ResumeReview pending, final UserJobSearchResult jobResult, final UserResume resume) {
         final String userId = pending.userId();
         final String jobResultId = pending.jobResultId();
         ResumeReview outcome;
@@ -154,6 +184,7 @@ public class ResumeReviewService {
             outcome = pending.failed(UNEXPECTED_FAILURE, now());
         }
         record(pending, outcome);
+        return outcome;
     }
 
     private void record(final ResumeReview pending, final ResumeReview outcome) {

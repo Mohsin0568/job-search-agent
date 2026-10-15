@@ -63,3 +63,6 @@ job-search:
     delay-between-users: 5s
     # Set to true to search again for users already searched today (JOB_SEARCH_FORCE=true).
     force: ${JOB_SEARCH_FORCE:false}
+    # After each user's search, the resume is reviewed against at most this many of the jobs it saved.
+    reviews-per-user: 20
+    delay-between-reviews: 5s

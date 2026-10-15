@@ -71,7 +71,8 @@ class JobSearchResultPersistenceServiceTest {
         final JobPersistResult result = serviceWithSequentialIds()
                 .persist(USER_ID, new CompanySearchResult(COMPANY_NAME, List.of(job1, job2)));
 
-        assertThat(result).isEqualTo(new JobPersistResult(List.of(job1, job2), List.of()));
+        assertThat(result).isEqualTo(new JobPersistResult(List.of(job1, job2), List.of(),
+                List.of("generated-id-1", "generated-id-2")));
         verify(userJobSearchResultRepository, times(2)).save(savedResultCaptor.capture());
 
         final UserJobSearchResult expectedFirst =
@@ -95,7 +96,7 @@ class JobSearchResultPersistenceServiceTest {
         final JobPersistResult result = service()
                 .persist(USER_ID, new CompanySearchResult(COMPANY_NAME, List.of(duplicateJob)));
 
-        assertThat(result).isEqualTo(new JobPersistResult(List.of(), List.of(duplicateJob)));
+        assertThat(result).isEqualTo(new JobPersistResult(List.of(), List.of(duplicateJob), List.of()));
         verify(userJobSearchResultRepository, never()).save(any());
     }
 
@@ -115,7 +116,7 @@ class JobSearchResultPersistenceServiceTest {
         final JobPersistResult result = service()
                 .persist(USER_ID, new CompanySearchResult(COMPANY_NAME, List.of(duplicateJob, newJob)));
 
-        assertThat(result).isEqualTo(new JobPersistResult(List.of(newJob), List.of(duplicateJob)));
+        assertThat(result).isEqualTo(new JobPersistResult(List.of(newJob), List.of(duplicateJob), List.of(GENERATED_ID)));
         verify(userJobSearchResultRepository, times(1)).save(savedResultCaptor.capture());
 
         final UserJobSearchResult expected =
@@ -130,7 +131,8 @@ class JobSearchResultPersistenceServiceTest {
         final JobPersistResult result = serviceWithSequentialIds()
                 .persist(USER_ID, new CompanySearchResult(COMPANY_NAME, List.of(unknownJob, notSpecifiedJob)));
 
-        assertThat(result).isEqualTo(new JobPersistResult(List.of(unknownJob, notSpecifiedJob), List.of()));
+        assertThat(result).isEqualTo(new JobPersistResult(List.of(unknownJob, notSpecifiedJob), List.of(),
+                List.of("generated-id-1", "generated-id-2")));
         verify(userJobSearchResultRepository, never())
                 .findByUserIdAndCompanyNameAndJob_JobId(eq(USER_ID), eq(COMPANY_NAME), any());
 
@@ -167,9 +169,9 @@ class JobSearchResultPersistenceServiceTest {
                 new CompanySearchResult(otherCompany, List.of(duplicateJobForOtherCompany)));
 
         assertThat(resultForFirstCompany)
-                .isEqualTo(new JobPersistResult(List.of(newJobForFirstCompany), List.of()));
+                .isEqualTo(new JobPersistResult(List.of(newJobForFirstCompany), List.of(), List.of(GENERATED_ID)));
         assertThat(resultForOtherCompany)
-                .isEqualTo(new JobPersistResult(List.of(), List.of(duplicateJobForOtherCompany)));
+                .isEqualTo(new JobPersistResult(List.of(), List.of(duplicateJobForOtherCompany), List.of()));
 
         // Globex Inc's only incoming job is a duplicate, so it must never be saved.
         verify(userJobSearchResultRepository, times(1)).save(savedResultCaptor.capture());

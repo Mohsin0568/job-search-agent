@@ -42,7 +42,8 @@ import static org.mockito.Mockito.when;
         "RESUME_S3_REGION=eu-west-2",
         "spring.ai.mcp.client.initialized=false",
         "job-search.daily-run.page-size=1",
-        "job-search.daily-run.delay-between-users=0s"
+        "job-search.daily-run.delay-between-users=0s",
+        "job-search.daily-run.delay-between-reviews=0s"
 })
 @ActiveProfiles("job")
 @Import(MongoTestContainer.class)
@@ -81,7 +82,7 @@ class JobModeApplicationTest {
     void searchesForEveryUserInMongo_recordsTheirRuns_andSkipsThemOnARerunTheSameDay() {
         final List<CandidateProfile> saved = candidateProfileRepository.saveAll(
                 List.of(profile("ada", "Acme Corp"), profile("bob", "Globex"), profile("cy", "Initech")));
-        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 0));
+        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 0, List.of()));
 
         runner.run(null);
 
@@ -104,12 +105,12 @@ class JobModeApplicationTest {
     @Test
     void retriesAUserWhoseSearchFailed_onARerunTheSameDay() {
         final CandidateProfile ada = candidateProfileRepository.save(profile("ada", "Acme Corp"));
-        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 3));
+        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 3, List.of()));
 
         runner.run(null);
 
         assertThat(runner.getExitCode()).isEqualTo(1);
-        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 0));
+        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 0, List.of()));
 
         runner.run(null);
 
