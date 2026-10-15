@@ -23,6 +23,7 @@ import type {
   ResumeVersion,
   SuggestionSource,
   TailoredResume,
+  TailoringFix,
 } from './types'
 
 // Query keys include the user id so one user's cached data is never shown to the next user on this browser.
@@ -100,8 +101,8 @@ export function useRequestTailoredResume() {
   const userId = useUserId()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ jobResultId, template }: { jobResultId: string; template?: ResumeTemplate }) =>
-      requestTailoredResume(jobResultId, template),
+    mutationFn: ({ jobResultId, template, fix }: { jobResultId: string; template?: ResumeTemplate; fix?: TailoringFix }) =>
+      requestTailoredResume(jobResultId, { template, fix }),
     // Putting the PENDING record in the list is what starts useTailoredResumes polling for it.
     onSuccess: (requested) =>
       queryClient.setQueryData<TailoredResume[]>(keys.tailoredResumes(userId), (tailoredResumes = []) => [

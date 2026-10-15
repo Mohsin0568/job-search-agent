@@ -68,3 +68,35 @@ test('a review made by the daily job is on the card after sign-in, and offered a
   await expect(card.getByText('Resume ATS 72%')).toBeVisible({ timeout: 15_000 })
   expect(backend.resumeReviews.map((review) => review.resumeVersion)).toEqual([2])
 })
+
+test('a user tailors their resume fixing what the review found, then downloads it', async ({ page, backend }) => {
+  await signIn(page)
+
+  const card = page.getByRole('article').filter({ hasText: 'Staff Engineer' })
+  // Before a review there is nothing to fix: tailoring is offered as before.
+  await expect(card.getByRole('button', { name: 'Tailor resume for Staff Engineer' })).toBeVisible()
+  await card.getByRole('button', { name: 'Review resume for Staff Engineer' }).click()
+  await expect(card.getByText('Resume ATS 72%')).toBeVisible({ timeout: 15_000 })
+
+  await card.getByRole('button', { name: 'Tailor and fix for Staff Engineer' }).click()
+  const fixes = card.getByRole('region', { name: /What to fix/ })
+  await expect(fixes.getByRole('checkbox', { name: 'Kubernetes' })).not.toBeChecked()
+  await fixes.getByRole('checkbox', { name: 'Terraform' }).check()
+  await expect(fixes.getByRole('checkbox', { name: 'Address the red flags' })).toBeChecked()
+  await fixes.getByRole('button', { name: 'Tailor with these fixes for Staff Engineer' }).click()
+
+  await expect(card.getByRole('status')).toHaveText('Tailoring your resume to this job…')
+  const download = card.getByRole('button', { name: 'Download tailored resume for Staff Engineer' })
+  await expect(download).toBeVisible({ timeout: 15_000 })
+  await expect(card.getByText('Adds Terraform · Addresses 1 red flag')).toBeVisible()
+  expect(backend.tailoredResumes.map((tailored) => tailored.fix?.keywords)).toEqual([['Terraform']])
+
+  const downloading = page.waitForEvent('download')
+  await download.click()
+  expect((await downloading).suggestedFilename()).toBe('Ada-Lovelace-resume.pdf')
+
+  // Switching template keeps the fixes.
+  await card.getByRole('combobox', { name: 'Resume template for Staff Engineer' }).selectOption('Modern')
+  await expect.poll(() => backend.tailoredResumes.map((tailored) => tailored.template)).toEqual(['MODERN'])
+  await expect(card.getByText('Adds Terraform · Addresses 1 red flag')).toBeVisible()
+})

@@ -1,4 +1,4 @@
-import type { ResumeTemplate, TailoredResume } from '../api/types'
+import type { AppliedFix, ResumeReview, ResumeTemplate, TailoredResume } from '../api/types'
 
 /** Every template, in the order to offer them. */
 export const RESUME_TEMPLATES: { id: ResumeTemplate; label: string }[] = [
@@ -68,4 +68,28 @@ export function tailoringState(
     case 'READY':
       return tailored.resumeVersion === latestResumeVersion ? 'ready' : 'outdated'
   }
+}
+
+/**
+ * The review whose findings tailoring can fix: one of the user's latest resume that found something.
+ * Undefined otherwise - the server refuses fixes without such a review.
+ */
+export function fixableReview(
+  review: ResumeReview | undefined,
+  latestResumeVersion: number | null,
+): ResumeReview | undefined {
+  if (!review || review.status !== 'READY' || review.resumeVersion !== latestResumeVersion) return undefined
+  const findings = (review.missingKeywords?.length ?? 0) + (review.redFlags?.length ?? 0)
+  return findings > 0 ? review : undefined
+}
+
+/** "Adds Kubernetes, Terraform · Addresses 1 red flag", or null when tailored as is. */
+export function fixSummary(fix: AppliedFix | null): string | null {
+  if (!fix) return null
+  const parts = []
+  if (fix.keywords.length > 0) parts.push(`Adds ${fix.keywords.join(', ')}`)
+  if (fix.redFlags.length > 0) {
+    parts.push(`Addresses ${fix.redFlags.length} ${fix.redFlags.length === 1 ? 'red flag' : 'red flags'}`)
+  }
+  return parts.length > 0 ? parts.join(' · ') : null
 }

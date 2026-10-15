@@ -6,6 +6,8 @@ import com.systa.config.ApplicationProperties;
 import com.systa.config.ChatConfig;
 import com.systa.exception.ResumeTailoringException;
 import com.systa.model.JobDescription;
+import com.systa.model.ResumeReview.RedFlag;
+import com.systa.model.TailoredResume.Fix;
 import com.systa.model.TailoredResumeContent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -16,6 +18,7 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.stream.Collectors;
 
 /** Has the LLM rewrite a resume for one job, without adding anything the resume doesn't say. */
 @Service
@@ -45,11 +48,13 @@ public class ResumeTailoringLlmService {
     }
 
     /**
+     * @param fix what to fix from the job's resume review, or null to tailor it as is
      * @throws ResumeTailoringException when the model fails, or returns something that isn't a resume
      */
     public TailoredResumeContent tailor(final String userId, final String resumeText, final String companyName,
-                                         final String jobTitle, final JobDescription jobDescription) {
-        log.info("Tailoring resume - userId={}, company={}, jobTitle={}", userId, companyName, jobTitle);
+                                         final String jobTitle, final JobDescription jobDescription, final Fix fix) {
+        log.info("Tailoring resume - userId={}, company={}, jobTitle={}, fixing={}", userId, companyName, jobTitle,
+                fix != null);
 
         final String userMessage = """
                 Tailor the resume below to this job.
@@ -66,7 +71,7 @@ public class ResumeTailoringLlmService {
                 %s
                 --- END RESUME ---
                 """.formatted(jobTitle, companyName, String.join(", ", jobDescription.requiredSkills()),
-                jobDescription.description(), abbreviate(resumeText));
+                jobDescription.description(), abbreviate(resumeText)) + fixes(fix);
 
         final String rawResponse;
         try {
@@ -95,6 +100,25 @@ public class ResumeTailoringLlmService {
         return content;
     }
 
+    // Without a fix the message is exactly what it was before fixes existed.
+    private static String fixes(final Fix fix) {
+        if (fix == null) {
+            return "";
+        }
+        final String keywords = fix.keywords().isEmpty() ? "(none)" : String.join(", ", fix.keywords());
+        final String redFlags = fix.redFlags().isEmpty() ? "(none)" : fix.redFlags().stream()
+                .map(ResumeTailoringLlmService::redFlag)
+                .collect(Collectors.joining("\n"));
+        return """
+
+                --- FIXES ---
+                Keywords the candidate confirms they have: %s
+                Red flags a recruiter raised:
+                %s
+                --- END FIXES ---
+                """.formatted(keywords, redFlags);
+    }
+
     private TailoredResumeContent parse(final String userId, final String rawResponse) {
         try {
             return OBJECT_MAPPER.readValue(stripMarkdownFences(rawResponse), TailoredResumeContent.class);
@@ -102,6 +126,10 @@ public class ResumeTailoringLlmService {
             log.error("Failed to parse resume tailoring response from LLM - userId={}", userId, e);
             throw new ResumeTailoringException(TRY_AGAIN, e);
         }
+    }
+
+    private static String redFlag(final RedFlag redFlag) {
+        return "- " + redFlag.issue() + ": " + redFlag.explanation();
     }
 
     private static boolean isPresent(final String value) {

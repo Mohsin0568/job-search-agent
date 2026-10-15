@@ -10,12 +10,14 @@ public record TailoredResumeDto(
         ResumeTemplate template,
         String failureReason,
         Instant requestedAt,
-        Instant completedAt
+        Instant completedAt,
+        // What it fixes from the job's resume review; null when it was tailored as is.
+        TailoredResume.Fix fix
 ) {
 
     public static TailoredResumeDto from(final TailoredResume tailoredResume) {
         return new TailoredResumeDto(tailoredResume.jobResultId(), tailoredResume.status(),
                 tailoredResume.resumeVersion(), tailoredResume.templateOrDefault(), tailoredResume.failureReason(),
-                tailoredResume.requestedAt(), tailoredResume.completedAt());
+                tailoredResume.requestedAt(), tailoredResume.completedAt(), tailoredResume.fix());
     }
 }

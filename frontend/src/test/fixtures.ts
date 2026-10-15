@@ -38,6 +38,7 @@ export function tailoredResume(overrides: Partial<TailoredResume> = {}): Tailore
     failureReason: null,
     requestedAt: '2026-10-13T09:00:00Z',
     completedAt: '2026-10-13T09:00:40Z',
+    fix: null,
     ...overrides,
   }
 }

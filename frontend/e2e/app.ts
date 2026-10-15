@@ -37,6 +37,7 @@ export type TailoredResume = {
   failureReason: string | null
   requestedAt: string
   completedAt: string | null
+  fix: { keywords: string[]; redFlags: Array<{ issue: string; explanation: string }> } | null
 }
 
 export type ResumeReview = {
@@ -276,9 +277,28 @@ async function fakeBackend(page: Page, backend: Backend) {
       if (request.method() === 'POST') {
         const latest = backend.resumes.find((resume) => resume.latest)
         if (!latest) return json({ message: 'upload your resume before tailoring it to a job' }, 409)
-        const body = (request.postDataJSON() ?? {}) as { template?: TailoredResume['template'] }
+        const body = (request.postDataJSON() ?? {}) as {
+          template?: TailoredResume['template']
+          fix?: { keywords: string[]; redFlags: boolean }
+        }
         const template = body.template ?? existing?.template ?? 'CLASSIC'
-        if (existing?.status === 'READY' && existing.resumeVersion === latest.version) {
+        let fix = existing?.fix ?? null
+        if (body.fix) {
+          // As the server does: fixes come from a finished review of the latest resume, and only the
+          // keywords it listed can be ticked.
+          fix = null
+          if (body.fix.keywords.length > 0 || body.fix.redFlags) {
+            const review = backend.resumeReviews.find((found) => found.jobResultId === jobResultId)
+            if (review?.status !== 'READY' || review.resumeVersion !== latest.version) {
+              return json({ message: 'review your latest resume against this job before fixing what the review finds' }, 409)
+            }
+            const keywords = (review.missingKeywords ?? []).filter((keyword) => body.fix?.keywords.includes(keyword))
+            const redFlags = body.fix.redFlags ? (review.redFlags ?? []) : []
+            fix = keywords.length > 0 || redFlags.length > 0 ? { keywords, redFlags } : null
+          }
+        }
+        const sameFix = JSON.stringify(fix) === JSON.stringify(existing?.fix ?? null)
+        if (existing?.status === 'READY' && existing.resumeVersion === latest.version && sameFix) {
           // Only the template changed: laid out again straight away, as the server does.
           const relaidOut = { ...existing, template }
           backend.tailoredResumes = backend.tailoredResumes.map((tailored) => (tailored === existing ? relaidOut : tailored))
@@ -292,6 +312,7 @@ async function fakeBackend(page: Page, backend: Backend) {
           failureReason: null,
           requestedAt: new Date().toISOString(),
           completedAt: null,
+          fix,
         }
         backend.tailoredResumes = [...backend.tailoredResumes.filter((tailored) => tailored !== existing), pending]
         return json(pending, 202)
