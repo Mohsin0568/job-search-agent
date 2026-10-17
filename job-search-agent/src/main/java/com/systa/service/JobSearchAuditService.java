@@ -12,12 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.net.URI;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -96,36 +94,9 @@ public class JobSearchAuditService {
         return tallies.computeIfAbsent(attribute(sources, job), _ -> new Tally());
     }
 
-    // The LLM names each job's source in its own words ("LinkedIn", "company portal", ...), so match
-    // on the job board's name, then on where the link points, and otherwise assume the company's own
-    // portal - the only source without a fixed name or domain.
     private static String attribute(final List<JobSource> sources, final JobListing job) {
-        final String sourceName = lowerCase(job.source());
-        final String urlHost = urlHost(job.url());
-
-        for (final JobSource source : sources) {
-            if (source.keyword() != null && sourceName.contains(source.keyword())) {
-                return source.displayName();
-            }
-        }
-        for (final JobSource source : sources) {
-            if (source.keyword() != null && urlHost.contains(source.keyword())) {
-                return source.displayName();
-            }
-        }
-        return sources.contains(JobSource.COMPANY_PORTAL) ? JobSource.COMPANY_PORTAL.displayName() : UNATTRIBUTED;
-    }
-
-    private static String urlHost(final String url) {
-        try {
-            return lowerCase(URI.create(url.trim()).getHost());
-        } catch (final IllegalArgumentException | NullPointerException _) {
-            return "";
-        }
-    }
-
-    private static String lowerCase(final String text) {
-        return text == null ? "" : text.toLowerCase(Locale.ROOT);
+        final JobSource source = JobSource.of(job, sources);
+        return source != null ? source.displayName() : UNATTRIBUTED;
     }
 
     private static String abbreviate(final String text) {

@@ -84,8 +84,8 @@ class JobSearchServiceTest {
         // By default the LLM finds one job per batch, the filter keeps everything and all of it is new.
         lenient().when(jobSearchLlmService.searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList()))
                 .thenAnswer(call -> found(call.getArgument(2), call.<List<String>>getArgument(3)));
-        lenient().when(jobSearchResultFilterService.filterStaleJobs(anyString(), any(), any()))
-                .thenAnswer(call -> new JobFilterResult(call.<CompanySearchResult>getArgument(2).jobs(), List.of()));
+        lenient().when(jobSearchResultFilterService.filterStaleJobs(anyString(), any(), anyList(), any()))
+                .thenAnswer(call -> new JobFilterResult(call.<CompanySearchResult>getArgument(3).jobs(), List.of()));
         lenient().when(jobSearchResultPersistenceService.persist(anyString(), any()))
                 .thenAnswer(call -> new JobPersistResult(call.<CompanySearchResult>getArgument(1).jobs(), List.of(),
                         List.of()));
@@ -132,13 +132,13 @@ class JobSearchServiceTest {
         final JobListing fresh = job("fresh", "LinkedIn");
         // doReturn, so re-stubbing doesn't run setUp's answer with the matchers' null arguments.
         doReturn(new JobFilterResult(List.of(fresh), List.of()))
-                .when(jobSearchResultFilterService).filterStaleJobs(anyString(), any(), any());
+                .when(jobSearchResultFilterService).filterStaleJobs(anyString(), any(), anyList(), any());
 
         service.searchJobs(profile(30, List.of("Acme Corp")));
 
         final ArgumentCaptor<CompanySearchResult> unfiltered = ArgumentCaptor.forClass(CompanySearchResult.class);
         verify(jobSearchResultFilterService, times(BATCHES_PER_COMPANY))
-                .filterStaleJobs(eq(USER_ID), eq(30), unfiltered.capture());
+                .filterStaleJobs(eq(USER_ID), eq(30), anyList(), unfiltered.capture());
         assertThat(unfiltered.getAllValues()).allSatisfy(batchResult -> {
             assertThat(batchResult.companyName()).isEqualTo("Acme Corp");
             assertThat(batchResult.jobs()).hasSize(1);
@@ -151,7 +151,8 @@ class JobSearchServiceTest {
     void passesOnAMissingRecencyWindow_forTheFilterToDefault() {
         service.searchJobs(profile(null, List.of("Acme Corp")));
 
-        verify(jobSearchResultFilterService, times(BATCHES_PER_COMPANY)).filterStaleJobs(eq(USER_ID), eq(null), any());
+        verify(jobSearchResultFilterService, times(BATCHES_PER_COMPANY))
+                .filterStaleJobs(eq(USER_ID), eq(null), anyList(), any());
     }
 
     @Test
@@ -220,7 +221,7 @@ class JobSearchServiceTest {
                 .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
         doReturn(new JobFilterResult(List.of(portalJob, linkedInSaved, linkedInDuplicate), List.of(stale)))
                 .doReturn(new JobFilterResult(List.of(), List.of()))
-                .when(jobSearchResultFilterService).filterStaleJobs(anyString(), any(), any());
+                .when(jobSearchResultFilterService).filterStaleJobs(anyString(), any(), anyList(), any());
         doReturn(new JobPersistResult(List.of(portalJob, linkedInSaved), List.of(linkedInDuplicate),
                 List.of("result-portal", "result-linkedin")))
                 .doReturn(new JobPersistResult(List.of(), List.of(), List.of()))

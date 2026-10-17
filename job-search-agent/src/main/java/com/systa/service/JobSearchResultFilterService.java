@@ -4,6 +4,7 @@ import com.systa.model.CompanySearchResult;
 import com.systa.model.FilteredOutJob;
 import com.systa.model.JobFilterResult;
 import com.systa.model.JobListing;
+import com.systa.model.JobSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,8 +44,10 @@ public class JobSearchResultFilterService {
 
     // Backstop for the LLM's own recency rule: it doesn't reliably apply the recency
     // cutoff itself (e.g. it once included a job posted 27 days ago), so re-check it here in code.
+    // An undated job from the company's own careers portal is kept: many portals never show a posting
+    // date. A portal job that does show one is held to the window like any other.
     public JobFilterResult filterStaleJobs(final String userId, final Integer recencyWindowDays,
-                                            final CompanySearchResult company) {
+                                            final List<JobSource> sources, final CompanySearchResult company) {
         final int effectiveRecencyWindowDays = effectiveRecencyWindowDays(recencyWindowDays);
 
         final LocalDate today = LocalDate.now(clock);
@@ -53,8 +56,9 @@ public class JobSearchResultFilterService {
         final List<JobListing> validJobs = new ArrayList<>();
         final List<FilteredOutJob> filteredOutJobs = new ArrayList<>();
         for (final JobListing job : company.jobs()) {
-            final FilteredOutJob.Reason reasonToDrop = reasonToDrop(userId, job, earliestAllowedDate, today,
-                    effectiveRecencyWindowDays);
+            final boolean fromCompanyPortal = JobSource.of(job, sources) == JobSource.COMPANY_PORTAL;
+            final FilteredOutJob.Reason reasonToDrop = reasonToDrop(userId, job, fromCompanyPortal,
+                    earliestAllowedDate, today, effectiveRecencyWindowDays);
             if (reasonToDrop == null) {
                 validJobs.add(job);
             } else {
@@ -75,10 +79,16 @@ public class JobSearchResultFilterService {
 
     /** Why the job fails the recency check, or null when it passes. */
     private FilteredOutJob.Reason reasonToDrop(final String userId, final JobListing job,
+                                               final boolean fromCompanyPortal,
                                                final LocalDate earliestAllowedDate, final LocalDate today,
                                                final int recencyWindowDays) {
         final LocalDate datePosted = parseDatePosted(job.datePosted());
         if (datePosted == null) {
+            if (fromCompanyPortal) {
+                LOGGER.info("Keeping undated company portal job - userId={}, jobTitle={}, datePosted={}, url={}",
+                        userId, job.jobTitle(), job.datePosted(), job.url());
+                return null;
+            }
             LOGGER.info("Dropping job with unparseable/unspecified datePosted - userId={}, jobTitle={}, "
                             + "datePosted={}, url={}",
                     userId, job.jobTitle(), job.datePosted(), job.url());
