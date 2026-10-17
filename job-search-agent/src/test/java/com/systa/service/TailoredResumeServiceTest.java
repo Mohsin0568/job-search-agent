@@ -354,7 +354,7 @@ class TailoredResumeServiceTest {
                 .isInstanceOf(ResumeReviewRequiredException.class);
 
         // Still being reviewed.
-        when(resumeReviewRepository.findById(JOB_RESULT_ID)).thenReturn(Optional.of(new ResumeReview(JOB_RESULT_ID,
+        when(resumeReviewRepository.findById("r-1:v3")).thenReturn(Optional.of(new ResumeReview(JOB_RESULT_ID,
                 USER_ID, ResumeReview.Status.PENDING, 3, null, null, null, null, NOW, null)));
         assertThatThrownBy(() -> service.request(USER_ID, JOB_RESULT_ID, null, fix))
                 .isInstanceOf(ResumeReviewRequiredException.class);
@@ -555,9 +555,10 @@ class TailoredResumeServiceTest {
     }
 
     private void reviewed(final int resumeVersion) {
-        lenient().when(resumeReviewRepository.findById(JOB_RESULT_ID)).thenReturn(Optional.of(new ResumeReview(
-                JOB_RESULT_ID, USER_ID, ResumeReview.Status.READY, resumeVersion, 64, List.of("Kafka", "Docker"),
-                List.of(SHORT_TENURES, VAGUE_RESULTS), null, NOW.minusSeconds(600), NOW.minusSeconds(590))));
+        lenient().when(resumeReviewRepository.findById(ResumeReview.idFor(JOB_RESULT_ID, resumeVersion)))
+                .thenReturn(Optional.of(new ResumeReview(JOB_RESULT_ID, USER_ID, ResumeReview.Status.READY,
+                        resumeVersion, 64, List.of("Kafka", "Docker"), List.of(SHORT_TENURES, VAGUE_RESULTS), null,
+                        NOW.minusSeconds(600), NOW.minusSeconds(590))));
     }
 
     private static TailoredResume fixedReady() {

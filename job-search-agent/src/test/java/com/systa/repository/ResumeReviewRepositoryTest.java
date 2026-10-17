@@ -37,28 +37,40 @@ class ResumeReviewRepositoryTest {
     @Test
     void savesAndReadsBackEveryState() {
         repository.insert(PENDING);
-        assertThat(repository.findById("r-1")).contains(PENDING);
+        assertThat(repository.findById("r-1:v3")).contains(PENDING);
 
         final ResumeReview ready = PENDING.ready(new ResumeReviewResult(64, List.of("Kubernetes", "Terraform"),
                 List.of(new RedFlag("Short roles", "Three jobs in two years."))), REQUESTED_AT.plusSeconds(30));
         repository.save(ready);
-        assertThat(repository.findById("r-1")).contains(ready);
+        assertThat(repository.findById("r-1:v3")).contains(ready);
 
         // Nothing found is kept as empty lists, not lost.
         final ResumeReview clean = PENDING.ready(new ResumeReviewResult(96, List.of(), List.of()),
                 REQUESTED_AT.plusSeconds(30));
         repository.save(clean);
-        assertThat(repository.findById("r-1")).contains(clean);
+        assertThat(repository.findById("r-1:v3")).contains(clean);
 
         final ResumeReview failed = PENDING.failed("we couldn't find this job posting", REQUESTED_AT.plusSeconds(20));
         repository.save(failed);
-        assertThat(repository.findById("r-1")).contains(failed);
+        assertThat(repository.findById("r-1:v3")).contains(failed);
         assertThat(repository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void keepsAReviewForEachVersionOfTheResume() {
+        repository.insert(PENDING);
+        final ResumeReview nextVersion = new ResumeReview("r-1", "user-1", Status.PENDING, 4, null, null, null, null,
+                REQUESTED_AT, null);
+        repository.insert(nextVersion);
+
+        assertThat(repository.findById("r-1:v3")).contains(PENDING);
+        assertThat(repository.findById("r-1:v4")).contains(nextVersion);
+        assertThat(repository.findByUserId("user-1")).containsExactlyInAnyOrder(PENDING, nextVersion);
     }
 
     // What lets two requests arriving together agree on which of them does the work.
     @Test
-    void refusesToInsertASecondRecordForTheSameJob() {
+    void refusesToInsertASecondRecordForTheSameJobAndResumeVersion() {
         repository.insert(PENDING);
 
         assertThatThrownBy(() -> repository.insert(PENDING)).isInstanceOf(DuplicateKeyException.class);

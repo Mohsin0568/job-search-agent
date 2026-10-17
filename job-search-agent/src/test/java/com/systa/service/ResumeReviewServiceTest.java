@@ -27,12 +27,15 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -72,7 +75,10 @@ class ResumeReviewServiceTest {
     // Background work the service handed over and that hasn't been run yet.
     private final List<Runnable> queued = new ArrayList<>();
 
-    // The job_resume_review collection, as far as the service can tell.
+    // The job_resume_review collection, as far as the service can tell: reviews by id.
+    private final Map<String, ResumeReview> reviews = new HashMap<>();
+
+    // The latest resume's review (v3) - the one most tests are about.
     private ResumeReview stored;
 
     private ResumeReviewService service;
@@ -84,10 +90,11 @@ class ResumeReviewServiceTest {
         lenient().when(userJobSearchResultRepository.findByIdAndUserId(JOB_RESULT_ID, USER_ID))
                 .thenReturn(Optional.of(JOB_RESULT));
         lenient().when(resumeService.findLatest(USER_ID)).thenReturn(Optional.of(resume(3)));
-        lenient().when(resumeReviewRepository.findById(JOB_RESULT_ID)).thenAnswer(call -> Optional.ofNullable(stored));
-        lenient().when(resumeReviewRepository.save(any())).thenAnswer(call -> stored = call.getArgument(0));
+        lenient().when(resumeReviewRepository.findById(any()))
+                .thenAnswer(call -> Optional.ofNullable(read(call.getArgument(0))));
+        lenient().when(resumeReviewRepository.save(any())).thenAnswer(call -> write(call.getArgument(0)));
         lenient().when(resumeReviewRepository.insert(any(ResumeReview.class)))
-                .thenAnswer(call -> stored = call.getArgument(0));
+                .thenAnswer(call -> write(call.getArgument(0)));
 
         lenient().when(jobDescriptionService.getOrFetch(USER_ID, JOB_RESULT_ID)).thenReturn(Optional.of(JOB_DESCRIPTION));
         lenient().when(resumeReviewLlmService.review(USER_ID, "resume text v3", "Acme Corp", "Staff Engineer",
@@ -157,8 +164,9 @@ class ResumeReviewServiceTest {
     }
 
     @Test
-    void reviewsAgain_whenTheUserHasUploadedANewerResume() {
-        stored = ready(2);
+    void reviewsAgain_whenTheUserHasUploadedANewerResume_keepingTheEarlierReview() {
+        final ResumeReview earlier = ready(2);
+        reviews.put(earlier.id(), earlier);
 
         final Optional<ResumeReview> requested = service.request(USER_ID, JOB_RESULT_ID);
         assertThat(requested).map(ResumeReview::status).contains(Status.PENDING);
@@ -167,6 +175,22 @@ class ResumeReviewServiceTest {
         runBackgroundWork();
         assertThat(stored.status()).isEqualTo(Status.READY);
         assertThat(stored.resumeVersion()).isEqualTo(3);
+        assertThat(reviews).containsEntry("r-1:v2", earlier).containsKey("r-1:v3");
+    }
+
+    @Test
+    void recordsAnEarlierVersionsReview_whenItFinishesAfterANewUpload() {
+        service.request(USER_ID, JOB_RESULT_ID);
+        // While v3 is reviewed, the user uploads v4 and asks again.
+        when(resumeService.findLatest(USER_ID)).thenReturn(Optional.of(resume(4)));
+        when(resumeReviewLlmService.review(USER_ID, "resume text v4", "Acme Corp", "Staff Engineer",
+                JOB_DESCRIPTION)).thenReturn(RESULT);
+        service.request(USER_ID, JOB_RESULT_ID);
+
+        runBackgroundWork();
+
+        assertThat(reviews.get("r-1:v3").status()).isEqualTo(Status.READY);
+        assertThat(reviews.get("r-1:v4").status()).isEqualTo(Status.READY);
     }
 
     @Test
@@ -253,8 +277,8 @@ class ResumeReviewServiceTest {
     @Test
     void discardsAResult_whenTheUserHasAskedAgainSinceItStarted() {
         service.request(USER_ID, JOB_RESULT_ID);
-        // While that one runs, a newer request takes over the record.
-        final ResumeReview newer = pendingSince(NOW.plusSeconds(700), 4);
+        // While that one runs, it times out and a newer request for the same resume takes over the record.
+        final ResumeReview newer = pendingSince(NOW.plusSeconds(700), 3);
         stored = newer;
 
         runBackgroundWork();
@@ -266,9 +290,10 @@ class ResumeReviewServiceTest {
     void recordsTheResult_whenTheClockIsFinerThanMongoKeepsDates() {
         // The system clock ticks in microseconds or finer; MongoDB keeps only milliseconds.
         service = serviceWithClock(Clock.fixed(NOW.plusNanos(123_456_789), ZoneOffset.UTC));
-        when(resumeReviewRepository.insert(any(ResumeReview.class)))
-                .thenAnswer(call -> stored = asMongoKeepsIt(call.getArgument(0)));
-        when(resumeReviewRepository.save(any())).thenAnswer(call -> stored = asMongoKeepsIt(call.getArgument(0)));
+        // doAnswer, so re-stubbing doesn't run setUp's answer with the matchers' null arguments.
+        doAnswer(call -> write(asMongoKeepsIt(call.getArgument(0))))
+                .when(resumeReviewRepository).insert(any(ResumeReview.class));
+        doAnswer(call -> write(asMongoKeepsIt(call.getArgument(0)))).when(resumeReviewRepository).save(any());
 
         service.request(USER_ID, JOB_RESULT_ID);
         runBackgroundWork();
@@ -315,16 +340,32 @@ class ResumeReviewServiceTest {
     }
 
     @Test
-    void listsEveryReviewTheUserHas() {
-        when(resumeReviewRepository.findByUserId(USER_ID)).thenReturn(List.of(ready(3)));
+    void listsEachJobsReviewOfTheNewestResumeItWasReviewedAgainst() {
+        final ResumeReview otherJobV2 = new ResumeReview("r-2", USER_ID, Status.READY, 2, 80, List.of(), List.of(),
+                null, NOW, NOW);
+        when(resumeReviewRepository.findByUserId(USER_ID))
+                .thenReturn(List.of(ready(2), pendingSince(NOW, 4), ready(3), otherJobV2));
 
-        assertThat(service.findAll(USER_ID)).containsExactly(ready(3));
+        assertThat(service.findAll(USER_ID)).containsExactlyInAnyOrder(pendingSince(NOW, 4), otherJobV2);
     }
 
     private ResumeReviewService serviceWithClock(final Clock clock) {
         final TaskExecutor queueing = queued::add;
         return new ResumeReviewService(userJobSearchResultRepository, resumeReviewRepository, resumeService,
                 jobDescriptionService, resumeReviewLlmService, queueing, clock);
+    }
+
+    // The v3 review lives in "stored", so tests can set and check it directly; other versions in the map.
+    private ResumeReview read(final String id) {
+        return id.equals(ResumeReview.idFor(JOB_RESULT_ID, 3)) ? stored : reviews.get(id);
+    }
+
+    private ResumeReview write(final ResumeReview review) {
+        reviews.put(review.id(), review);
+        if (review.id().equals(ResumeReview.idFor(JOB_RESULT_ID, 3))) {
+            stored = review;
+        }
+        return review;
     }
 
     private void runBackgroundWork() {
@@ -349,7 +390,7 @@ class ResumeReviewServiceTest {
 
     // What a save and a read back hand you: MongoDB drops anything finer than a millisecond.
     private static ResumeReview asMongoKeepsIt(final ResumeReview saved) {
-        return new ResumeReview(saved.jobResultId(), saved.userId(), saved.status(), saved.resumeVersion(),
+        return new ResumeReview(saved.id(), saved.jobResultId(), saved.userId(), saved.status(), saved.resumeVersion(),
                 saved.resumeAtsScore(), saved.missingKeywords(), saved.redFlags(), saved.failureReason(),
                 saved.requestedAt().truncatedTo(ChronoUnit.MILLIS),
                 saved.reviewedAt() == null ? null : saved.reviewedAt().truncatedTo(ChronoUnit.MILLIS));
