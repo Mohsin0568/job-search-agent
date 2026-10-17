@@ -22,7 +22,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -92,8 +94,9 @@ public class ResumeReviewService {
         final UserResume resume = resumeService.findLatest(userId).orElseThrow(() ->
                 new ResumeRequiredException("upload your resume before it can be reviewed against a job"));
 
-        final Optional<ResumeReview> existing = resumeReviewRepository.findById(jobResultId);
-        if (existing.isPresent() && isCurrent(existing.get(), resume)) {
+        final String reviewId = ResumeReview.idFor(jobResultId, resume.version());
+        final Optional<ResumeReview> existing = resumeReviewRepository.findById(reviewId);
+        if (existing.isPresent() && isCurrent(existing.get())) {
             return existing;
         }
 
@@ -106,7 +109,7 @@ public class ResumeReviewService {
                 resumeReviewRepository.insert(pending);
             } catch (final DuplicateKeyException e) {
                 // Another request for the same job got there first, and has started the review.
-                return resumeReviewRepository.findById(jobResultId);
+                return resumeReviewRepository.findById(reviewId);
             }
         }
 
@@ -117,7 +120,7 @@ public class ResumeReviewService {
     /**
      * Reviews a job the daily search has just saved, and returns once the review is ready or has failed -
      * the daily job runs reviews one at a time, so it waits rather than handing them to the task executor.
-     * A job that already has a review (one requested meanwhile, say) is left alone.
+     * A job that already has a review of this resume (one requested meanwhile, say) is left alone.
      *
      * @param resume the user's latest resume, looked up once by the caller for all of the user's new jobs
      * @return the finished review, or empty when the user has no such job or it already had a review
@@ -143,16 +146,21 @@ public class ResumeReviewService {
         return Optional.of(review(pending, jobResult.get(), resume));
     }
 
-    /** Every review the user has, in whatever state - one per job. */
+    /**
+     * The user's review of each job, in whatever state - one per job: the one of the newest resume version
+     * the job was reviewed against. Reviews of earlier versions are kept but not listed.
+     */
     public List<ResumeReview> findAll(final String userId) {
-        return resumeReviewRepository.findByUserId(userId);
+        final Map<String, ResumeReview> newestPerJob = new LinkedHashMap<>();
+        for (final ResumeReview review : resumeReviewRepository.findByUserId(userId)) {
+            newestPerJob.merge(review.jobResultId(), review,
+                    (kept, other) -> other.resumeVersion() > kept.resumeVersion() ? other : kept);
+        }
+        return List.copyOf(newestPerJob.values());
     }
 
-    // Nothing to do when it reviewed the user's latest resume, or is reviewing it right now.
-    private boolean isCurrent(final ResumeReview review, final UserResume latestResume) {
-        if (review.resumeVersion() != latestResume.version()) {
-            return false;
-        }
+    // Nothing to do when this version's review is ready, or is under way right now.
+    private boolean isCurrent(final ResumeReview review) {
         return switch (review.status()) {
             case READY -> true;
             case PENDING -> review.requestedAt().plus(PENDING_TIMEOUT).isAfter(clock.instant());
@@ -189,9 +197,9 @@ public class ResumeReviewService {
 
     private void record(final ResumeReview pending, final ResumeReview outcome) {
         try {
-            // If the user asked again meanwhile (after a timeout or a new upload), that request owns
-            // the record now and this result is out of date.
-            final boolean stillOurs = resumeReviewRepository.findById(pending.jobResultId())
+            // If the user asked again meanwhile (after a timeout), that request owns the record now and
+            // this result is out of date.
+            final boolean stillOurs = resumeReviewRepository.findById(pending.id())
                     .map(current -> current.requestedAt().equals(pending.requestedAt()))
                     .orElse(false);
             if (stillOurs) {

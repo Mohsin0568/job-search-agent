@@ -195,10 +195,9 @@ public class TailoredResumeService {
         if (ticked.isEmpty() && !fix.redFlags()) {
             return null;
         }
-        final ResumeReview review = resumeReviewRepository.findById(jobResultId)
+        final ResumeReview review = resumeReviewRepository.findById(ResumeReview.idFor(jobResultId, resume.version()))
                 .filter(found -> found.userId().equals(userId))
-                .filter(found -> found.status() == ResumeReview.Status.READY
-                        && found.resumeVersion() == resume.version())
+                .filter(found -> found.status() == ResumeReview.Status.READY)
                 .orElseThrow(() -> new ResumeReviewRequiredException(
                         "review your latest resume against this job before fixing what the review finds"));
 
