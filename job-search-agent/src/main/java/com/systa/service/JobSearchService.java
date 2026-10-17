@@ -105,7 +105,7 @@ public class JobSearchService {
                                                   final CompanySearchResult batchResult,
                                                   final List<String> newJobResultIds) {
         final JobFilterResult filterResult = jobSearchResultFilterService.filterStaleJobs(
-                userId, recencyWindowDays, batchResult);
+                userId, recencyWindowDays, sourceBatch, batchResult);
         final CompanySearchResult validJobsSearchResult =
                 new CompanySearchResult(batchResult.companyName(), filterResult.validJobs());
         final JobPersistResult persistResult =

@@ -34,6 +34,10 @@ SEARCH AND FILTERING RULES — follow all of these strictly:
 2. RECENCY: Only include job postings that were posted within the last %6$d days of TODAY'S DATE above.
    Discard any posting older than %6$d days. If, after following rule 1, the posting date still cannot be
    determined, exclude it.
+   EXCEPTION: many company careers portals never show a posting date. For a posting found on the company's
+   official careers/jobs portal whose date cannot be determined, include it with datePosted "Not specified"
+   instead of excluding it. A portal posting that does show a date must still be within the last %6$d days.
+   Job boards get no exception.
 
 3. DESIGNATION MATCHING: Using the candidate's desired role above, only return postings for:
    - The same designation or an equivalent title at the target company, OR
