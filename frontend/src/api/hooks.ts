@@ -1,7 +1,9 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../auth/AuthContext'
 import {
   getJobResults,
+  getJobSearchRun,
+  getJobSearchRuns,
   getProfile,
   getResumeDownload,
   getResumeReviews,
@@ -33,7 +35,12 @@ const keys = {
   resumeVersions: (userId: string) => ['resumeVersions', userId] as const,
   tailoredResumes: (userId: string) => ['tailoredResumes', userId] as const,
   resumeReviews: (userId: string) => ['resumeReviews', userId] as const,
+  jobSearchRuns: (userId: string) => ['jobSearchRuns', userId] as const,
+  jobSearchRun: (userId: string, runId: string) => ['jobSearchRun', userId, runId] as const,
 }
+
+/** Runs per page of the search history. */
+export const SEARCH_RUNS_PAGE_SIZE = 20
 
 function useUserId(): string {
   const { user } = useAuth()
@@ -139,6 +146,31 @@ export function useRequestResumeReview() {
         ...reviews.filter((review) => review.jobResultId !== requested.jobResultId),
         requested,
       ]),
+  })
+}
+
+/** The user's search history, newest run first, a page at a time: fetchNextPage loads older runs. */
+export function useJobSearchRuns() {
+  const userId = useUserId()
+  return useInfiniteQuery({
+    queryKey: keys.jobSearchRuns(userId),
+    queryFn: ({ pageParam }) => getJobSearchRuns(pageParam, SEARCH_RUNS_PAGE_SIZE),
+    initialPageParam: 0,
+    // A full page may have more after it; a short one is the last.
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPage.length === SEARCH_RUNS_PAGE_SIZE ? lastPageParam + 1 : undefined,
+  })
+}
+
+/** What one run found for each company. Only asked for once the run is opened (enabled). */
+export function useJobSearchRun(runId: string, enabled: boolean) {
+  const userId = useUserId()
+  return useQuery({
+    queryKey: keys.jobSearchRun(userId, runId),
+    queryFn: () => getJobSearchRun(runId),
+    enabled,
+    // A finished run never changes.
+    staleTime: Infinity,
   })
 }
 

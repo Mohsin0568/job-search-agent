@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', end: true },
+  { to: '/history', label: 'Search history', end: false },
   { to: '/profile', label: 'Profile', end: false },
 ]
 
@@ -27,31 +28,30 @@ export function AppLayout() {
   return (
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-          <div className="flex min-w-0 items-center gap-6">
-            <Link to="/" className="shrink-0 font-semibold text-indigo-600">
-              Job Search Agent
-            </Link>
-            {!onboarding && (
-              <nav aria-label="Main" className="flex items-center gap-1">
-                {NAV_ITEMS.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.end}
-                    className={({ isActive }) =>
-                      `rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                        isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`
-                    }
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
-              </nav>
-            )}
-          </div>
-          <div className="flex min-w-0 items-center gap-4">
+        {/* On a phone the links take a row of their own, below the name and the sign-out button. */}
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
+          <Link to="/" className="shrink-0 font-semibold text-indigo-600">
+            Job Search Agent
+          </Link>
+          {!onboarding && (
+            <nav aria-label="Main" className="order-last -ml-3 flex w-full items-center gap-1 sm:order-none sm:ml-0 sm:w-auto">
+              {NAV_ITEMS.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                      isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          )}
+          <div className="ml-auto flex min-w-0 items-center gap-4">
             <span className="hidden truncate text-sm text-slate-600 md:inline">{user?.email}</span>
             <button
               type="button"

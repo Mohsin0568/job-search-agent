@@ -9,6 +9,7 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RegisterPage } from './pages/RegisterPage'
+import { SearchHistoryPage } from './pages/SearchHistoryPage'
 import { RequireProfile } from './profile/RequireProfile'
 
 export const router = createBrowserRouter([
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
             element: <RequireProfile />,
             children: [
               { index: true, element: <DashboardPage /> },
+              { path: '/history', element: <SearchHistoryPage /> },
               { path: '/profile', element: <ProfilePage /> },
             ],
           },
