@@ -111,6 +111,64 @@ export type ResumeReview = {
   reviewedAt: string | null
 }
 
+/** How one user's part in a daily search went (the backend's UserJobSearchRun.Status). */
+export type JobSearchRunStatus =
+  /** Every source of every company was searched. */
+  | 'SUCCEEDED'
+  /** Some sources failed; the rest were searched and their jobs saved. */
+  | 'PARTIAL'
+  | 'FAILED'
+  /** The profile names no companies, so there was nothing to search. */
+  | 'SKIPPED'
+
+/** One row of the user's search history (the backend's JobSearchRunSummaryDto): totals across companies. */
+export type JobSearchRunSummary = {
+  runId: string
+  /** The day (UTC, yyyy-MM-dd) the daily search started on. */
+  runDate: string
+  /** ISO instants. */
+  startedAt: string
+  finishedAt: string
+  status: JobSearchRunStatus
+  companiesSearched: number
+  /** Jobs saved for the first time. */
+  newJobs: number
+  /** Jobs found again that the user already had from an earlier search. */
+  duplicateJobs: number
+  /** Jobs dropped for being too old, or for a date that couldn't be read. */
+  filteredOutJobs: number
+  sourcesFailed: number
+}
+
+/** One run of the search history with what it found for each company (the backend's JobSearchRunDetailDto). */
+export type JobSearchRunDetail = {
+  run: JobSearchRunSummary
+  /** In the order they were searched. */
+  companies: CompanySearchSummary[]
+}
+
+export type CompanySearchSummary = {
+  companyName: string
+  searchedAt: string
+  newJobs: number
+  duplicateJobs: number
+  filteredOutJobs: number
+  sourcesFailed: number
+  sources: SourceSearchSummary[]
+}
+
+/** What one source (a job board, or the company's own careers portal) found for a company. */
+export type SourceSearchSummary = {
+  /** e.g. "LinkedIn", "Company careers portal". */
+  source: string
+  status: 'SCANNED' | 'FAILED'
+  /** jobsFound = filteredOutJobs + newJobs + duplicateJobs. All zero when the source failed. */
+  jobsFound: number
+  newJobs: number
+  duplicateJobs: number
+  filteredOutJobs: number
+}
+
 /** Which seeded list to autocomplete from; also the path segment of its endpoint. */
 export type SuggestionSource = 'companies' | 'skills'
 

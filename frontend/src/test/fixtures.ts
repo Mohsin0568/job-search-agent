@@ -1,7 +1,11 @@
 import type {
   CandidateProfile,
+  CompanySearchSummary,
   JobListing,
   JobSearchResult,
+  JobSearchRunDetail,
+  JobSearchRunSummary,
+  SourceSearchSummary,
   ResumeReview,
   ResumeVersion,
   TailoredResume,
@@ -81,4 +85,52 @@ export function result(id: string, companyName: string, jobOverrides: Partial<Jo
     companyName,
     job: job({ jobId: id, ...jobOverrides }),
   }
+}
+
+export function searchRun(overrides: Partial<JobSearchRunSummary> = {}): JobSearchRunSummary {
+  return {
+    runId: 'run-1',
+    runDate: '2026-10-18',
+    startedAt: '2026-10-18T02:00:00Z',
+    finishedAt: '2026-10-18T02:05:00Z',
+    status: 'SUCCEEDED',
+    companiesSearched: 2,
+    newJobs: 3,
+    duplicateJobs: 1,
+    filteredOutJobs: 2,
+    sourcesFailed: 0,
+    ...overrides,
+  }
+}
+
+export function sourceSummary(overrides: Partial<SourceSearchSummary> = {}): SourceSearchSummary {
+  return {
+    source: 'LinkedIn',
+    status: 'SCANNED',
+    jobsFound: 4,
+    newJobs: 2,
+    duplicateJobs: 1,
+    filteredOutJobs: 1,
+    ...overrides,
+  }
+}
+
+export function companySummary(overrides: Partial<CompanySearchSummary> = {}): CompanySearchSummary {
+  return {
+    companyName: 'Acme Corp',
+    searchedAt: '2026-10-18T02:01:00Z',
+    newJobs: 2,
+    duplicateJobs: 1,
+    filteredOutJobs: 1,
+    sourcesFailed: 0,
+    sources: [sourceSummary()],
+    ...overrides,
+  }
+}
+
+export function searchRunDetail(
+  run: JobSearchRunSummary = searchRun(),
+  companies: CompanySearchSummary[] = [companySummary()],
+): JobSearchRunDetail {
+  return { run, companies }
 }

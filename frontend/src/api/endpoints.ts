@@ -3,6 +3,8 @@ import { ApiError, apiFetch } from './client'
 import type {
   CandidateProfile,
   JobSearchResult,
+  JobSearchRunDetail,
+  JobSearchRunSummary,
   ResumeDownload,
   ResumeReview,
   ResumeVersion,
@@ -99,6 +101,17 @@ export function requestResumeReview(jobResultId: string): Promise<ResumeReview> 
 export function getJobResults(page = 0, size = 50): Promise<JobSearchResult[]> {
   const params = new URLSearchParams({ page: String(page), size: String(size) })
   return apiFetch<JobSearchResult[]>(`/api/jobs/results?${params}`)
+}
+
+/** One page of the user's search history, newest run first. A page shorter than size is the last. */
+export function getJobSearchRuns(page = 0, size = 20): Promise<JobSearchRunSummary[]> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) })
+  return apiFetch<JobSearchRunSummary[]>(`/api/jobs/search-runs?${params}`)
+}
+
+/** What one run of the search found for each company, from each source. */
+export function getJobSearchRun(runId: string): Promise<JobSearchRunDetail> {
+  return apiFetch<JobSearchRunDetail>(`/api/jobs/search-runs/${encodeURIComponent(runId)}`)
 }
 
 /** Known companies or skills matching what the user has typed so far, e.g. "del" -> Deliveroo. */

@@ -52,6 +52,36 @@ export type ResumeReview = {
   reviewedAt: string | null
 }
 
+export type SearchRun = {
+  runId: string
+  runDate: string
+  startedAt: string
+  finishedAt: string
+  status: 'SUCCEEDED' | 'PARTIAL' | 'FAILED' | 'SKIPPED'
+  companiesSearched: number
+  newJobs: number
+  duplicateJobs: number
+  filteredOutJobs: number
+  sourcesFailed: number
+}
+
+export type SearchRunCompany = {
+  companyName: string
+  searchedAt: string
+  newJobs: number
+  duplicateJobs: number
+  filteredOutJobs: number
+  sourcesFailed: number
+  sources: Array<{
+    source: string
+    status: 'SCANNED' | 'FAILED'
+    jobsFound: number
+    newJobs: number
+    duplicateJobs: number
+    filteredOutJobs: number
+  }>
+}
+
 /** What every review the fake backend finishes finds. */
 export const REVIEW_FINDINGS = {
   resumeAtsScore: 72,
@@ -78,6 +108,10 @@ export type Backend = {
   tailoredResumes: TailoredResume[]
   /** The user's resume reviews, one per job. A pending one is ready the next time the list is read. */
   resumeReviews: ResumeReview[]
+  /** The user's search history, newest run first. */
+  searchRuns: SearchRun[]
+  /** What each run found, by runId. A run missing here has no companies. */
+  searchRunCompanies: Record<string, SearchRunCompany[]>
   /** Every profile the app has saved, oldest first. */
   savedProfiles: Profile[]
   /** When true the API rejects the token, as it does once a session has been revoked. */
@@ -353,6 +387,17 @@ async function fakeBackend(page: Page, backend: Backend) {
     if (url.pathname === '/api/jobs/results') {
       return json(backend.results)
     }
+    if (url.pathname === '/api/jobs/search-runs') {
+      const page = Number(url.searchParams.get('page') ?? 0)
+      const size = Number(url.searchParams.get('size') ?? 20)
+      return json(backend.searchRuns.slice(page * size, (page + 1) * size))
+    }
+    const searchRun = url.pathname.match(/^\/api\/jobs\/search-runs\/([^/]+)$/)
+    if (searchRun) {
+      const run = backend.searchRuns.find((candidate) => candidate.runId === decodeURIComponent(searchRun[1]))
+      if (!run) return json({ message: 'Not found' }, 404)
+      return json({ run, companies: backend.searchRunCompanies[run.runId] ?? [] })
+    }
     return json({ message: `The e2e fake backend has no answer for ${request.method()} ${url.pathname}` }, 500)
   })
 }
@@ -381,6 +426,8 @@ export const test = base.extend<{ backend: Backend }>({
       resumes: [],
       tailoredResumes: [],
       resumeReviews: [],
+      searchRuns: [],
+      searchRunCompanies: {},
       savedProfiles: [],
       rejectTokens: false,
       rejectPassword: false,
