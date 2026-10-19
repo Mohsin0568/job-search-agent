@@ -152,17 +152,17 @@ class JobSearchAuditServiceTest {
                         List.of()),
                 SourceAudit.failed("Reed", "boom"));
 
-        service.record("user-1", "Acme Corp", sourceAudits);
+        service.record("user-1", "run-1", "Acme Corp", sourceAudits);
 
         verify(jobSearchAuditRepository).save(
-                new JobSearchAudit("audit-1", "user-1", "Acme Corp", NOW, 2, 1, sourceAudits));
+                new JobSearchAudit("audit-1", "user-1", "run-1", "Acme Corp", NOW, 2, 1, sourceAudits));
     }
 
     @Test
     void swallowsAFailureToSaveTheAudit() {
         when(jobSearchAuditRepository.save(any())).thenThrow(new IllegalStateException("Mongo unavailable"));
 
-        assertThatCode(() -> service.record("user-1", "Acme Corp", List.of())).doesNotThrowAnyException();
+        assertThatCode(() -> service.record("user-1", "run-1", "Acme Corp", List.of())).doesNotThrowAnyException();
     }
 
     private static org.assertj.core.groups.Tuple tuple(final Object... values) {

@@ -4,7 +4,9 @@ import com.systa.MongoTestContainer;
 import com.systa.model.CandidateProfile;
 import com.systa.model.JobSearchOutcome;
 import com.systa.model.UserJobSearchRun;
+import com.systa.model.JobSearchRun;
 import com.systa.repository.CandidateProfileRepository;
+import com.systa.repository.JobSearchRunRepository;
 import com.systa.repository.UserJobSearchRunRepository;
 import com.systa.service.JobSearchService;
 import com.systa.service.SuggestionSeeder;
@@ -24,6 +26,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -61,6 +64,9 @@ class JobModeApplicationTest {
     @Autowired
     private UserJobSearchRunRepository userJobSearchRunRepository;
 
+    @Autowired
+    private JobSearchRunRepository jobSearchRunRepository;
+
     @MockitoBean
     private JobSearchService jobSearchService;
 
@@ -68,6 +74,7 @@ class JobModeApplicationTest {
     void clear() {
         candidateProfileRepository.deleteAll();
         userJobSearchRunRepository.deleteAll();
+        jobSearchRunRepository.deleteAll();
     }
 
     @Test
@@ -82,12 +89,12 @@ class JobModeApplicationTest {
     void searchesForEveryUserInMongo_recordsTheirRuns_andSkipsThemOnARerunTheSameDay() {
         final List<CandidateProfile> saved = candidateProfileRepository.saveAll(
                 List.of(profile("ada", "Acme Corp"), profile("bob", "Globex"), profile("cy", "Initech")));
-        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 0, List.of()));
+        when(jobSearchService.searchJobs(any(), any())).thenReturn(new JobSearchOutcome(3, 0, List.of()));
 
         runner.run(null);
 
         // Page size is 1, so reaching all three means paging through Mongo worked.
-        saved.forEach(profile -> verify(jobSearchService).searchJobs(profile));
+        saved.forEach(profile -> verify(jobSearchService).searchJobs(eq(profile), any()));
         assertThat(runner.getExitCode()).isZero();
         assertThat(userJobSearchRunRepository.findAll())
                 .extracting(UserJobSearchRun::userId, UserJobSearchRun::status, UserJobSearchRun::batchesAttempted)
@@ -95,6 +102,9 @@ class JobModeApplicationTest {
                         tuple("ada", UserJobSearchRun.Status.SUCCEEDED, 3),
                         tuple("bob", UserJobSearchRun.Status.SUCCEEDED, 3),
                         tuple("cy", UserJobSearchRun.Status.SUCCEEDED, 3));
+
+        assertThat(jobSearchRunRepository.findAll()).extracting(JobSearchRun::userId)
+                .containsExactlyInAnyOrder("ada", "bob", "cy");
 
         clearInvocations(jobSearchService);
         runner.run(null);
@@ -105,19 +115,22 @@ class JobModeApplicationTest {
     @Test
     void retriesAUserWhoseSearchFailed_onARerunTheSameDay() {
         final CandidateProfile ada = candidateProfileRepository.save(profile("ada", "Acme Corp"));
-        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 3, List.of()));
+        when(jobSearchService.searchJobs(any(), any())).thenReturn(new JobSearchOutcome(3, 3, List.of()));
 
         runner.run(null);
 
         assertThat(runner.getExitCode()).isEqualTo(1);
-        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 0, List.of()));
+        when(jobSearchService.searchJobs(any(), any())).thenReturn(new JobSearchOutcome(3, 0, List.of()));
 
         runner.run(null);
 
-        verify(jobSearchService, times(2)).searchJobs(ada);
+        verify(jobSearchService, times(2)).searchJobs(eq(ada), any());
         assertThat(runner.getExitCode()).isZero();
         assertThat(userJobSearchRunRepository.findById("ada")).get()
                 .extracting(UserJobSearchRun::status).isEqualTo(UserJobSearchRun.Status.SUCCEEDED);
+        // The latest run is replaced; the history keeps both.
+        assertThat(jobSearchRunRepository.findAll()).extracting(JobSearchRun::status).containsExactlyInAnyOrder(
+                UserJobSearchRun.Status.FAILED, UserJobSearchRun.Status.SUCCEEDED);
     }
 
     private static CandidateProfile profile(final String userId, final String company) {

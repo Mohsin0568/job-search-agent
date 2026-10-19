@@ -4,9 +4,11 @@ import com.systa.JobSearchAgentApplication;
 import com.systa.config.DailyJobSearchProperties;
 import com.systa.model.CandidateProfile;
 import com.systa.model.JobSearchOutcome;
+import com.systa.model.JobSearchRun;
 import com.systa.model.UserJobSearchRun;
 import com.systa.model.UserJobSearchRun.Status;
 import com.systa.repository.CandidateProfileRepository;
+import com.systa.repository.JobSearchRunRepository;
 import com.systa.repository.UserJobSearchRunRepository;
 import com.systa.service.JobSearchService;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * The daily job search: started with the "job" profile, it searches for every user with a profile,
@@ -35,7 +39,7 @@ import java.util.Map;
  * {@link DailyResumeReviewer}); how that goes never changes the search's recorded outcome.
  *
  * <p>Each user's outcome is recorded, so running the job again on the same day only picks up the
- * users it didn't get to or whose search failed.
+ * users it didn't get to or whose search failed. Every user's run is also kept as their search history.
  */
 @Component
 @Profile(JobSearchAgentApplication.JOB_PROFILE)
@@ -47,35 +51,42 @@ public class DailyJobSearchRunner implements ApplicationRunner, ExitCodeGenerato
 
     private final CandidateProfileRepository candidateProfileRepository;
     private final UserJobSearchRunRepository userJobSearchRunRepository;
+    private final JobSearchRunRepository jobSearchRunRepository;
     private final JobSearchService jobSearchService;
     private final DailyResumeReviewer dailyResumeReviewer;
     private final DailyJobSearchProperties properties;
     private final Clock clock;
+    private final Supplier<String> idGenerator;
 
     private int exitCode;
 
     @Autowired
     public DailyJobSearchRunner(final CandidateProfileRepository candidateProfileRepository,
                                 final UserJobSearchRunRepository userJobSearchRunRepository,
+                                final JobSearchRunRepository jobSearchRunRepository,
                                 final JobSearchService jobSearchService,
                                 final DailyResumeReviewer dailyResumeReviewer,
                                 final DailyJobSearchProperties properties) {
-        this(candidateProfileRepository, userJobSearchRunRepository, jobSearchService, dailyResumeReviewer,
-                properties, Clock.systemUTC());
+        this(candidateProfileRepository, userJobSearchRunRepository, jobSearchRunRepository, jobSearchService,
+                dailyResumeReviewer, properties, Clock.systemUTC(), () -> UUID.randomUUID().toString());
     }
 
     DailyJobSearchRunner(final CandidateProfileRepository candidateProfileRepository,
                          final UserJobSearchRunRepository userJobSearchRunRepository,
+                         final JobSearchRunRepository jobSearchRunRepository,
                          final JobSearchService jobSearchService,
                          final DailyResumeReviewer dailyResumeReviewer,
                          final DailyJobSearchProperties properties,
-                         final Clock clock) {
+                         final Clock clock,
+                         final Supplier<String> idGenerator) {
         this.candidateProfileRepository = candidateProfileRepository;
         this.userJobSearchRunRepository = userJobSearchRunRepository;
+        this.jobSearchRunRepository = jobSearchRunRepository;
         this.jobSearchService = jobSearchService;
         this.dailyResumeReviewer = dailyResumeReviewer;
         this.properties = properties;
         this.clock = clock;
+        this.idGenerator = idGenerator;
     }
 
     @Override
@@ -138,24 +149,34 @@ public class DailyJobSearchRunner implements ApplicationRunner, ExitCodeGenerato
     // One user's failure - in the search or in recording it - must not stop the users after them.
     private Status searchFor(final CandidateProfile profile, final LocalDate runDate) {
         final String userId = profile.userId();
+        final String runId = idGenerator.get();
         final Instant startedAt = clock.instant();
         JobSearchOutcome outcome = JobSearchOutcome.NOTHING_SEARCHED;
         Status status;
         try {
-            outcome = jobSearchService.searchJobs(profile);
+            outcome = jobSearchService.searchJobs(profile, runId);
             status = statusOf(outcome);
         } catch (final Exception e) {
             status = Status.FAILED;
             log.error("Job search failed - userId={}", userId, e);
         }
-        log.info("Job search for user finished - userId={}, status={}, batchesAttempted={}, batchesFailed={}",
-                userId, status, outcome.batchesAttempted(), outcome.batchesFailed());
+        log.info("Job search for user finished - userId={}, runId={}, status={}, batchesAttempted={}, "
+                        + "batchesFailed={}",
+                userId, runId, status, outcome.batchesAttempted(), outcome.batchesFailed());
 
+        final Instant finishedAt = clock.instant();
         try {
-            userJobSearchRunRepository.save(new UserJobSearchRun(userId, runDate.toString(), startedAt, clock.instant(),
+            userJobSearchRunRepository.save(new UserJobSearchRun(userId, runDate.toString(), startedAt, finishedAt,
                     status, outcome.batchesAttempted(), outcome.batchesFailed()));
         } catch (final Exception e) {
             log.error("Could not record the job search run - userId={}, status={}", userId, status, e);
+        }
+        // Separately, so losing the history entry never stops a same-day rerun from skipping this user.
+        try {
+            jobSearchRunRepository.save(new JobSearchRun(runId, userId, runDate.toString(), startedAt, finishedAt,
+                    status, outcome.batchesAttempted(), outcome.batchesFailed()));
+        } catch (final Exception e) {
+            log.error("Could not record the job search run in its history - userId={}, runId={}", userId, runId, e);
         }
 
         // After the run is recorded, so a rerun that day skips this user even if the reviews are cut short.

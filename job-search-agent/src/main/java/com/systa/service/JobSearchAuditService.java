@@ -72,7 +72,8 @@ public class JobSearchAuditService {
     }
 
     // The audit is a record of the search, not part of it: failing to save it must not fail the search.
-    public void record(final String userId, final String companyName, final List<SourceAudit> sourceAudits) {
+    public void record(final String userId, final String runId, final String companyName,
+                       final List<SourceAudit> sourceAudits) {
         try {
             final int sourcesFailed = (int) sourceAudits.stream()
                     .filter(sourceAudit -> sourceAudit.status() == SourceAudit.Status.FAILED)
@@ -82,8 +83,8 @@ public class JobSearchAuditService {
                     .filter(sourceAudit -> !UNATTRIBUTED.equals(sourceAudit.source()))
                     .count();
 
-            jobSearchAuditRepository.save(new JobSearchAudit(idGenerator.get(), userId, companyName, clock.instant(),
-                    sourcesScanned, sourcesFailed, sourceAudits));
+            jobSearchAuditRepository.save(new JobSearchAudit(idGenerator.get(), userId, runId, companyName,
+                    clock.instant(), sourcesScanned, sourcesFailed, sourceAudits));
         } catch (final Exception e) {
             log.error("Could not record the job search audit - userId={}, company={}", userId, companyName, e);
         }

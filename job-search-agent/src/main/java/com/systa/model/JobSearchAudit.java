@@ -1,6 +1,7 @@
 package com.systa.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
@@ -8,9 +9,12 @@ import java.util.List;
 
 /** What one search of one company's job sources found for a user. One document per user, company and search. */
 @Document(collection = "job_search_audit")
+@CompoundIndex(name = "user_run", def = "{'userId': 1, 'runId': 1}")
 public record JobSearchAudit(
         @Id String id,
         String userId,
+        // The JobSearchRun this search was part of. Null on audits saved before runs were kept.
+        String runId,
         String companyName,
         Instant searchedAt,
         int sourcesScanned,
