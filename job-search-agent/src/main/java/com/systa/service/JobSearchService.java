@@ -57,11 +57,13 @@ public class JobSearchService {
      * Searches every job source for each of the profile's preferred companies, and returns once all of
      * them have been tried. A failed batch is logged and counted rather than thrown, so the caller can
      * tell a clean run from a partial one.
+     *
+     * @param runId the JobSearchRun this search is part of, recorded on each company's audit
      */
     // Persists each source batch as soon as it comes back, rather than aggregating every
     // company's results in memory first - so a later batch/company hitting a rate limit
     // (even after its own retry) doesn't lose results already fetched.
-    public JobSearchOutcome searchJobs(final CandidateProfile candidateProfile) {
+    public JobSearchOutcome searchJobs(final CandidateProfile candidateProfile, final String runId) {
         final String userId = candidateProfile.userId();
 
         if (candidateProfile.companyPreferences() == null || candidateProfile.companyPreferences().isEmpty()) {
@@ -95,7 +97,7 @@ public class JobSearchService {
                             userId, company, sourceLabels, e);
                 }
             }
-            jobSearchAuditService.record(userId, company, sourceAudits);
+            jobSearchAuditService.record(userId, runId, company, sourceAudits);
         }
         return new JobSearchOutcome(batchesAttempted, batchesFailed, List.copyOf(newJobResultIds));
     }

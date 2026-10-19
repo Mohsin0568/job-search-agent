@@ -3,9 +3,11 @@ package com.systa.job;
 import com.systa.config.DailyJobSearchProperties;
 import com.systa.model.CandidateProfile;
 import com.systa.model.JobSearchOutcome;
+import com.systa.model.JobSearchRun;
 import com.systa.model.UserJobSearchRun;
 import com.systa.model.UserJobSearchRun.Status;
 import com.systa.repository.CandidateProfileRepository;
+import com.systa.repository.JobSearchRunRepository;
 import com.systa.repository.UserJobSearchRunRepository;
 import com.systa.service.JobSearchService;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +28,7 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -53,6 +56,9 @@ class DailyJobSearchRunnerTest {
     private UserJobSearchRunRepository userJobSearchRunRepository;
 
     @Mock
+    private JobSearchRunRepository jobSearchRunRepository;
+
+    @Mock
     private JobSearchService jobSearchService;
 
     @Mock
@@ -65,7 +71,7 @@ class DailyJobSearchRunnerTest {
         runner = runner(false);
         // By default nobody has been searched before and every search goes through.
         lenient().when(userJobSearchRunRepository.findById(any())).thenReturn(Optional.empty());
-        lenient().when(jobSearchService.searchJobs(any())).thenReturn(ALL_SEARCHED);
+        lenient().when(jobSearchService.searchJobs(any(), any())).thenReturn(ALL_SEARCHED);
     }
 
     @Test
@@ -85,21 +91,62 @@ class DailyJobSearchRunnerTest {
         runner.run(null);
 
         final InOrder inOrder = inOrder(jobSearchService);
-        inOrder.verify(jobSearchService).searchJobs(ada);
-        inOrder.verify(jobSearchService).searchJobs(bob);
-        inOrder.verify(jobSearchService).searchJobs(cy);
+        inOrder.verify(jobSearchService).searchJobs(eq(ada), any());
+        inOrder.verify(jobSearchService).searchJobs(eq(bob), any());
+        inOrder.verify(jobSearchService).searchJobs(eq(cy), any());
         assertThat(runner.getExitCode()).isZero();
     }
 
     @Test
     void recordsEachUsersRun() {
         usersWithProfiles(profile("ada"));
-        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(6, 0, List.of()));
+        when(jobSearchService.searchJobs(any(), any())).thenReturn(new JobSearchOutcome(6, 0, List.of()));
 
         runner.run(null);
 
         assertThat(savedRuns()).containsExactly(
                 new UserJobSearchRun("ada", "2026-10-08", NOW, NOW, Status.SUCCEEDED, 6, 0));
+    }
+
+    @Test
+    void keepsEachUsersRunInTheirHistory_underTheIdTheSearchRecordsOnItsAudits() {
+        final CandidateProfile ada = profile("ada");
+        final CandidateProfile bob = profile("bob");
+        usersWithProfiles(ada, bob);
+        when(jobSearchService.searchJobs(eq(bob), any())).thenReturn(new JobSearchOutcome(3, 1, List.of()));
+
+        runner.run(null);
+
+        verify(jobSearchService).searchJobs(ada, "run-1");
+        verify(jobSearchService).searchJobs(bob, "run-2");
+        assertThat(historyRuns()).containsExactly(
+                new JobSearchRun("run-1", "ada", "2026-10-08", NOW, NOW, Status.SUCCEEDED, 3, 0),
+                new JobSearchRun("run-2", "bob", "2026-10-08", NOW, NOW, Status.PARTIAL, 3, 1));
+    }
+
+    @Test
+    void keepsAFailedSearchInTheHistoryToo() {
+        final CandidateProfile ada = profile("ada");
+        usersWithProfiles(ada);
+        when(jobSearchService.searchJobs(eq(ada), any())).thenThrow(new IllegalStateException("boom"));
+
+        runner.run(null);
+
+        assertThat(historyRuns()).extracting(JobSearchRun::userId, JobSearchRun::status)
+                .containsExactly(tuple("ada", Status.FAILED));
+    }
+
+    @Test
+    void stillRecordsTheLatestRun_whenTheHistoryCannotBeSaved() {
+        final CandidateProfile ada = profile("ada");
+        final CandidateProfile bob = profile("bob");
+        usersWithProfiles(ada, bob);
+        when(jobSearchRunRepository.save(any())).thenThrow(new IllegalStateException("Mongo unavailable"));
+
+        runner.run(null);
+
+        assertThat(savedRuns()).extracting(UserJobSearchRun::userId).containsExactly("ada", "bob");
+        assertThat(runner.getExitCode()).isZero();
     }
 
     @Test
@@ -109,10 +156,10 @@ class DailyJobSearchRunnerTest {
         final CandidateProfile rateLimited = profile("rate-limited");
         final CandidateProfile noCompanies = profile("no-companies");
         usersWithProfiles(clean, patchy, rateLimited, noCompanies);
-        when(jobSearchService.searchJobs(clean)).thenReturn(new JobSearchOutcome(3, 0, List.of()));
-        when(jobSearchService.searchJobs(patchy)).thenReturn(new JobSearchOutcome(3, 1, List.of()));
-        when(jobSearchService.searchJobs(rateLimited)).thenReturn(new JobSearchOutcome(3, 3, List.of()));
-        when(jobSearchService.searchJobs(noCompanies)).thenReturn(new JobSearchOutcome(0, 0, List.of()));
+        when(jobSearchService.searchJobs(eq(clean), any())).thenReturn(new JobSearchOutcome(3, 0, List.of()));
+        when(jobSearchService.searchJobs(eq(patchy), any())).thenReturn(new JobSearchOutcome(3, 1, List.of()));
+        when(jobSearchService.searchJobs(eq(rateLimited), any())).thenReturn(new JobSearchOutcome(3, 3, List.of()));
+        when(jobSearchService.searchJobs(eq(noCompanies), any())).thenReturn(new JobSearchOutcome(0, 0, List.of()));
 
         runner.run(null);
 
@@ -125,11 +172,11 @@ class DailyJobSearchRunnerTest {
         final CandidateProfile ada = profile("ada");
         final CandidateProfile bob = profile("bob");
         usersWithProfiles(ada, bob);
-        when(jobSearchService.searchJobs(ada)).thenThrow(new IllegalStateException("boom"));
+        when(jobSearchService.searchJobs(eq(ada), any())).thenThrow(new IllegalStateException("boom"));
 
         runner.run(null);
 
-        verify(jobSearchService).searchJobs(bob);
+        verify(jobSearchService).searchJobs(eq(bob), any());
         assertThat(savedRuns()).extracting(UserJobSearchRun::userId, UserJobSearchRun::status)
                 .containsExactly(tuple("ada", Status.FAILED),
                         tuple("bob", Status.SUCCEEDED));
@@ -144,7 +191,7 @@ class DailyJobSearchRunnerTest {
 
         runner.run(null);
 
-        verify(jobSearchService).searchJobs(bob);
+        verify(jobSearchService).searchJobs(eq(bob), any());
         assertThat(runner.getExitCode()).isZero();
     }
 
@@ -152,7 +199,7 @@ class DailyJobSearchRunnerTest {
     void exitsNonZero_whenAUsersSearchFailed() {
         final CandidateProfile ada = profile("ada");
         usersWithProfiles(ada, profile("bob"));
-        when(jobSearchService.searchJobs(ada)).thenReturn(new JobSearchOutcome(3, 3, List.of()));
+        when(jobSearchService.searchJobs(eq(ada), any())).thenReturn(new JobSearchOutcome(3, 3, List.of()));
 
         runner.run(null);
 
@@ -162,7 +209,7 @@ class DailyJobSearchRunnerTest {
     @Test
     void exitsZero_whenSomeBatchesFailedButEveryUserGotResults() {
         usersWithProfiles(profile("ada"));
-        when(jobSearchService.searchJobs(any())).thenReturn(new JobSearchOutcome(3, 1, List.of()));
+        when(jobSearchService.searchJobs(any(), any())).thenReturn(new JobSearchOutcome(3, 1, List.of()));
 
         runner.run(null);
 
@@ -192,10 +239,10 @@ class DailyJobSearchRunnerTest {
 
         runner.run(null);
 
-        verify(jobSearchService, never()).searchJobs(done);
-        verify(jobSearchService, never()).searchJobs(partlyDone);
-        verify(jobSearchService).searchJobs(failed);
-        verify(jobSearchService).searchJobs(notReached);
+        verify(jobSearchService, never()).searchJobs(eq(done), any());
+        verify(jobSearchService, never()).searchJobs(eq(partlyDone), any());
+        verify(jobSearchService).searchJobs(eq(failed), any());
+        verify(jobSearchService).searchJobs(eq(notReached), any());
         assertThat(savedRuns()).extracting(UserJobSearchRun::userId).containsExactly("failed", "not-reached");
     }
 
@@ -207,7 +254,7 @@ class DailyJobSearchRunnerTest {
 
         runner.run(null);
 
-        verify(jobSearchService).searchJobs(ada);
+        verify(jobSearchService).searchJobs(eq(ada), any());
     }
 
     @Test
@@ -220,7 +267,7 @@ class DailyJobSearchRunnerTest {
 
         runner.run(null);
 
-        verify(jobSearchService).searchJobs(ada);
+        verify(jobSearchService).searchJobs(eq(ada), any());
     }
 
     @Test
@@ -228,16 +275,17 @@ class DailyJobSearchRunnerTest {
         final CandidateProfile ada = profile("ada");
         final CandidateProfile bob = profile("bob");
         usersWithProfiles(ada, bob);
-        when(jobSearchService.searchJobs(ada)).thenReturn(new JobSearchOutcome(3, 0, List.of("job-1", "job-2")));
-        when(jobSearchService.searchJobs(bob)).thenReturn(new JobSearchOutcome(3, 0, List.of()));
+        when(jobSearchService.searchJobs(eq(ada), any()))
+                .thenReturn(new JobSearchOutcome(3, 0, List.of("job-1", "job-2")));
+        when(jobSearchService.searchJobs(eq(bob), any())).thenReturn(new JobSearchOutcome(3, 0, List.of()));
 
         runner.run(null);
 
         final InOrder inOrder = inOrder(jobSearchService, userJobSearchRunRepository, dailyResumeReviewer);
-        inOrder.verify(jobSearchService).searchJobs(ada);
+        inOrder.verify(jobSearchService).searchJobs(eq(ada), any());
         inOrder.verify(userJobSearchRunRepository).save(any());
         inOrder.verify(dailyResumeReviewer).reviewNewJobs("ada", List.of("job-1", "job-2"));
-        inOrder.verify(jobSearchService).searchJobs(bob);
+        inOrder.verify(jobSearchService).searchJobs(eq(bob), any());
         inOrder.verify(dailyResumeReviewer).reviewNewJobs("bob", List.of());
     }
 
@@ -246,13 +294,13 @@ class DailyJobSearchRunnerTest {
         final CandidateProfile ada = profile("ada");
         final CandidateProfile bob = profile("bob");
         usersWithProfiles(ada, bob);
-        when(jobSearchService.searchJobs(ada)).thenReturn(new JobSearchOutcome(3, 0, List.of("job-1")));
+        when(jobSearchService.searchJobs(eq(ada), any())).thenReturn(new JobSearchOutcome(3, 0, List.of("job-1")));
         doThrow(new IllegalStateException("Mongo unavailable"))
                 .when(dailyResumeReviewer).reviewNewJobs(eq("ada"), any());
 
         runner.run(null);
 
-        verify(jobSearchService).searchJobs(bob);
+        verify(jobSearchService).searchJobs(eq(bob), any());
         assertThat(savedRuns()).extracting(UserJobSearchRun::userId, UserJobSearchRun::status)
                 .containsExactly(tuple("ada", Status.SUCCEEDED), tuple("bob", Status.SUCCEEDED));
         assertThat(runner.getExitCode()).isZero();
@@ -262,7 +310,7 @@ class DailyJobSearchRunnerTest {
     void reviewsNothing_whenTheSearchThrew() {
         final CandidateProfile ada = profile("ada");
         usersWithProfiles(ada);
-        when(jobSearchService.searchJobs(ada)).thenThrow(new IllegalStateException("boom"));
+        when(jobSearchService.searchJobs(eq(ada), any())).thenThrow(new IllegalStateException("boom"));
 
         runner.run(null);
 
@@ -270,9 +318,11 @@ class DailyJobSearchRunnerTest {
     }
 
     private DailyJobSearchRunner runner(final boolean force) {
-        return new DailyJobSearchRunner(candidateProfileRepository, userJobSearchRunRepository, jobSearchService,
-                dailyResumeReviewer, new DailyJobSearchProperties(2, Duration.ZERO, force, 20, Duration.ZERO),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+        final AtomicInteger runs = new AtomicInteger();
+        return new DailyJobSearchRunner(candidateProfileRepository, userJobSearchRunRepository, jobSearchRunRepository,
+                jobSearchService, dailyResumeReviewer,
+                new DailyJobSearchProperties(2, Duration.ZERO, force, 20, Duration.ZERO),
+                Clock.fixed(NOW, ZoneOffset.UTC), () -> "run-" + runs.incrementAndGet());
     }
 
     private void usersWithProfiles(final CandidateProfile... profiles) {
@@ -287,6 +337,12 @@ class DailyJobSearchRunnerTest {
     private List<UserJobSearchRun> savedRuns() {
         final ArgumentCaptor<UserJobSearchRun> runs = ArgumentCaptor.forClass(UserJobSearchRun.class);
         verify(userJobSearchRunRepository, atLeast(0)).save(runs.capture());
+        return runs.getAllValues();
+    }
+
+    private List<JobSearchRun> historyRuns() {
+        final ArgumentCaptor<JobSearchRun> runs = ArgumentCaptor.forClass(JobSearchRun.class);
+        verify(jobSearchRunRepository, atLeast(0)).save(runs.capture());
         return runs.getAllValues();
     }
 

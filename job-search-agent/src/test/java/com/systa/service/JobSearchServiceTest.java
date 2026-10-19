@@ -49,6 +49,7 @@ import static org.mockito.Mockito.when;
 class JobSearchServiceTest {
 
     private static final String USER_ID = "user-1";
+    private static final String RUN_ID = "run-1";
     // Worked out from the sources currently switched on, so the tests hold as sources come and go.
     private static final int SOURCE_COUNT = JobSource.values().length;
     private static final int SOURCES_PER_BATCH = 2;
@@ -95,7 +96,7 @@ class JobSearchServiceTest {
     void searchesEverySourceOnceForEachPreferredCompany_inSmallBatches() {
         final CandidateProfile profile = profile("Acme Corp", "Globex");
 
-        final JobSearchOutcome outcome = service.searchJobs(profile);
+        final JobSearchOutcome outcome = service.searchJobs(profile, RUN_ID);
 
         assertThat(outcome).isEqualTo(new JobSearchOutcome(2 * BATCHES_PER_COMPANY, 0, List.of()));
 
@@ -118,7 +119,7 @@ class JobSearchServiceTest {
 
     @Test
     void searchesCompaniesInTheUsersPreferredOrder() {
-        service.searchJobs(profile("Globex", "Acme Corp"));
+        service.searchJobs(profile("Globex", "Acme Corp"), RUN_ID);
 
         final InOrder inOrder = inOrder(jobSearchLlmService);
         inOrder.verify(jobSearchLlmService, times(BATCHES_PER_COMPANY))
@@ -134,7 +135,7 @@ class JobSearchServiceTest {
         doReturn(new JobFilterResult(List.of(fresh), List.of()))
                 .when(jobSearchResultFilterService).filterStaleJobs(anyString(), any(), anyList(), any());
 
-        service.searchJobs(profile(30, List.of("Acme Corp")));
+        service.searchJobs(profile(30, List.of("Acme Corp")), RUN_ID);
 
         final ArgumentCaptor<CompanySearchResult> unfiltered = ArgumentCaptor.forClass(CompanySearchResult.class);
         verify(jobSearchResultFilterService, times(BATCHES_PER_COMPANY))
@@ -149,7 +150,7 @@ class JobSearchServiceTest {
 
     @Test
     void passesOnAMissingRecencyWindow_forTheFilterToDefault() {
-        service.searchJobs(profile(null, List.of("Acme Corp")));
+        service.searchJobs(profile(null, List.of("Acme Corp")), RUN_ID);
 
         verify(jobSearchResultFilterService, times(BATCHES_PER_COMPANY))
                 .filterStaleJobs(eq(USER_ID), eq(null), anyList(), any());
@@ -157,7 +158,7 @@ class JobSearchServiceTest {
 
     @Test
     void savesEachBatchBeforeSearchingTheNext_soAnEarlierResultSurvivesALaterFailure() {
-        service.searchJobs(profile("Acme Corp"));
+        service.searchJobs(profile("Acme Corp"), RUN_ID);
 
         final InOrder inOrder = inOrder(jobSearchLlmService, jobSearchResultPersistenceService);
         for (int batch = 0; batch < BATCHES_PER_COMPANY; batch++) {
@@ -173,7 +174,7 @@ class JobSearchServiceTest {
                 .doAnswer(call -> found(call.getArgument(2), call.<List<String>>getArgument(3)))
                 .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
 
-        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Globex", "Initech"));
+        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Globex", "Initech"), RUN_ID);
 
         assertThat(outcome).isEqualTo(new JobSearchOutcome(3 * BATCHES_PER_COMPANY, 2, List.of()));
         assertThat(outcome.someBatchesFailed()).isTrue();
@@ -189,7 +190,7 @@ class JobSearchServiceTest {
                 .doReturn(new JobPersistResult(List.of(), List.of(), List.of()))
                 .when(jobSearchResultPersistenceService).persist(eq(USER_ID), any());
 
-        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp"));
+        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp"), RUN_ID);
 
         assertThat(outcome).isEqualTo(new JobSearchOutcome(BATCHES_PER_COMPANY, 1, List.of()));
         verify(jobSearchResultPersistenceService, times(BATCHES_PER_COMPANY)).persist(eq(USER_ID), any());
@@ -200,7 +201,7 @@ class JobSearchServiceTest {
         doThrow(new IllegalStateException("429 rate limit, retries exhausted"))
                 .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
 
-        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp"));
+        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp"), RUN_ID);
 
         assertThat(outcome).isEqualTo(new JobSearchOutcome(BATCHES_PER_COMPANY, BATCHES_PER_COMPANY, List.of()));
         assertThat(outcome.allBatchesFailed()).isTrue();
@@ -227,10 +228,11 @@ class JobSearchServiceTest {
                 .doReturn(new JobPersistResult(List.of(), List.of(), List.of()))
                 .when(jobSearchResultPersistenceService).persist(anyString(), any());
 
-        service.searchJobs(profile("Acme Corp"));
+        service.searchJobs(profile("Acme Corp"), RUN_ID);
 
         verify(jobSearchAuditRepository).save(auditCaptor.capture());
         final JobSearchAudit audit = auditCaptor.getValue();
+        assertThat(audit.runId()).isEqualTo(RUN_ID);
         assertThat(audit.userId()).isEqualTo(USER_ID);
         assertThat(audit.companyName()).isEqualTo("Acme Corp");
         assertThat(audit.sourcesScanned()).isEqualTo(SOURCE_COUNT);
@@ -255,7 +257,7 @@ class JobSearchServiceTest {
                 .doAnswer(call -> found(call.getArgument(2), call.<List<String>>getArgument(3)))
                 .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
 
-        service.searchJobs(profile("Acme Corp"));
+        service.searchJobs(profile("Acme Corp"), RUN_ID);
 
         verify(jobSearchAuditRepository).save(auditCaptor.capture());
         final JobSearchAudit audit = auditCaptor.getValue();
@@ -278,7 +280,7 @@ class JobSearchServiceTest {
         doThrow(new IllegalStateException("429 rate limit, retries exhausted"))
                 .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), eq("Initech"), anyList());
 
-        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Initech", "Globex"));
+        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Initech", "Globex"), RUN_ID);
 
         assertThat(outcome.batchesFailed()).isEqualTo(BATCHES_PER_COMPANY);
         final List<String> expected = new ArrayList<>();
@@ -295,7 +297,7 @@ class JobSearchServiceTest {
     void carriesOn_whenRecordingTheAuditFails() {
         when(jobSearchAuditRepository.save(any())).thenThrow(new IllegalStateException("Mongo unavailable"));
 
-        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Globex"));
+        final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Globex"), RUN_ID);
 
         assertThat(outcome).isEqualTo(new JobSearchOutcome(2 * BATCHES_PER_COMPANY, 0, List.of()));
         verify(jobSearchAuditRepository, times(2)).save(any());
@@ -308,7 +310,7 @@ class JobSearchServiceTest {
     @ParameterizedTest
     @NullAndEmptySource
     void searchesNothing_whenTheProfileNamesNoCompanies(final List<String> companyPreferences) {
-        final JobSearchOutcome outcome = service.searchJobs(profile(7, companyPreferences));
+        final JobSearchOutcome outcome = service.searchJobs(profile(7, companyPreferences), RUN_ID);
 
         assertThat(outcome.nothingToSearch()).isTrue();
         assertThat(outcome.allBatchesFailed()).isFalse();
