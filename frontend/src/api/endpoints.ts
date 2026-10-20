@@ -4,6 +4,7 @@ import type {
   CandidateProfile,
   JobSearchResult,
   JobSearchRunDetail,
+  JobStatus,
   JobSearchRunSummary,
   ResumeDownload,
   ResumeReview,
@@ -97,10 +98,21 @@ export function requestResumeReview(jobResultId: string): Promise<ResumeReview> 
   })
 }
 
-/** Results are produced by the backend's daily job search; there is no way to start one from here. */
-export function getJobResults(page = 0, size = 50): Promise<JobSearchResult[]> {
-  const params = new URLSearchParams({ page: String(page), size: String(size) })
+/**
+ * A page of the user's jobs with that status. Results are produced by the backend's daily job search;
+ * there is no way to start one from here. ACTIVE jobs come newest run first, marked ones last marked first.
+ */
+export function getJobResults(page = 0, size = 50, status: JobStatus = 'ACTIVE'): Promise<JobSearchResult[]> {
+  const params = new URLSearchParams({ status, page: String(page), size: String(size) })
   return apiFetch<JobSearchResult[]>(`/api/jobs/results?${params}`)
+}
+
+/** Marks a job as applied for or not relevant, or ACTIVE to put it back on the dashboard. */
+export function updateJobStatus(jobResultId: string, status: JobStatus, reason?: string): Promise<JobSearchResult> {
+  return apiFetch<JobSearchResult>(`/api/jobs/results/${encodeURIComponent(jobResultId)}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status, reason: reason ?? null }),
+  })
 }
 
 /** One page of the user's search history, newest run first. A page shorter than size is the last. */

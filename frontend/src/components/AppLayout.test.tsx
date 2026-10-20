@@ -22,6 +22,7 @@ describe('AppLayout', () => {
     expect(screen.getByText('Dashboard content')).toBeInTheDocument()
     expect(screen.getByText('ada@example.com')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Marked jobs' })).toHaveAttribute('href', '/marked')
     expect(screen.getByRole('link', { name: 'Search history' })).toHaveAttribute('href', '/history')
     expect(screen.getByRole('link', { name: 'Profile' })).not.toHaveAttribute('aria-current')
   })

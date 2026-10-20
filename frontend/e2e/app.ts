@@ -27,6 +27,19 @@ type Job = {
   atsScore: number | null
 }
 
+export type JobStatus = 'ACTIVE' | 'APPLIED' | 'NOT_RELEVANT'
+
+export type JobResult = {
+  id: string
+  userId: string
+  jobRunDateTime: string
+  companyName: string
+  job: Job
+  status: JobStatus
+  statusChangedAt: string | null
+  notRelevantReason: string | null
+}
+
 export type Resume = { version: number; latest: boolean; fileName: string; sizeBytes: number; uploadedAt: string }
 
 export type TailoredResume = {
@@ -99,7 +112,8 @@ const PREVIEW_PNG =
 export type Backend = {
   /** null means the user hasn't set up a profile yet (the API answers 404). */
   profile: Profile | null
-  results: Array<{ id: string; userId: string; jobRunDateTime: string; companyName: string; job: Job }>
+  /** Every job saved for the user, whatever its status, newest run first. */
+  results: JobResult[]
   companies: string[]
   skills: string[]
   /** The user's resume versions, newest first. */
@@ -128,12 +142,15 @@ export const PROFILE: Profile = {
   recencyWindowDays: 14,
 }
 
-export function jobResult(id: string, companyName: string, job: Partial<Job> = {}): Backend['results'][number] {
+export function jobResult(id: string, companyName: string, job: Partial<Job> = {}): JobResult {
   return {
     id,
     userId: USER.sub,
     jobRunDateTime: '2026-08-18T12:00:00',
     companyName,
+    status: 'ACTIVE',
+    statusChangedAt: null,
+    notRelevantReason: null,
     job: {
       jobId: id,
       jobTitle: 'Backend Engineer',
@@ -385,7 +402,28 @@ async function fakeBackend(page: Page, backend: Backend) {
       return json(pending, 202)
     }
     if (url.pathname === '/api/jobs/results') {
-      return json(backend.results)
+      const status = url.searchParams.get('status') ?? 'ACTIVE'
+      const page = Number(url.searchParams.get('page') ?? 0)
+      const size = Number(url.searchParams.get('size') ?? 50)
+      const matching = backend.results.filter((result) => result.status === status)
+      // Like the real API, marked jobs come last marked first.
+      if (status !== 'ACTIVE') matching.sort((a, b) => (b.statusChangedAt ?? '').localeCompare(a.statusChangedAt ?? ''))
+      return json(matching.slice(page * size, (page + 1) * size))
+    }
+    const marking = url.pathname.match(/^\/api\/jobs\/results\/([^/]+)\/status$/)
+    if (marking && request.method() === 'PUT') {
+      const id = decodeURIComponent(marking[1])
+      const found = backend.results.find((result) => result.id === id)
+      if (!found) return json({ message: 'Not found' }, 404)
+      const { status, reason } = request.postDataJSON() as { status: JobStatus; reason: string | null }
+      const updated: JobResult = {
+        ...found,
+        status,
+        statusChangedAt: new Date().toISOString(),
+        notRelevantReason: status === 'NOT_RELEVANT' ? reason?.trim() || null : null,
+      }
+      backend.results = backend.results.map((result) => (result === found ? updated : result))
+      return json(updated)
     }
     if (url.pathname === '/api/jobs/search-runs') {
       const page = Number(url.searchParams.get('page') ?? 0)

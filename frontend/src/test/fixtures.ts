@@ -77,13 +77,22 @@ export function job(overrides: Partial<JobListing> = {}): JobListing {
   }
 }
 
-export function result(id: string, companyName: string, jobOverrides: Partial<JobListing> = {}): JobSearchResult {
+export function result(
+  id: string,
+  companyName: string,
+  jobOverrides: Partial<JobListing> = {},
+  overrides: Partial<JobSearchResult> = {},
+): JobSearchResult {
   return {
     id,
     userId: 'user-1',
     jobRunDateTime: '2026-08-18T12:00:00',
     companyName,
     job: job({ jobId: id, ...jobOverrides }),
+    status: 'ACTIVE',
+    statusChangedAt: null,
+    notRelevantReason: null,
+    ...overrides,
   }
 }
 

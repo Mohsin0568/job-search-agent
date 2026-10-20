@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useJobResults, useProfile, useResumeReviews, useResumeVersions, useTailoredResumes } from '../api/hooks'
 import { useAuth } from '../auth/AuthContext'
 import { formatRunDateTime, specified } from '../jobs/format'
 import { companiesWithoutResults, groupByCompany } from '../jobs/groupByCompany'
 import { JobCard } from '../jobs/JobCard'
+import { JobMovedNotice, type MovedJob } from '../jobs/JobMovedNotice'
+import { JobStatusActions } from '../jobs/JobStatusActions'
 import { ResumeReviewSection } from '../resume/ResumeReviewSection'
 import { TailoredResumeAction } from '../resume/TailoredResumeAction'
 import { preferredTemplate } from '../resume/tailoring'
@@ -19,6 +22,7 @@ export function DashboardPage() {
   const resumeVersions = useResumeVersions()
   const tailoredResumes = useTailoredResumes()
   const resumeReviews = useResumeReviews()
+  const [moved, setMoved] = useState<MovedJob>()
 
   const preferred = profile?.companyPreferences ?? []
   const groups = groupByCompany(results.data ?? [], preferred)
@@ -59,6 +63,12 @@ export function DashboardPage() {
           Edit search preferences
         </Link>
       </div>
+
+      {moved && (
+        <div className="mt-6">
+          <JobMovedNotice key={moved.updated.id} moved={moved} showWhereItWent onDismiss={() => setMoved(undefined)} />
+        </div>
+      )}
 
       <div className="mt-8">
         {results.isPending ? (
@@ -126,6 +136,14 @@ export function DashboardPage() {
                           ) : tailoringUnavailable ? (
                             <p className="text-xs text-slate-400">Resume tailoring is unavailable right now.</p>
                           ) : null}
+                          <div className="border-t border-slate-100 pt-3">
+                            <JobStatusActions
+                              result={result}
+                              jobTitle={jobTitle}
+                              review={review}
+                              onMoved={(previous, updated) => setMoved({ previous, updated })}
+                            />
+                          </div>
                         </div>
                       </JobCard>
                     )
