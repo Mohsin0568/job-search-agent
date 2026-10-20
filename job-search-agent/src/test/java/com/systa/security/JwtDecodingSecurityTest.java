@@ -11,6 +11,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.sun.net.httpserver.HttpServer;
 import com.systa.controller.JobSearchController;
+import com.systa.model.UserJobSearchResult;
 import com.systa.service.JobDescriptionService;
 import com.systa.service.JobSearchResultQueryService;
 import com.systa.service.JobSearchService;
@@ -91,7 +92,7 @@ class JwtDecodingSecurityTest {
         mockMvc.perform(get("/api/jobs/results").header(HttpHeaders.AUTHORIZATION, bearer(token(claims -> { }))))
                 .andExpect(status().isOk());
 
-        verify(jobSearchResultQueryService).findForUser(USER_ID, 0, 50);
+        verify(jobSearchResultQueryService).findForUser(USER_ID, UserJobSearchResult.Status.ACTIVE, 0, 50);
     }
 
     @Test

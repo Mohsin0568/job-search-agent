@@ -1,15 +1,19 @@
 package com.systa.controller;
 
 import com.systa.model.JobDescriptionDto;
+import com.systa.model.JobStatusUpdate;
 import com.systa.model.UserJobSearchResult;
 import com.systa.service.JobDescriptionService;
 import com.systa.service.JobSearchResultQueryService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,14 +37,31 @@ public class JobSearchController {
 
     // Searches are run by the daily job (see DailyJobSearchRunner), not by users - this only reads results.
     // The user is always the token's subject (Cognito "sub") - never a client-supplied id.
+    /** A page of the user's jobs with that status - by default the ones on their dashboard. */
     @GetMapping("/results")
     public List<UserJobSearchResult> getResults(@AuthenticationPrincipal final Jwt jwt,
+                                                @RequestParam(defaultValue = "ACTIVE")
+                                                final UserJobSearchResult.Status status,
                                                 @RequestParam(defaultValue = "0") final int page,
                                                 @RequestParam(defaultValue = "50") final int size) {
         return jobSearchResultQueryService.findForUser(
                 jwt.getSubject(),
+                status,
                 Math.max(page, 0),
                 Math.clamp(size, 1, MAX_PAGE_SIZE));
+    }
+
+    /**
+     * Marks one of the user's jobs as applied for or not relevant, which takes it off the dashboard,
+     * or as ACTIVE to put it back. A not-relevant job can carry the user's reason. Returns the job as it
+     * now is; 404 if the user has no such job, 400 if the status is missing or the reason too long.
+     */
+    @PutMapping("/results/{id}/status")
+    public ResponseEntity<UserJobSearchResult> updateStatus(@AuthenticationPrincipal final Jwt jwt,
+                                                            @PathVariable final String id,
+                                                            @Valid @RequestBody final JobStatusUpdate update) {
+        return ResponseEntity.of(jobSearchResultQueryService.updateStatus(
+                jwt.getSubject(), id, update.status(), update.reason()));
     }
 
     /**
