@@ -20,6 +20,12 @@ export type JobListing = {
   atsScore: number | null
 }
 
+/** Where a saved job stands: on the dashboard (ACTIVE), or marked by the user and moved off it. */
+export type JobStatus = 'ACTIVE' | 'APPLIED' | 'NOT_RELEVANT'
+
+/** The longest not-relevant reason the backend keeps (UserJobSearchResult.MAX_NOT_RELEVANT_REASON_LENGTH). */
+export const MAX_NOT_RELEVANT_REASON_LENGTH = 500
+
 export type JobSearchResult = {
   id: string
   userId: string
@@ -27,6 +33,11 @@ export type JobSearchResult = {
   jobRunDateTime: string
   companyName: string
   job: JobListing
+  status: JobStatus
+  /** ISO instant the user last changed the status. Null until they do. */
+  statusChangedAt: string | null
+  /** Why the user doesn't want the job, if they said. Null unless the status is NOT_RELEVANT. */
+  notRelevantReason: string | null
 }
 
 /** One uploaded version of the user's resume. Every version is kept; the newest is marked latest. */

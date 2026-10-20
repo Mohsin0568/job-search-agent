@@ -16,13 +16,15 @@ function Detail({ label, value }: { label: string; value: string | null }) {
 
 type Props = {
   job: JobListing
+  /** Shown above the title, where the card isn't already under its company's heading. */
+  companyName?: string
   /** The score from reviewing the user's resume against this job, once there is one. */
   resumeAtsScore?: number | null
   /** Actions for this job, shown along the bottom of the card. */
   children?: ReactNode
 }
 
-export function JobCard({ job, resumeAtsScore, children }: Props) {
+export function JobCard({ job, companyName, resumeAtsScore, children }: Props) {
   const title = specified(job.jobTitle) ?? 'Untitled role'
   const url = safeUrl(job.url)
   const source = specified(job.source)
@@ -30,7 +32,10 @@ export function JobCard({ job, resumeAtsScore, children }: Props) {
   return (
     <article className="flex flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        <h3 className="font-medium leading-snug text-slate-900">{title}</h3>
+        <div className="min-w-0">
+          {companyName && <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{companyName}</p>}
+          <h3 className="font-medium leading-snug text-slate-900">{title}</h3>
+        </div>
         <div className="flex flex-col items-end gap-1">
           <AtsBadge score={job.atsScore} />
           {resumeAtsScore != null && <ResumeAtsBadge score={resumeAtsScore} />}

@@ -14,12 +14,15 @@ import {
   requestTailoredResume,
   saveProfile,
   suggestNames,
+  updateJobStatus,
   uploadResume,
 } from './endpoints'
 import { isReviewing, REVIEW_POLL_INTERVAL_MS } from '../resume/review'
 import { isTailoring, TAILORING_POLL_INTERVAL_MS } from '../resume/tailoring'
 import type {
   CandidateProfile,
+  JobSearchResult,
+  JobStatus,
   ResumeReview,
   ResumeTemplate,
   ResumeVersion,
@@ -31,7 +34,10 @@ import type {
 // Query keys include the user id so one user's cached data is never shown to the next user on this browser.
 const keys = {
   profile: (userId: string) => ['profile', userId] as const,
-  jobResults: (userId: string, page: number, size: number) => ['jobResults', userId, page, size] as const,
+  // Every list of the user's jobs starts ['jobResults', userId, status], so marking a job can find them all.
+  jobResults: (userId: string, status: JobStatus, page: number, size: number) =>
+    ['jobResults', userId, status, page, size] as const,
+  markedJobs: (userId: string, status: JobStatus) => ['jobResults', userId, status, 'pages'] as const,
   resumeVersions: (userId: string) => ['resumeVersions', userId] as const,
   tailoredResumes: (userId: string) => ['tailoredResumes', userId] as const,
   resumeReviews: (userId: string) => ['resumeReviews', userId] as const,
@@ -41,6 +47,9 @@ const keys = {
 
 /** Runs per page of the search history. */
 export const SEARCH_RUNS_PAGE_SIZE = 20
+
+/** Jobs per page of the applied and not-relevant lists. */
+export const MARKED_JOBS_PAGE_SIZE = 20
 
 function useUserId(): string {
   const { user } = useAuth()
@@ -64,9 +73,63 @@ export function useSaveProfile() {
   })
 }
 
-export function useJobResults(page = 0, size = 50) {
+/** A page of the user's jobs with that status - by default the ones on their dashboard. */
+export function useJobResults(page = 0, size = 50, status: JobStatus = 'ACTIVE') {
   const userId = useUserId()
-  return useQuery({ queryKey: keys.jobResults(userId, page, size), queryFn: () => getJobResults(page, size) })
+  return useQuery({
+    queryKey: keys.jobResults(userId, status, page, size),
+    queryFn: () => getJobResults(page, size, status),
+  })
+}
+
+/** The jobs the user has marked with that status, last marked first, a page at a time. */
+export function useMarkedJobs(status: Exclude<JobStatus, 'ACTIVE'>) {
+  const userId = useUserId()
+  return useInfiniteQuery({
+    queryKey: keys.markedJobs(userId, status),
+    queryFn: ({ pageParam }) => getJobResults(pageParam, MARKED_JOBS_PAGE_SIZE, status),
+    initialPageParam: 0,
+    // A full page may have more after it; a short one is the last.
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPage.length === MARKED_JOBS_PAGE_SIZE ? lastPageParam + 1 : undefined,
+  })
+}
+
+type JobPages = { pages: JobSearchResult[][]; pageParams: unknown[] }
+
+// The job as it now is, in a list of jobs with that status: kept up to date if it belongs there, or dropped.
+function placeIn(jobs: JobSearchResult[], listStatus: unknown, updated: JobSearchResult): JobSearchResult[] {
+  return updated.status === listStatus
+    ? jobs.map((job) => (job.id === updated.id ? updated : job))
+    : jobs.filter((job) => job.id !== updated.id)
+}
+
+/**
+ * Marks one of the user's jobs. It leaves the lists it no longer belongs in straight away; the lists are
+ * then fetched again, so it turns up in the right place in the one it has moved to.
+ */
+export function useUpdateJobStatus() {
+  const userId = useUserId()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ jobResultId, status, reason }: { jobResultId: string; status: JobStatus; reason?: string }) =>
+      updateJobStatus(jobResultId, status, reason),
+    onSuccess: async (updated) => {
+      for (const [key, data] of queryClient.getQueriesData<JobSearchResult[] | JobPages>({
+        queryKey: ['jobResults', userId],
+      })) {
+        if (!data) continue
+        const listStatus = key[2]
+        queryClient.setQueryData(
+          key,
+          Array.isArray(data)
+            ? placeIn(data, listStatus, updated)
+            : { ...data, pages: data.pages.map((page) => placeIn(page, listStatus, updated)) },
+        )
+      }
+      await queryClient.invalidateQueries({ queryKey: ['jobResults', userId] })
+    },
+  })
 }
 
 export function useResumeVersions() {

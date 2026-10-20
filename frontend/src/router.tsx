@@ -5,6 +5,7 @@ import { ConfirmSignUpPage } from './pages/ConfirmSignUpPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
+import { MarkedJobsPage } from './pages/MarkedJobsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
             element: <RequireProfile />,
             children: [
               { index: true, element: <DashboardPage /> },
+              { path: '/marked', element: <MarkedJobsPage /> },
               { path: '/history', element: <SearchHistoryPage /> },
               { path: '/profile', element: <ProfilePage /> },
             ],

@@ -51,7 +51,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByRole('button', { name: /search/i })).not.toBeInTheDocument()
   })
 
-  it('asks for the newest 100 results', async () => {
+  it('asks for the newest 100 jobs on the dashboard', async () => {
     let query = ''
     server.use(
       http.get(`${API}/api/jobs/results`, ({ request }) => {
@@ -62,7 +62,7 @@ describe('DashboardPage', () => {
     renderRoutes(routes)
 
     await screen.findByText('No job matches yet')
-    expect(query).toBe('?page=0&size=100')
+    expect(query).toBe('?status=ACTIVE&page=0&size=100')
   })
 
   it('groups jobs by company in the user’s preferred order, best match first', async () => {
@@ -185,5 +185,51 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByText('Resume review is unavailable right now.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Tailor resume for Staff Engineer' })).toBeInTheDocument()
+  })
+
+  it('takes a job the user marks off the dashboard, says where it went, and can undo it', async () => {
+    // A backend that keeps what it's told: the dashboard lists only the jobs still ACTIVE.
+    let jobs = [result('r-1', 'Acme Corp', { jobTitle: 'Staff Engineer' }), result('r-2', 'Acme Corp')]
+    server.use(
+      http.get(`${API}/api/jobs/results`, () => HttpResponse.json(jobs.filter((job) => job.status === 'ACTIVE'))),
+      http.put(`${API}/api/jobs/results/:id/status`, async ({ request, params }) => {
+        const { status } = (await request.json()) as { status: JobSearchResult['status'] }
+        jobs = jobs.map((job) =>
+          job.id === params.id ? { ...job, status, statusChangedAt: '2026-10-20T09:00:00Z' } : job,
+        )
+        return HttpResponse.json(jobs.find((job) => job.id === params.id))
+      }),
+    )
+    renderRoutes(routes)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Mark Staff Engineer as applied' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('“Staff Engineer” at Acme Corp is marked as applied.')
+    expect(screen.queryByRole('heading', { name: 'Staff Engineer' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View applied jobs' })).toHaveAttribute('href', '/marked')
+    expect(screen.getByText('1 job')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }))
+
+    expect(await screen.findByRole('heading', { name: 'Staff Engineer' })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(jobs[0].status).toBe('ACTIVE')
+  })
+
+  it('lets the notice be dismissed', async () => {
+    server.use(
+      jobResults([result('r-1', 'Acme Corp', { jobTitle: 'Staff Engineer' })]),
+      http.put(`${API}/api/jobs/results/:id/status`, () =>
+        HttpResponse.json(result('r-1', 'Acme Corp', { jobTitle: 'Staff Engineer' }, { status: 'NOT_RELEVANT' })),
+      ),
+    )
+    renderRoutes(routes)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Mark Staff Engineer as not relevant' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Mark not relevant' }))
+    expect(await screen.findByRole('link', { name: 'View not-relevant jobs' })).toHaveAttribute('href', '/marked?tab=not-relevant')
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+
+    expect(screen.queryByText(/is marked as not relevant/)).not.toBeInTheDocument()
   })
 })
