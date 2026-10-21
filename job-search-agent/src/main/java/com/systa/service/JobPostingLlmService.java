@@ -8,6 +8,8 @@ import com.systa.config.ChatConfig;
 import com.systa.exception.JobDescriptionUnavailableException;
 import com.systa.model.JobPosting;
 import lombok.extern.slf4j.Slf4j;
+import com.systa.advisors.LlmCallContext;
+import com.systa.model.LlmUsage.Operation;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -59,6 +61,7 @@ public class JobPostingLlmService {
         final String rawResponse;
         try {
             rawResponse = chatClient.prompt()
+                    .advisors(LlmCallContext.of(userId, Operation.JOB_POSTING, null, companyName))
                     .system(loadSystemPrompt())
                     .user(userMessage)
                     .options(OpenAiChatOptions.builder()

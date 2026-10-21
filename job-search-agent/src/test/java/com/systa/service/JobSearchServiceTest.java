@@ -83,8 +83,8 @@ class JobSearchServiceTest {
                 Duration.ZERO);
 
         // By default the LLM finds one job per batch, the filter keeps everything and all of it is new.
-        lenient().when(jobSearchLlmService.searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList()))
-                .thenAnswer(call -> found(call.getArgument(2), call.<List<String>>getArgument(3)));
+        lenient().when(jobSearchLlmService.searchJobsForCompanyBatch(anyString(), any(), any(), anyString(), anyList()))
+                .thenAnswer(call -> found(call.getArgument(3), call.<List<String>>getArgument(4)));
         lenient().when(jobSearchResultFilterService.filterStaleJobs(anyString(), any(), anyList(), any()))
                 .thenAnswer(call -> new JobFilterResult(call.<CompanySearchResult>getArgument(3).jobs(), List.of()));
         lenient().when(jobSearchResultPersistenceService.persist(anyString(), any()))
@@ -102,7 +102,7 @@ class JobSearchServiceTest {
 
         for (final String company : List.of("Acme Corp", "Globex")) {
             verify(jobSearchLlmService, times(BATCHES_PER_COMPANY))
-                    .searchJobsForCompanyBatch(eq(USER_ID), eq(profile), eq(company), sourcesCaptor.capture());
+                    .searchJobsForCompanyBatch(eq(USER_ID), eq(RUN_ID), eq(profile), eq(company), sourcesCaptor.capture());
         }
         final List<List<String>> batches = sourcesCaptor.getAllValues();
         assertThat(batches).hasSize(2 * BATCHES_PER_COMPANY)
@@ -123,9 +123,9 @@ class JobSearchServiceTest {
 
         final InOrder inOrder = inOrder(jobSearchLlmService);
         inOrder.verify(jobSearchLlmService, times(BATCHES_PER_COMPANY))
-                .searchJobsForCompanyBatch(any(), any(), eq("Globex"), anyList());
+                .searchJobsForCompanyBatch(any(), any(), any(), eq("Globex"), anyList());
         inOrder.verify(jobSearchLlmService, times(BATCHES_PER_COMPANY))
-                .searchJobsForCompanyBatch(any(), any(), eq("Acme Corp"), anyList());
+                .searchJobsForCompanyBatch(any(), any(), any(), eq("Acme Corp"), anyList());
     }
 
     @Test
@@ -162,7 +162,7 @@ class JobSearchServiceTest {
 
         final InOrder inOrder = inOrder(jobSearchLlmService, jobSearchResultPersistenceService);
         for (int batch = 0; batch < BATCHES_PER_COMPANY; batch++) {
-            inOrder.verify(jobSearchLlmService).searchJobsForCompanyBatch(any(), any(), any(), anyList());
+            inOrder.verify(jobSearchLlmService).searchJobsForCompanyBatch(any(), any(), any(), any(), anyList());
             inOrder.verify(jobSearchResultPersistenceService).persist(eq(USER_ID), any());
         }
     }
@@ -171,8 +171,8 @@ class JobSearchServiceTest {
     void carriesOnWithTheOtherBatchesAndCompanies_whenOneSearchFails_andCountsTheFailures() {
         doThrow(new IllegalStateException("429 rate limit, retries exhausted"))
                 .doThrow(new JobSearchParseException("Failed to parse job search response from LLM", null))
-                .doAnswer(call -> found(call.getArgument(2), call.<List<String>>getArgument(3)))
-                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
+                .doAnswer(call -> found(call.getArgument(3), call.<List<String>>getArgument(4)))
+                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), any(), anyString(), anyList());
 
         final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Globex", "Initech"), RUN_ID);
 
@@ -180,7 +180,7 @@ class JobSearchServiceTest {
         assertThat(outcome.someBatchesFailed()).isTrue();
         assertThat(outcome.allBatchesFailed()).isFalse();
         verify(jobSearchLlmService, times(3 * BATCHES_PER_COMPANY))
-                .searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
+                .searchJobsForCompanyBatch(anyString(), any(), any(), anyString(), anyList());
         verify(jobSearchResultPersistenceService, times(3 * BATCHES_PER_COMPANY - 2)).persist(eq(USER_ID), any());
     }
 
@@ -199,7 +199,7 @@ class JobSearchServiceTest {
     @Test
     void reportsEveryBatchAsFailed_whenNoSearchGetsThrough() {
         doThrow(new IllegalStateException("429 rate limit, retries exhausted"))
-                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
+                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), any(), anyString(), anyList());
 
         final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp"), RUN_ID);
 
@@ -219,7 +219,7 @@ class JobSearchServiceTest {
         doReturn(new CompanySearchResult("Acme Corp",
                         List.of(portalJob, linkedInSaved, linkedInDuplicate, linkedInStale)))
                 .doReturn(new CompanySearchResult("Acme Corp", List.of()))
-                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
+                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), any(), anyString(), anyList());
         doReturn(new JobFilterResult(List.of(portalJob, linkedInSaved, linkedInDuplicate), List.of(stale)))
                 .doReturn(new JobFilterResult(List.of(), List.of()))
                 .when(jobSearchResultFilterService).filterStaleJobs(anyString(), any(), anyList(), any());
@@ -254,8 +254,8 @@ class JobSearchServiceTest {
     @Test
     void auditsTheSourcesOfAFailedBatchAsFailed_withTheReason() {
         doThrow(new IllegalStateException("429 rate limit, retries exhausted"))
-                .doAnswer(call -> found(call.getArgument(2), call.<List<String>>getArgument(3)))
-                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), anyString(), anyList());
+                .doAnswer(call -> found(call.getArgument(3), call.<List<String>>getArgument(4)))
+                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), any(), anyString(), anyList());
 
         service.searchJobs(profile("Acme Corp"), RUN_ID);
 
@@ -278,7 +278,7 @@ class JobSearchServiceTest {
                 .when(jobSearchResultPersistenceService).persist(anyString(), argThat(forCompany("Globex")));
         // Initech's search fails, so nothing of it is saved.
         doThrow(new IllegalStateException("429 rate limit, retries exhausted"))
-                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), eq("Initech"), anyList());
+                .when(jobSearchLlmService).searchJobsForCompanyBatch(anyString(), any(), any(), eq("Initech"), anyList());
 
         final JobSearchOutcome outcome = service.searchJobs(profile("Acme Corp", "Initech", "Globex"), RUN_ID);
 
