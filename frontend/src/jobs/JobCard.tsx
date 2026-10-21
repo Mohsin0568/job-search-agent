@@ -22,9 +22,11 @@ type Props = {
   resumeAtsScore?: number | null
   /** Actions for this job, shown along the bottom of the card. */
   children?: ReactNode
+  /** A menu of less-used actions, shown in the card's top corner. */
+  menu?: ReactNode
 }
 
-export function JobCard({ job, companyName, resumeAtsScore, children }: Props) {
+export function JobCard({ job, companyName, resumeAtsScore, children, menu }: Props) {
   const title = specified(job.jobTitle) ?? 'Untitled role'
   const url = safeUrl(job.url)
   const source = specified(job.source)
@@ -36,9 +38,12 @@ export function JobCard({ job, companyName, resumeAtsScore, children }: Props) {
           {companyName && <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{companyName}</p>}
           <h3 className="font-medium leading-snug text-slate-900">{title}</h3>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <AtsBadge score={job.atsScore} />
-          {resumeAtsScore != null && <ResumeAtsBadge score={resumeAtsScore} />}
+        <div className="flex shrink-0 items-start gap-1">
+          <div className="flex flex-col items-end gap-1">
+            <AtsBadge score={job.atsScore} />
+            {resumeAtsScore != null && <ResumeAtsBadge score={resumeAtsScore} />}
+          </div>
+          {menu}
         </div>
       </div>
 
@@ -56,7 +61,7 @@ export function JobCard({ job, companyName, resumeAtsScore, children }: Props) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 font-medium text-indigo-600 hover:underline"
+            className="shrink-0 text-base font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
           >
             View posting<span aria-hidden="true"> ↗</span>
             <span className="sr-only"> for {title} (opens in a new tab)</span>

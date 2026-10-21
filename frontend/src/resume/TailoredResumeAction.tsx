@@ -1,145 +1,91 @@
 import { useCallback, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useRequestTailoredResume, useTailoredResumeDownload } from '../api/hooks'
-import type { ResumeReview, ResumeTemplate, TailoredResume, TailoringFix } from '../api/types'
-import { startDownload } from './download'
+import type { ResumeTemplate } from '../api/types'
 import { TailorFixPanel } from './TailorFixPanel'
-import { fixableReview, fixSummary, RESUME_TEMPLATES, tailoringState, templateLabel } from './tailoring'
+import { fixSummary, RESUME_TEMPLATES, templateLabel } from './tailoring'
+import { sentence, useTailoring, type Tailoring, type TailoringInput } from './useTailoring'
 import { TemplateGallery } from './TemplateGallery'
-
-const AS_IS: TailoringFix = { keywords: [], redFlags: false }
 
 const primaryButtonClass =
   'rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-60'
 const secondaryButtonClass =
   'rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60'
 
-// The server's reasons start in lower case, to follow "we couldn't…" in a sentence. Here they stand alone.
-function sentence(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1)
-}
-
-type Props = {
-  jobResultId: string
+type Props = TailoringInput & {
   /** Names the job in each button's accessible name, so a screen reader can tell the cards apart. */
   jobTitle: string
-  /** The tailored resume for this job, if one was ever asked for. */
-  tailored: TailoredResume | undefined
-  /** The version of the user's current resume, or null if they haven't uploaded one. */
-  latestResumeVersion: number | null
-  /** The template to offer when this job has none yet. */
-  defaultTemplate: ResumeTemplate
-  /** The review of the user's resume for this job, whose findings tailoring can fix. */
-  review?: ResumeReview
 }
 
 /**
  * On a job card: tailor the user's resume to this job - as is, or fixing what the job's review found -
  * then download the result.
  */
-export function TailoredResumeAction({
-  jobResultId,
-  jobTitle,
-  tailored,
-  latestResumeVersion,
-  defaultTemplate,
-  review,
-}: Props) {
-  const request = useRequestTailoredResume()
-  const download = useTailoredResumeDownload()
-  const [problem, setProblem] = useState<string>()
-  // The template picked here, until the server's record catches up with it.
-  const [picked, setPicked] = useState<ResumeTemplate>()
+export function TailoredResumeAction({ jobTitle, ...input }: Props) {
+  const tailoring = useTailoring(input)
+  return <TailoredResumeView tailoring={tailoring} jobTitle={jobTitle} />
+}
+
+type ViewProps = {
+  tailoring: Tailoring
+  jobTitle: string
+  /**
+   * When the card's menu offers "Tailor and fix" and "Tailor as is" (see tailoringMenuActions), they are
+   * left off the card here.
+   */
+  fixActionsInMenu?: boolean
+}
+
+/** What TailoredResumeAction shows, for a card that runs the tailoring itself with useTailoring. */
+export function TailoredResumeView({ tailoring, jobTitle, fixActionsInMenu = false }: ViewProps) {
+  const { state, tailored, template, fixable, switching, requesting, choosingFixes, problem } = tailoring
   const [previewing, setPreviewing] = useState(false)
-  const [choosingFixes, setChoosingFixes] = useState(false)
   const previewButton = useRef<HTMLButtonElement>(null)
-
-  const state = tailoringState(tailored, latestResumeVersion)
-  const template = picked ?? tailored?.template ?? defaultTemplate
-  const fixable = fixableReview(review, latestResumeVersion)
-  // A ready resume changes template straight away: the server lays the same content out again.
-  const switching = state === 'ready' && request.isPending && request.variables?.fix === undefined
-
-  // Without a fix the server keeps what the job's resume fixes now.
-  const tailorIn = async (wanted: ResumeTemplate, fix?: TailoringFix) => {
-    setProblem(undefined)
-    try {
-      await request.mutateAsync({ jobResultId, template: wanted, fix })
-      return true
-    } catch (error) {
-      setProblem(error instanceof Error ? sentence(error.message) : 'Couldn’t start tailoring. Please try again.')
-      return false
-    }
-  }
-
-  const onTailor = () => void tailorIn(template)
-
-  const onTailorWithFixes = async (fix: TailoringFix) => {
-    if (await tailorIn(template, fix)) setChoosingFixes(false)
-  }
-
-  const onPick = async (wanted: ResumeTemplate) => {
-    if (wanted === template) return
-    setPicked(wanted)
-    if (state === 'ready' && !(await tailorIn(wanted))) {
-      setPicked(undefined)
-    }
-  }
-
-  const onDownload = async () => {
-    setProblem(undefined)
-    try {
-      const link = await download.mutateAsync(jobResultId)
-      startDownload(link.url)
-    } catch (error) {
-      setProblem(error instanceof Error ? sentence(error.message) : 'Couldn’t download the resume. Please try again.')
-    }
-  }
 
   const tailorButton = (label: string, className: string) => (
     <button
       type="button"
-      onClick={onTailor}
-      disabled={request.isPending}
+      onClick={tailoring.tailor}
+      disabled={requesting}
       aria-label={`${label} for ${jobTitle}`}
       className={className}
     >
-      {request.isPending ? 'Starting…' : label}
+      {requesting ? 'Starting…' : label}
     </button>
   )
 
   const tailorAsIsButton = (
     <button
       type="button"
-      onClick={() => void tailorIn(template, AS_IS)}
-      disabled={request.isPending}
+      onClick={tailoring.tailorAsIs}
+      disabled={requesting}
       aria-label={`Tailor as is for ${jobTitle}`}
       className={secondaryButtonClass}
     >
-      {request.isPending ? 'Starting…' : 'Tailor as is'}
+      {requesting ? 'Starting…' : 'Tailor as is'}
     </button>
   )
 
-  const fixButton = (label: string, className: string) => (
-    <button
-      type="button"
-      onClick={() => setChoosingFixes(true)}
-      disabled={request.isPending || choosingFixes}
-      aria-expanded={choosingFixes}
-      aria-label={`${label} for ${jobTitle}`}
-      className={className}
-    >
-      {label}
-    </button>
-  )
+  const fixButton = (label: string, className: string) =>
+    fixActionsInMenu ? null : (
+      <button
+        type="button"
+        onClick={tailoring.openFixes}
+        disabled={requesting || choosingFixes}
+        aria-expanded={choosingFixes}
+        aria-label={`${label} for ${jobTitle}`}
+        className={className}
+      >
+        {label}
+      </button>
+    )
 
   const fixesApplied = tailored?.status === 'READY' ? fixSummary(tailored.fix) : null
 
   const downloadButton = (
     <button
       type="button"
-      onClick={() => void onDownload()}
-      disabled={download.isPending || switching}
+      onClick={() => void tailoring.download()}
+      disabled={tailoring.downloading || switching}
       aria-label={`Download tailored resume for ${jobTitle}`}
       className={primaryButtonClass}
     >
@@ -154,7 +100,7 @@ export function TailoredResumeAction({
 
   const onChooseInPreview = (wanted: ResumeTemplate) => {
     closePreview()
-    void onPick(wanted)
+    void tailoring.pick(wanted)
   }
 
   const picker = (
@@ -164,8 +110,8 @@ export function TailoredResumeAction({
         <select
           aria-label={`Resume template for ${jobTitle}`}
           value={template}
-          disabled={request.isPending}
-          onChange={(event) => void onPick(event.target.value as ResumeTemplate)}
+          disabled={requesting}
+          onChange={(event) => void tailoring.pick(event.target.value as ResumeTemplate)}
           className="rounded-md border border-slate-300 bg-white py-1.5 pl-2 pr-8 text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {RESUME_TEMPLATES.map(({ id, label }) => (
@@ -179,7 +125,7 @@ export function TailoredResumeAction({
         type="button"
         ref={previewButton}
         onClick={() => setPreviewing(true)}
-        disabled={request.isPending}
+        disabled={requesting}
         aria-label={`Preview templates for ${jobTitle}`}
         className="text-sm font-medium text-indigo-600 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60"
       >
@@ -202,12 +148,24 @@ export function TailoredResumeAction({
 
       {state === 'none' &&
         (fixable ? (
-          <div className="flex flex-wrap gap-2">
-            {fixButton('Tailor and fix', primaryButtonClass)}
-            {/* While choosing, the panel has its own way to tailor as is. */}
-            {!choosingFixes && tailorAsIsButton}
-            {picker}
-          </div>
+          fixActionsInMenu ? (
+            // While choosing, the fix panel below says it all.
+            !choosingFixes && (
+              <div className="space-y-2">
+                <p className="text-xs text-slate-500">
+                  {requesting ? 'Starting…' : 'Tailor your resume to this job from the ⋮ menu.'}
+                </p>
+                {picker}
+              </div>
+            )
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {fixButton('Tailor and fix', primaryButtonClass)}
+              {/* While choosing, the panel has its own way to tailor as is. */}
+              {!choosingFixes && tailorAsIsButton}
+              {picker}
+            </div>
+          )
         ) : (
           <div className="flex flex-wrap gap-2">
             {tailorButton('Tailor resume', primaryButtonClass)}
@@ -277,9 +235,9 @@ export function TailoredResumeAction({
           jobTitle={jobTitle}
           review={fixable}
           current={state === 'ready' ? (tailored?.fix ?? null) : null}
-          busy={request.isPending}
-          onTailor={(fix) => void onTailorWithFixes(fix)}
-          onCancel={() => setChoosingFixes(false)}
+          busy={requesting}
+          onTailor={(fix) => void tailoring.tailorWithFixes(fix)}
+          onCancel={tailoring.closeFixes}
         />
       )}
 

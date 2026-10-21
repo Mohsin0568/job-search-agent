@@ -2,13 +2,10 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useJobResults, useProfile, useResumeReviews, useResumeVersions, useTailoredResumes } from '../api/hooks'
 import { useAuth } from '../auth/AuthContext'
-import { formatRunDateTime, specified } from '../jobs/format'
+import { DashboardJobCard } from '../jobs/DashboardJobCard'
+import { formatRunDateTime } from '../jobs/format'
 import { companiesWithoutResults, groupByCompany } from '../jobs/groupByCompany'
-import { JobCard } from '../jobs/JobCard'
 import { JobMovedNotice, type MovedJob } from '../jobs/JobMovedNotice'
-import { JobStatusActions } from '../jobs/JobStatusActions'
-import { ResumeReviewSection } from '../resume/ResumeReviewSection'
-import { TailoredResumeAction } from '../resume/TailoredResumeAction'
 import { preferredTemplate } from '../resume/tailoring'
 
 // The newest page of results; older ones aren't shown on the dashboard.
@@ -104,50 +101,23 @@ export function DashboardPage() {
                   </span>
                 </h2>
                 <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {group.results.map((result) => {
-                    const jobTitle = specified(result.job.jobTitle) ?? 'Untitled role'
-                    const review = reviews?.byJob.get(result.id)
-                    return (
-                      <JobCard
-                        key={result.id}
-                        job={result.job}
-                        resumeAtsScore={review?.status === 'READY' ? review.resumeAtsScore : null}
-                      >
-                        <div className="space-y-3">
-                          {reviews ? (
-                            <ResumeReviewSection
-                              jobResultId={result.id}
-                              jobTitle={jobTitle}
-                              review={review}
-                              latestResumeVersion={reviews.latestResumeVersion}
-                            />
-                          ) : reviewsUnavailable ? (
-                            <p className="text-xs text-slate-400">Resume review is unavailable right now.</p>
-                          ) : null}
-                          {tailoring ? (
-                            <TailoredResumeAction
-                              jobResultId={result.id}
-                              jobTitle={jobTitle}
-                              tailored={tailoring.byJob.get(result.id)}
-                              latestResumeVersion={tailoring.latestResumeVersion}
-                              defaultTemplate={tailoring.defaultTemplate}
-                              review={review}
-                            />
-                          ) : tailoringUnavailable ? (
-                            <p className="text-xs text-slate-400">Resume tailoring is unavailable right now.</p>
-                          ) : null}
-                          <div className="border-t border-slate-100 pt-3">
-                            <JobStatusActions
-                              result={result}
-                              jobTitle={jobTitle}
-                              review={review}
-                              onMoved={(previous, updated) => setMoved({ previous, updated })}
-                            />
-                          </div>
-                        </div>
-                      </JobCard>
-                    )
-                  })}
+                  {group.results.map((result) => (
+                    <DashboardJobCard
+                      key={result.id}
+                      result={result}
+                      review={reviews?.byJob.get(result.id)}
+                      latestResumeVersion={latestResumeVersion}
+                      reviewsLoaded={reviews !== undefined}
+                      reviewsUnavailable={reviewsUnavailable}
+                      tailoring={
+                        tailoring
+                          ? { tailored: tailoring.byJob.get(result.id), defaultTemplate: tailoring.defaultTemplate }
+                          : undefined
+                      }
+                      tailoringUnavailable={tailoringUnavailable}
+                      onMoved={(previous, updated) => setMoved({ previous, updated })}
+                    />
+                  ))}
                 </div>
               </section>
             ))}
