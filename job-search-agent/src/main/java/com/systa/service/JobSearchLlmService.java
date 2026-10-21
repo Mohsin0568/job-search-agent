@@ -9,6 +9,8 @@ import com.systa.model.CompanySearchResult;
 import com.systa.model.JobListing;
 import com.systa.model.JobSearchResponse;
 import lombok.extern.slf4j.Slf4j;
+import com.systa.advisors.LlmCallContext;
+import com.systa.model.LlmUsage.Operation;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,7 +50,9 @@ public class JobSearchLlmService {
         this.applicationProperties = applicationProperties;
     }
 
-    public CompanySearchResult searchJobsForCompanyBatch(final String userId, final CandidateProfile candidateProfile,
+    /** @param runId the JobSearchRun this search is part of, recorded on the call's token usage; may be null */
+    public CompanySearchResult searchJobsForCompanyBatch(final String userId, final String runId,
+                                                           final CandidateProfile candidateProfile,
                                                            final String company, final List<String> sources) {
         final String sourcesPromptList = sources.stream()
                 .map(source -> "- " + source)
@@ -72,7 +76,8 @@ public class JobSearchLlmService {
                 + " across all the sources listed above."
                 + " Search thoroughly and return every matching role from every source.";
 
-        String rawResponse = callChatModelWithRateLimitRetry(userId, company, sources, systemPrompt, userMessage);
+        String rawResponse = callChatModelWithRateLimitRetry(userId, runId, company, sources, systemPrompt,
+                userMessage);
 
         rawResponse = stripMarkdownFences(rawResponse);
 
@@ -100,7 +105,8 @@ public class JobSearchLlmService {
         return new CompanySearchResult(company, jobs);
     }
 
-    private String callChatModelWithRateLimitRetry(final String userId, final String company, final List<String> sources,
+    private String callChatModelWithRateLimitRetry(final String userId, final String runId, final String company,
+                                                     final List<String> sources,
                                                      final String systemPrompt, final String userMessage) {
         final int maxAttemptsPerBatch = applicationProperties.maxAttemptsPerBatch();
         final Duration rateLimitRetryDelay = applicationProperties.rateLimitRetryDelay();
@@ -108,6 +114,7 @@ public class JobSearchLlmService {
         for (int attempt = 1; attempt <= maxAttemptsPerBatch; attempt++) {
             try {
                 return chatClient.prompt()
+                        .advisors(LlmCallContext.of(userId, Operation.JOB_SEARCH, runId, company))
                         .system(systemPrompt)
                         .user(userMessage)
                         .options(OpenAiChatOptions.builder()

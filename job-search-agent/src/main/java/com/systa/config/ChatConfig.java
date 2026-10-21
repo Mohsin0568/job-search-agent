@@ -1,6 +1,6 @@
 package com.systa.config;
 
-import com.systa.adivsors.TokenAuditAdvisor;
+import com.systa.advisors.LlmUsageAdvisor;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -27,7 +27,7 @@ public class ChatConfig {
 
     private static final String SCRAPE_TOOL_NAME = "firecrawl_scrape";
 
-    private final TokenAuditAdvisor tokenAuditAdvisor;
+    private final LlmUsageAdvisor llmUsageAdvisor;
 
     @Bean
     @Primary
@@ -36,7 +36,7 @@ public class ChatConfig {
 
         return chatClientBuilder
                 .defaultTools(toolCallbackProvider)
-                .defaultAdvisors(List.of(new SimpleLoggerAdvisor(), tokenAuditAdvisor))
+                .defaultAdvisors(List.of(new SimpleLoggerAdvisor(), llmUsageAdvisor))
                 .build();
     }
 
@@ -47,7 +47,7 @@ public class ChatConfig {
                                            final ToolCallbackProvider toolCallbackProvider) {
         return chatClientBuilder
                 .defaultTools(scrapeToolOnly(toolCallbackProvider))
-                .defaultAdvisors(List.of(new SimpleLoggerAdvisor(), tokenAuditAdvisor))
+                .defaultAdvisors(List.of(new SimpleLoggerAdvisor(), llmUsageAdvisor))
                 .build();
     }
 
@@ -56,7 +56,7 @@ public class ChatConfig {
     @Bean(RESUME_TAILORING_CHAT_CLIENT)
     public ChatClient resumeTailoringChatClient(final ChatClient.Builder chatClientBuilder) {
         return chatClientBuilder
-                .defaultAdvisors(List.of(new SimpleLoggerAdvisor(), tokenAuditAdvisor))
+                .defaultAdvisors(List.of(new SimpleLoggerAdvisor(), llmUsageAdvisor))
                 .build();
     }
 

@@ -85,7 +85,7 @@ public class JobSearchService {
                 final List<String> sourceLabels = sourceBatch.stream().map(JobSource::promptLabel).toList();
                 try {
                     final CompanySearchResult batchResult = jobSearchLlmService
-                            .searchJobsForCompanyBatch(userId, candidateProfile, company, sourceLabels);
+                            .searchJobsForCompanyBatch(userId, runId, candidateProfile, company, sourceLabels);
                     sourceAudits.addAll(persistBatchResult(userId, candidateProfile.recencyWindowDays(),
                             sourceBatch, batchResult, newJobResultIds));
                 } catch (final Exception e) {

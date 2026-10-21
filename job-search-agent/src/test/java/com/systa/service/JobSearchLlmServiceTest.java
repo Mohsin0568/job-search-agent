@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import com.systa.advisors.LlmCallContext;
+import com.systa.model.LlmUsage.Operation;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.http.HttpHeaders;
@@ -23,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
+import static com.systa.advisors.LlmCallContextCapture.paramsGivenTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.RETURNS_SELF;
@@ -34,6 +37,7 @@ import static org.mockito.Mockito.when;
 class JobSearchLlmServiceTest {
 
     private static final String USER_ID = "user-1";
+    private static final String RUN_ID = "run-1";
     private static final String COMPANY = "Acme Corp";
     private static final List<String> SOURCES = List.of("LinkedIn (linkedin.com/jobs)", "Reed (reed.co.uk)");
     private static final int MAX_ATTEMPTS = 3;
@@ -180,7 +184,7 @@ class JobSearchLlmServiceTest {
     void asksTheModelForTheUsersRecencyWindow_notAFixedOne() {
         modelReplies(ONE_JOB);
 
-        service.searchJobsForCompanyBatch(USER_ID, profileWithWindow(30), COMPANY, SOURCES);
+        service.searchJobsForCompanyBatch(USER_ID, RUN_ID, profileWithWindow(30), COMPANY, SOURCES);
 
         assertThat(systemPromptSent())
                 .contains("posted within the last 30 days of TODAY'S DATE")
@@ -192,7 +196,7 @@ class JobSearchLlmServiceTest {
     void asksTheModelForSevenDays_whenTheProfileHasNoWindow() {
         modelReplies(ONE_JOB);
 
-        service.searchJobsForCompanyBatch(USER_ID, profileWithWindow(null), COMPANY, SOURCES);
+        service.searchJobsForCompanyBatch(USER_ID, RUN_ID, profileWithWindow(null), COMPANY, SOURCES);
 
         assertThat(systemPromptSent())
                 .contains("posted within the last 7 days of TODAY'S DATE")
@@ -254,13 +258,26 @@ class JobSearchLlmServiceTest {
                 .hasMessageContaining("classpath:system_prompts/no_such_prompt.txt");
     }
 
+    @Test
+    void recordsTheTokensUsedAgainstTheUserRunAndCompany() {
+        modelReplies(ONE_JOB);
+
+        search();
+
+        assertThat(paramsGivenTo(request))
+                .containsEntry(LlmCallContext.USER_ID, "user-1")
+                .containsEntry(LlmCallContext.OPERATION, Operation.JOB_SEARCH)
+                .containsEntry(LlmCallContext.COMPANY_NAME, "Acme Corp")
+                .containsEntry(LlmCallContext.RUN_ID, RUN_ID);
+    }
+
     private static CandidateProfile profileWithWindow(final Integer recencyWindowDays) {
         return new CandidateProfile(PROFILE.id(), USER_ID, PROFILE.email(), PROFILE.desiredRole(), PROFILE.skills(),
                 PROFILE.currentJobDescription(), PROFILE.companyPreferences(), recencyWindowDays);
     }
 
     private CompanySearchResult search() {
-        return service.searchJobsForCompanyBatch(USER_ID, PROFILE, COMPANY, SOURCES);
+        return service.searchJobsForCompanyBatch(USER_ID, RUN_ID, PROFILE, COMPANY, SOURCES);
     }
 
     private void modelReplies(final String content) {

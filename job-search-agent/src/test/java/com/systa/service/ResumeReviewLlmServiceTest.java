@@ -12,6 +12,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import com.systa.advisors.LlmCallContext;
+import com.systa.model.LlmUsage.Operation;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.core.io.DefaultResourceLoader;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static com.systa.advisors.LlmCallContextCapture.paramsGivenTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.RETURNS_SELF;
@@ -190,6 +193,18 @@ class ResumeReviewLlmServiceTest {
         assertThatThrownBy(() -> review(RESUME_TEXT))
                 .isInstanceOf(ResumeReviewException.class)
                 .hasMessage("we couldn't review your resume right now, please try again in a minute");
+    }
+
+    @Test
+    void recordsTheTokensUsedAgainstTheUser() {
+        modelReplies(REVIEW);
+
+        review(RESUME_TEXT);
+
+        assertThat(paramsGivenTo(request))
+                .containsEntry(LlmCallContext.USER_ID, "user-1")
+                .containsEntry(LlmCallContext.OPERATION, Operation.RESUME_REVIEW)
+                .containsEntry(LlmCallContext.COMPANY_NAME, "Acme Corp");
     }
 
     private ResumeReviewResult review(final String resumeText) {

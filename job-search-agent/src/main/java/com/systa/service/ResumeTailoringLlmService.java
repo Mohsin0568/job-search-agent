@@ -10,6 +10,8 @@ import com.systa.model.ResumeReview.RedFlag;
 import com.systa.model.TailoredResume.Fix;
 import com.systa.model.TailoredResumeContent;
 import lombok.extern.slf4j.Slf4j;
+import com.systa.advisors.LlmCallContext;
+import com.systa.model.LlmUsage.Operation;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -76,6 +78,7 @@ public class ResumeTailoringLlmService {
         final String rawResponse;
         try {
             rawResponse = chatClient.prompt()
+                    .advisors(LlmCallContext.of(userId, Operation.RESUME_TAILORING, null, companyName))
                     .system(loadSystemPrompt())
                     .user(userMessage)
                     .options(OpenAiChatOptions.builder()
