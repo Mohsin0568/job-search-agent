@@ -11,7 +11,8 @@ test.beforeEach(({ backend }) => {
 test('a job marked applied leaves the dashboard and is listed under Marked jobs', async ({ page, backend }) => {
   await signIn(page)
 
-  await page.getByRole('button', { name: 'Mark Staff Engineer as applied' }).click()
+  await page.getByRole('button', { name: 'More actions for Staff Engineer' }).click()
+  await page.getByRole('menuitem', { name: 'Mark Staff Engineer as applied' }).click()
 
   await expect(page.getByRole('status')).toHaveText('“Staff Engineer” at Acme Corp is marked as applied.')
   await expect(page.getByRole('heading', { name: 'Staff Engineer' })).toHaveCount(0)
@@ -28,7 +29,8 @@ test('a job marked applied leaves the dashboard and is listed under Marked jobs'
 test('a job marked not relevant keeps the reason, and can go back to the dashboard', async ({ page, backend }) => {
   await signIn(page)
 
-  await page.getByRole('button', { name: 'Mark Platform Engineer as not relevant' }).click()
+  await page.getByRole('button', { name: 'More actions for Platform Engineer' }).click()
+  await page.getByRole('menuitem', { name: 'Mark Platform Engineer as not relevant' }).click()
   await page.getByLabel(/Why isn’t it relevant/).fill('Needs relocation to Leeds')
   await page.getByRole('button', { name: 'Mark not relevant' }).click()
   await expect(page.getByRole('heading', { name: 'Platform Engineer' })).toHaveCount(0)

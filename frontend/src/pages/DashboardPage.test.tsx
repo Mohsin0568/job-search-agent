@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { JobSearchResult } from '../api/types'
 import { profile, result, resumeReview, resumeVersion, tailoredResume } from '../test/fixtures'
 import { renderRoutes } from '../test/render'
@@ -202,7 +202,8 @@ describe('DashboardPage', () => {
     )
     renderRoutes(routes)
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Mark Staff Engineer as applied' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions for Staff Engineer' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Mark Staff Engineer as applied' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('“Staff Engineer” at Acme Corp is marked as applied.')
     expect(screen.queryByRole('heading', { name: 'Staff Engineer' })).not.toBeInTheDocument()
@@ -225,11 +226,83 @@ describe('DashboardPage', () => {
     )
     renderRoutes(routes)
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Mark Staff Engineer as not relevant' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions for Staff Engineer' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Mark Staff Engineer as not relevant' }))
     await userEvent.click(screen.getByRole('button', { name: 'Mark not relevant' }))
     expect(await screen.findByRole('link', { name: 'View not-relevant jobs' })).toHaveAttribute('href', '/marked?tab=not-relevant')
     await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
 
     expect(screen.queryByText(/is marked as not relevant/)).not.toBeInTheDocument()
+  })
+
+  it('keeps the less-used actions in each card’s menu rather than on the card', async () => {
+    server.use(
+      jobResults([result('r-1', 'Acme Corp', { jobTitle: 'Staff Engineer' })]),
+      http.get(`${API}/api/jobs/resume-reviews`, () => HttpResponse.json([resumeReview()])),
+    )
+    renderRoutes(routes)
+
+    const menuButton = await screen.findByRole('button', { name: 'More actions for Staff Engineer' })
+    // Once the review has loaded, there is something to fix.
+    expect(await screen.findByText('Tailor your resume to this job from the ⋮ menu.')).toBeInTheDocument()
+    for (const name of [/as applied/, /as not relevant/, /Tailor and fix/, /Tailor as is/]) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
+    }
+
+    await userEvent.click(menuButton)
+
+    const menu = screen.getByRole('menu', { name: 'More actions for Staff Engineer' })
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+      'Applied',
+      'Not relevant',
+      'Tailor and fix',
+      'Tailor as is',
+    ])
+  })
+
+  it('opens the fix panel on the card from the menu', async () => {
+    server.use(
+      jobResults([result('r-1', 'Acme Corp', { jobTitle: 'Staff Engineer' })]),
+      http.get(`${API}/api/jobs/resume-reviews`, () => HttpResponse.json([resumeReview()])),
+    )
+    renderRoutes(routes)
+    await screen.findByText('Tailor your resume to this job from the ⋮ menu.')
+
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Staff Engineer' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Tailor and fix for Staff Engineer' }))
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: /What to fix/ })).toBeInTheDocument()
+  })
+
+  it('tailors as is from the menu, telling the server to fix nothing', async () => {
+    const bodies: unknown[] = []
+    server.use(
+      jobResults([result('r-1', 'Acme Corp', { jobTitle: 'Staff Engineer' })]),
+      http.get(`${API}/api/jobs/resume-reviews`, () => HttpResponse.json([resumeReview()])),
+      http.post(`${API}/api/jobs/results/r-1/tailored-resume`, async ({ request }) => {
+        bodies.push(await request.json())
+        return HttpResponse.json(tailoredResume({ status: 'PENDING', completedAt: null }), { status: 202 })
+      }),
+    )
+    renderRoutes(routes)
+    await screen.findByText('Tailor your resume to this job from the ⋮ menu.')
+
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Staff Engineer' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Tailor as is for Staff Engineer' }))
+
+    await vi.waitFor(() => expect(bodies).toHaveLength(1))
+    expect(bodies[0]).toMatchObject({ fix: { keywords: [], redFlags: false } })
+  })
+
+  it('offers only the status changes in the menu when there is nothing to fix', async () => {
+    server.use(jobResults([result('r-1', 'Acme Corp', { jobTitle: 'Staff Engineer' })]))
+    renderRoutes(routes)
+
+    // Without a review the card still tailors in one click.
+    expect(await screen.findByRole('button', { name: 'Tailor resume for Staff Engineer' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'More actions for Staff Engineer' }))
+
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Applied', 'Not relevant'])
   })
 })

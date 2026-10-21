@@ -78,7 +78,8 @@ test('a user tailors their resume fixing what the review found, then downloads i
   await card.getByRole('button', { name: 'Review resume for Staff Engineer' }).click()
   await expect(card.getByText('Resume ATS 72%')).toBeVisible({ timeout: 15_000 })
 
-  await card.getByRole('button', { name: 'Tailor and fix for Staff Engineer' }).click()
+  await card.getByRole('button', { name: 'More actions for Staff Engineer' }).click()
+  await card.getByRole('menuitem', { name: 'Tailor and fix for Staff Engineer' }).click()
   const fixes = card.getByRole('region', { name: /What to fix/ })
   await expect(fixes.getByRole('checkbox', { name: 'Kubernetes' })).not.toBeChecked()
   await fixes.getByRole('checkbox', { name: 'Terraform' }).check()
