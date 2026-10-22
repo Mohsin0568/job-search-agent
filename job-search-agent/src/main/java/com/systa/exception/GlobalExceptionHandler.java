@@ -1,5 +1,6 @@
 package com.systa.exception;
 
+import com.systa.model.UserAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUserSessionRevoked(final UserSessionRevokedException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse("your session is no longer valid, please sign in again"));
+    }
+
+    // The code tells the frontend to show the waitlist rather than an error.
+    @ExceptionHandler(AccessNotGrantedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessNotGranted(final AccessNotGrantedException ex) {
+        final ErrorResponse body = ex.status() == UserAccess.Status.REVOKED
+                ? new ErrorResponse("your access to the app has been removed", "ACCESS_REVOKED")
+                : new ErrorResponse("the app is invite-only for now, and you're on the waitlist", "ACCESS_PENDING");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
 
     @ExceptionHandler(IdentityProviderUnavailableException.class)

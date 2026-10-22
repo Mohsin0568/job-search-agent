@@ -1,6 +1,7 @@
 package com.systa.controller;
 
 import com.systa.model.ResumeTemplate;
+import com.systa.security.EveryoneLetIn;
 import com.systa.security.SecurityConfig;
 import com.systa.service.ResumeTemplatePreviewService;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "auth.cognito.client-id=test-client",
         "auth.allowed-origins=http://localhost:5173"
 })
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, EveryoneLetIn.class})
 class ResumeTemplateControllerTest {
 
     private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G'};

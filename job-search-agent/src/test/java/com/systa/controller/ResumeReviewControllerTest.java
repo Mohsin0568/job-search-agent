@@ -5,6 +5,7 @@ import com.systa.model.ResumeReview;
 import com.systa.model.ResumeReview.RedFlag;
 import com.systa.model.ResumeReview.Status;
 import com.systa.model.ResumeReviewResult;
+import com.systa.security.EveryoneLetIn;
 import com.systa.security.SecurityConfig;
 import com.systa.service.ResumeReviewService;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "auth.cognito.client-id=test-client",
         "auth.allowed-origins=http://localhost:5173"
 })
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, EveryoneLetIn.class})
 class ResumeReviewControllerTest {
 
     private static final String USER_ID = "cognito-sub-123";

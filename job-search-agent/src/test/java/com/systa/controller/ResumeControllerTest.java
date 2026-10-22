@@ -5,6 +5,7 @@ import com.systa.exception.ResumeStorageException;
 import com.systa.exception.ResumeUploadConflictException;
 import com.systa.model.ResumeDownload;
 import com.systa.model.UserResume;
+import com.systa.security.EveryoneLetIn;
 import com.systa.security.SecurityConfig;
 import com.systa.service.ResumeService;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "auth.cognito.client-id=test-client",
         "auth.allowed-origins=http://localhost:5173"
 })
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, EveryoneLetIn.class})
 class ResumeControllerTest {
 
     private static final String USER_ID = "cognito-sub-123";

@@ -4,6 +4,7 @@ import com.systa.exception.IdentityProviderUnavailableException;
 import com.systa.exception.UserSessionRevokedException;
 import com.systa.model.CandidateProfile;
 import com.systa.model.CandidateProfileDto;
+import com.systa.security.EveryoneLetIn;
 import com.systa.security.SecurityConfig;
 import com.systa.service.CandidateProfileService;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "auth.cognito.client-id=test-client",
         "auth.allowed-origins=http://localhost:5173"
 })
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, EveryoneLetIn.class})
 class ProfileControllerTest {
 
     private static final String USER_ID = "cognito-sub-123";

@@ -51,7 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "auth.cognito.client-id=" + JwtDecodingSecurityTest.CLIENT_ID,
         "auth.allowed-origins=http://localhost:5173"
 })
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, EveryoneLetIn.class})
 class JwtDecodingSecurityTest {
 
     static final String CLIENT_ID = "test-client";

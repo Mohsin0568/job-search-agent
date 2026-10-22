@@ -5,8 +5,10 @@ import com.systa.model.CandidateProfile;
 import com.systa.model.JobSearchOutcome;
 import com.systa.model.UserJobSearchRun;
 import com.systa.model.JobSearchRun;
+import com.systa.model.UserAccess;
 import com.systa.repository.CandidateProfileRepository;
 import com.systa.repository.JobSearchRunRepository;
+import com.systa.repository.UserAccessRepository;
 import com.systa.repository.UserJobSearchRunRepository;
 import com.systa.service.JobSearchService;
 import com.systa.service.SuggestionSeeder;
@@ -28,6 +30,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -67,12 +70,16 @@ class JobModeApplicationTest {
     @Autowired
     private JobSearchRunRepository jobSearchRunRepository;
 
+    @Autowired
+    private UserAccessRepository userAccessRepository;
+
     @MockitoBean
     private JobSearchService jobSearchService;
 
     @BeforeEach
     void clear() {
         candidateProfileRepository.deleteAll();
+        userAccessRepository.deleteAll();
         userJobSearchRunRepository.deleteAll();
         jobSearchRunRepository.deleteAll();
     }
@@ -89,6 +96,7 @@ class JobModeApplicationTest {
     void searchesForEveryUserInMongo_recordsTheirRuns_andSkipsThemOnARerunTheSameDay() {
         final List<CandidateProfile> saved = candidateProfileRepository.saveAll(
                 List.of(profile("ada", "Acme Corp"), profile("bob", "Globex"), profile("cy", "Initech")));
+        letIn("ada", "bob", "cy");
         when(jobSearchService.searchJobs(any(), any())).thenReturn(new JobSearchOutcome(3, 0, List.of()));
 
         runner.run(null);
@@ -113,8 +121,29 @@ class JobModeApplicationTest {
     }
 
     @Test
+    void searchesOnlyForUsersLetIn_whileInviteOnly() {
+        final CandidateProfile ada = candidateProfileRepository.save(profile("ada", "Acme Corp"));
+        final CandidateProfile bob = candidateProfileRepository.save(profile("bob", "Globex"));
+        letIn("ada");
+        userAccessRepository.save(new UserAccess("bob@example.com", "bob", UserAccess.Status.PENDING, null));
+        when(jobSearchService.searchJobs(any(), any())).thenReturn(new JobSearchOutcome(3, 0, List.of()));
+
+        runner.run(null);
+
+        verify(jobSearchService).searchJobs(eq(ada), any());
+        verify(jobSearchService, never()).searchJobs(eq(bob), any());
+    }
+
+    private void letIn(final String... userIds) {
+        for (final String userId : userIds) {
+            userAccessRepository.save(new UserAccess(userId + "@example.com", userId, UserAccess.Status.APPROVED, null));
+        }
+    }
+
+    @Test
     void retriesAUserWhoseSearchFailed_onARerunTheSameDay() {
         final CandidateProfile ada = candidateProfileRepository.save(profile("ada", "Acme Corp"));
+        letIn("ada");
         when(jobSearchService.searchJobs(any(), any())).thenReturn(new JobSearchOutcome(3, 3, List.of()));
 
         runner.run(null);
