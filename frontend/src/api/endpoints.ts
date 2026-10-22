@@ -12,6 +12,7 @@ import type {
   ResumeTemplate,
   TailoredResume,
   TailoringFix,
+  Access,
   KnownCompany,
   Suggestion,
   SuggestionSource,
@@ -125,6 +126,11 @@ export function getJobSearchRuns(page = 0, size = 20): Promise<JobSearchRunSumma
 /** What one run of the search found for each company, from each source. */
 export function getJobSearchRun(runId: string): Promise<JobSearchRunDetail> {
   return apiFetch<JobSearchRunDetail>(`/api/jobs/search-runs/${encodeURIComponent(runId)}`)
+}
+
+/** Whether the signed-in user may use the app. Asking puts a user without an invite on the waitlist. */
+export function getAccess(): Promise<Access> {
+  return apiFetch<Access>('/api/access')
 }
 
 /** Every known company with its sector, A-Z. */

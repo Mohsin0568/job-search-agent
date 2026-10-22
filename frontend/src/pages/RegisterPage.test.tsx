@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { autoSignIn, signUp } from 'aws-amplify/auth'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { namedError, renderRoutes } from '../test/render'
+import { env } from '../config/env'
 import { RegisterPage } from './RegisterPage'
 
 vi.mock('aws-amplify/auth', () => ({ signUp: vi.fn(), autoSignIn: vi.fn() }))
@@ -33,6 +34,24 @@ beforeEach(() => {
 })
 
 describe('RegisterPage', () => {
+  it('says the app is invite-only for now', () => {
+    renderRoutes(routes, { at: '/register', auth: { status: 'signedOut', user: null } })
+
+    expect(screen.getByText(/invite-only for now/)).toBeInTheDocument()
+  })
+
+  it('leaves the note out once the app is open to everyone', () => {
+    const before = env.inviteOnly
+    env.inviteOnly = false
+    try {
+      renderRoutes(routes, { at: '/register', auth: { status: 'signedOut', user: null } })
+
+      expect(screen.queryByText(/invite-only for now/)).not.toBeInTheDocument()
+    } finally {
+      env.inviteOnly = before
+    }
+  })
+
   it('registers the user and opens the verify screen for their email', async () => {
     vi.mocked(signUp).mockResolvedValue(nextStep('CONFIRM_SIGN_UP'))
     const { router } = renderRoutes(routes, { at: '/register' })

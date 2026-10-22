@@ -1,4 +1,4 @@
-import { expect, signIn, test } from './app'
+import { expect, signIn, test, USER } from './app'
 
 test('a user without a profile sets one up and reaches an empty dashboard', async ({ page, backend }) => {
   await signIn(page)
@@ -77,4 +77,24 @@ test('a user picks the companies to search from the full list, by sector', async
   await page.getByRole('button', { name: 'Save and continue' }).click()
   await expect(page).toHaveURL('/')
   expect(backend.savedProfiles[0]?.companyPreferences).toEqual(['A Company Not Listed', 'Monzo', 'Dell'])
+})
+
+test('a user without an invite waits on the waitlist, and sets up their search once invited', async ({
+  page,
+  backend,
+}) => {
+  backend.access = 'PENDING'
+  await signIn(page)
+
+  await expect(page.getByRole('heading', { name: 'You’re on the waitlist' })).toBeVisible()
+  await expect(page.getByText(USER.email)).toBeVisible()
+  // The app itself isn't reachable while waiting.
+  await page.goto('/profile')
+  await expect(page.getByRole('heading', { name: 'You’re on the waitlist' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Main' })).toBeHidden()
+
+  backend.access = 'APPROVED'
+  await page.getByRole('button', { name: 'Check again' }).click()
+
+  await expect(page).toHaveURL('/onboarding')
 })

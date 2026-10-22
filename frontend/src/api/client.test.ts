@@ -2,7 +2,7 @@ import { fetchAuthSession } from 'aws-amplify/auth'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { API, server } from '../test/server'
-import { ApiError, apiFetch, setUnauthorizedHandler } from './client'
+import { ApiError, apiFetch, setAccessDeniedHandler, setUnauthorizedHandler } from './client'
 import {
   getJobResults,
   getProfile,
@@ -42,6 +42,7 @@ async function failure(promise: Promise<unknown>): Promise<ApiError> {
 beforeEach(() => signedInWith('access-token'))
 afterEach(() => {
   setUnauthorizedHandler(undefined)
+  setAccessDeniedHandler(undefined)
   vi.mocked(fetchAuthSession).mockReset()
 })
 
@@ -144,6 +145,35 @@ describe('apiFetch', () => {
     await failure(apiFetch('/broken'))
 
     expect(onUnauthorized).not.toHaveBeenCalled()
+  })
+
+  it('keeps the code the backend gives an error', async () => {
+    server.use(
+      http.get(`${API}/coded`, () => HttpResponse.json({ message: 'on the waitlist', code: 'ACCESS_PENDING' }, { status: 403 })),
+      http.get(`${API}/plain`, () => HttpResponse.json({ message: 'bad request' }, { status: 400 })),
+    )
+
+    const coded = await failure(apiFetch('/coded'))
+    expect(coded.message).toBe('on the waitlist')
+    expect(coded.code).toBe('ACCESS_PENDING')
+    expect((await failure(apiFetch('/plain'))).code).toBeUndefined()
+  })
+
+  it('tells the app the user is not let in on a 403 with an access code, and only then', async () => {
+    const onAccessDenied = vi.fn()
+    setAccessDeniedHandler(onAccessDenied)
+    server.use(
+      http.get(`${API}/pending`, () => HttpResponse.json({ message: 'waitlist', code: 'ACCESS_PENDING' }, { status: 403 })),
+      http.get(`${API}/revoked`, () => HttpResponse.json({ message: 'removed', code: 'ACCESS_REVOKED' }, { status: 403 })),
+      http.get(`${API}/other-403`, () => HttpResponse.json({ message: 'not yours' }, { status: 403 })),
+    )
+
+    await failure(apiFetch('/pending'))
+    await failure(apiFetch('/revoked'))
+    expect(onAccessDenied).toHaveBeenCalledTimes(2)
+
+    await failure(apiFetch('/other-403'))
+    expect(onAccessDenied).toHaveBeenCalledTimes(2)
   })
 })
 

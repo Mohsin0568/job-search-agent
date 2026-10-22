@@ -110,6 +110,8 @@ const PREVIEW_PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
 export type Backend = {
+  /** Whether the user is let in while the app is invite-only; anything but APPROVED is turned away. */
+  access: 'APPROVED' | 'PENDING' | 'REVOKED'
   /** null means the user hasn't set up a profile yet (the API answers 404). */
   profile: Profile | null
   /** Every job saved for the user, whatever its status, newest run first. */
@@ -272,6 +274,14 @@ async function fakeBackend(page: Page, backend: Backend) {
       return route.fulfill({ status: 401 })
     }
 
+    if (url.pathname === '/api/access') {
+      return json({ status: backend.access, inviteOnly: true })
+    }
+    // As the real API does: everything else turns away a user who isn't let in.
+    if (backend.access !== 'APPROVED') {
+      const code = backend.access === 'REVOKED' ? 'ACCESS_REVOKED' : 'ACCESS_PENDING'
+      return json({ message: 'not let in', code }, 403)
+    }
     if (url.pathname === '/api/companies' && request.method() === 'GET') {
       const names = [...backend.companies].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
       return json(names.map((name) => ({ name, sector: backend.companySectors[name] ?? null })))
@@ -463,6 +473,7 @@ export const test = base.extend<{ backend: Backend }>({
   // Tests change this object to set up their scenario; it starts as a user with no profile.
   backend: async ({ page }, provide) => {
     const backend: Backend = {
+      access: 'APPROVED',
       profile: null,
       results: [],
       companies: ['Deliveroo', 'Dell', 'Deloitte', 'Monzo'],

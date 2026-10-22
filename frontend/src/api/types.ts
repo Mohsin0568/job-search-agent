@@ -187,6 +187,14 @@ export type Suggestion = {
   name: string
 }
 
+/** Whether the user may use the app while it is invite-only: PENDING is the waitlist. */
+export type AccessStatus = 'APPROVED' | 'PENDING' | 'REVOKED'
+
+export type Access = {
+  status: AccessStatus
+  inviteOnly: boolean
+}
+
 /** A known company, as listed for browsing on the profile page. */
 export type KnownCompany = {
   name: string

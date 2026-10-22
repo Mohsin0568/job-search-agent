@@ -12,6 +12,7 @@ import { Alert } from '../components/form/Alert'
 import { PasswordRules } from '../components/form/PasswordRules'
 import { SubmitButton } from '../components/form/SubmitButton'
 import { TextField } from '../components/form/TextField'
+import { env } from '../config/env'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -92,6 +93,13 @@ export function RegisterPage() {
 
         <SubmitButton loading={isSubmitting}>Create account</SubmitButton>
       </form>
+
+      {env.inviteOnly && (
+        <p className="mt-4 rounded-md bg-indigo-50 px-3 py-2 text-center text-sm text-indigo-800">
+          Job Search Agent is invite-only for now. Anyone can create an account, and you’ll be able to use it once
+          you’re invited.
+        </p>
+      )}
 
       <p className="mt-6 text-center text-sm text-slate-600">
         Already have an account?{' '}
