@@ -5,6 +5,7 @@ import com.systa.model.JobDescription;
 import com.systa.model.JobListing;
 import com.systa.model.UserJobSearchResult;
 import com.systa.model.UserJobSearchResult.Status;
+import com.systa.security.EveryoneLetIn;
 import com.systa.security.SecurityConfig;
 import com.systa.service.JobDescriptionService;
 import com.systa.service.JobSearchResultQueryService;
@@ -39,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "auth.cognito.client-id=test-client",
         "auth.allowed-origins=http://localhost:5173"
 })
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, EveryoneLetIn.class})
 class JobSearchControllerTest {
 
     private static final String USER_ID = "cognito-sub-123";

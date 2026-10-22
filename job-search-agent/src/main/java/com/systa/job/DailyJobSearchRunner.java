@@ -10,6 +10,7 @@ import com.systa.model.UserJobSearchRun.Status;
 import com.systa.repository.CandidateProfileRepository;
 import com.systa.repository.JobSearchRunRepository;
 import com.systa.repository.UserJobSearchRunRepository;
+import com.systa.service.AccessService;
 import com.systa.service.JobSearchService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,7 @@ public class DailyJobSearchRunner implements ApplicationRunner, ExitCodeGenerato
     private final JobSearchRunRepository jobSearchRunRepository;
     private final JobSearchService jobSearchService;
     private final DailyResumeReviewer dailyResumeReviewer;
+    private final AccessService accessService;
     private final DailyJobSearchProperties properties;
     private final Clock clock;
     private final Supplier<String> idGenerator;
@@ -66,9 +68,10 @@ public class DailyJobSearchRunner implements ApplicationRunner, ExitCodeGenerato
                                 final JobSearchRunRepository jobSearchRunRepository,
                                 final JobSearchService jobSearchService,
                                 final DailyResumeReviewer dailyResumeReviewer,
+                                final AccessService accessService,
                                 final DailyJobSearchProperties properties) {
         this(candidateProfileRepository, userJobSearchRunRepository, jobSearchRunRepository, jobSearchService,
-                dailyResumeReviewer, properties, Clock.systemUTC(), () -> UUID.randomUUID().toString());
+                dailyResumeReviewer, accessService, properties, Clock.systemUTC(), () -> UUID.randomUUID().toString());
     }
 
     DailyJobSearchRunner(final CandidateProfileRepository candidateProfileRepository,
@@ -76,6 +79,7 @@ public class DailyJobSearchRunner implements ApplicationRunner, ExitCodeGenerato
                          final JobSearchRunRepository jobSearchRunRepository,
                          final JobSearchService jobSearchService,
                          final DailyResumeReviewer dailyResumeReviewer,
+                         final AccessService accessService,
                          final DailyJobSearchProperties properties,
                          final Clock clock,
                          final Supplier<String> idGenerator) {
@@ -84,6 +88,7 @@ public class DailyJobSearchRunner implements ApplicationRunner, ExitCodeGenerato
         this.jobSearchRunRepository = jobSearchRunRepository;
         this.jobSearchService = jobSearchService;
         this.dailyResumeReviewer = dailyResumeReviewer;
+        this.accessService = accessService;
         this.properties = properties;
         this.clock = clock;
         this.idGenerator = idGenerator;
@@ -123,6 +128,12 @@ public class DailyJobSearchRunner implements ApplicationRunner, ExitCodeGenerato
         do {
             profiles = candidateProfileRepository.findAll(pageable);
             for (final CandidateProfile profile : profiles) {
+                // A user shut out while the app is invite-only costs nothing: no searches, no reviews.
+                if (!accessService.mayUseApp(profile.userId())) {
+                    log.info("Not let in while invite-only, skipping - userId={}", profile.userId());
+                    counts.merge(Status.SKIPPED, 1, Integer::sum);
+                    continue;
+                }
                 if (!properties.force() && alreadyDone(profile.userId(), runDate)) {
                     log.info("Already searched today, skipping - userId={}", profile.userId());
                     counts.merge(Status.SKIPPED, 1, Integer::sum);

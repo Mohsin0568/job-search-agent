@@ -6,6 +6,7 @@ import com.systa.model.JobSearchRunDetailDto.CompanyResult;
 import com.systa.model.JobSearchRunDetailDto.SourceResult;
 import com.systa.model.JobSearchRunSummaryDto;
 import com.systa.model.UserJobSearchRun.Status;
+import com.systa.security.EveryoneLetIn;
 import com.systa.security.SecurityConfig;
 import com.systa.service.JobSearchHistoryService;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "auth.cognito.client-id=test-client",
         "auth.allowed-origins=http://localhost:5173"
 })
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, EveryoneLetIn.class})
 class JobSearchHistoryControllerTest {
 
     private static final String USER_ID = "cognito-sub-123";

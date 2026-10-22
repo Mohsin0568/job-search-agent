@@ -9,6 +9,7 @@ import com.systa.model.UserJobSearchRun.Status;
 import com.systa.repository.CandidateProfileRepository;
 import com.systa.repository.JobSearchRunRepository;
 import com.systa.repository.UserJobSearchRunRepository;
+import com.systa.service.AccessService;
 import com.systa.service.JobSearchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,6 +65,9 @@ class DailyJobSearchRunnerTest {
     @Mock
     private DailyResumeReviewer dailyResumeReviewer;
 
+    @Mock
+    private AccessService accessService;
+
     private DailyJobSearchRunner runner;
 
     @BeforeEach
@@ -72,6 +76,22 @@ class DailyJobSearchRunnerTest {
         // By default nobody has been searched before and every search goes through.
         lenient().when(userJobSearchRunRepository.findById(any())).thenReturn(Optional.empty());
         lenient().when(jobSearchService.searchJobs(any(), any())).thenReturn(ALL_SEARCHED);
+        lenient().when(accessService.mayUseApp(any())).thenReturn(true);
+    }
+
+    @Test
+    void skipsUsersNotLetIn_withoutSearchingOrReviewingForThem() {
+        final CandidateProfile ada = profile("ada");
+        final CandidateProfile bob = profile("bob");
+        usersWithProfiles(ada, bob);
+        when(accessService.mayUseApp("bob")).thenReturn(false);
+
+        runner.run(null);
+
+        verify(jobSearchService).searchJobs(eq(ada), any());
+        verify(jobSearchService, never()).searchJobs(eq(bob), any());
+        verify(dailyResumeReviewer, never()).reviewNewJobs(eq("bob"), any());
+        assertThat(runner.getExitCode()).isZero();
     }
 
     @Test
@@ -320,7 +340,7 @@ class DailyJobSearchRunnerTest {
     private DailyJobSearchRunner runner(final boolean force) {
         final AtomicInteger runs = new AtomicInteger();
         return new DailyJobSearchRunner(candidateProfileRepository, userJobSearchRunRepository, jobSearchRunRepository,
-                jobSearchService, dailyResumeReviewer,
+                jobSearchService, dailyResumeReviewer, accessService,
                 new DailyJobSearchProperties(2, Duration.ZERO, force, 20, Duration.ZERO),
                 Clock.fixed(NOW, ZoneOffset.UTC), () -> "run-" + runs.incrementAndGet());
     }

@@ -52,6 +52,11 @@ resume:
   # How long a resume download link stays valid.
   download-url-ttl: 5m
 
+access:
+  # Only invited users may use the app; everyone else who signs up joins a waitlist. Access is managed
+  # by hand in the user_access collection (see UserAccess). INVITE_ONLY=false opens the app to everyone.
+  invite-only: ${INVITE_ONLY:true}
+
 job-search:
   model: gpt-4.1
   max-attempts-per-batch: 2
