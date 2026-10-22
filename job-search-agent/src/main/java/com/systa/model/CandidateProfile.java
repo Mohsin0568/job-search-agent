@@ -11,6 +11,9 @@ public record CandidateProfile(
         String userId,
         // Verified email from Cognito, refreshed on every profile save. Never taken from the client.
         String email,
+        // The full name given at registration, from Cognito like the email. Null until the profile is next
+        // saved, for profiles created before it was kept.
+        String fullName,
         String desiredRole,
         List<String> skills,
         String currentJobDescription,

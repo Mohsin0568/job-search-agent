@@ -18,6 +18,7 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthoriz
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,7 +39,7 @@ class CognitoUserServiceTest {
     void returnsVerifiedEmail_usingTheUsersAccessToken() {
         when(cognitoClient.getUser(any(GetUserRequest.class))).thenReturn(user("jane@example.com", "true"));
 
-        assertThat(service().findVerifiedEmail(USER_ID, ACCESS_TOKEN)).contains("jane@example.com");
+        assertThat(service().findUser(USER_ID, ACCESS_TOKEN).verifiedEmail()).contains("jane@example.com");
 
         final ArgumentCaptor<GetUserRequest> request = ArgumentCaptor.forClass(GetUserRequest.class);
         verify(cognitoClient).getUser(request.capture());
@@ -49,7 +50,7 @@ class CognitoUserServiceTest {
     void returnsEmpty_whenEmailIsNotVerified() {
         when(cognitoClient.getUser(any(GetUserRequest.class))).thenReturn(user("jane@example.com", "false"));
 
-        assertThat(service().findVerifiedEmail(USER_ID, ACCESS_TOKEN)).isEmpty();
+        assertThat(service().findUser(USER_ID, ACCESS_TOKEN).verifiedEmail()).isEmpty();
     }
 
     @Test
@@ -58,7 +59,35 @@ class CognitoUserServiceTest {
                 .userAttributes(AttributeType.builder().name("sub").value(USER_ID).build())
                 .build());
 
-        assertThat(service().findVerifiedEmail(USER_ID, ACCESS_TOKEN)).isEmpty();
+        assertThat(service().findUser(USER_ID, ACCESS_TOKEN).verifiedEmail()).isEmpty();
+    }
+
+    @Test
+    void returnsTheFullNameGivenAtRegistration_trimmed() {
+        when(cognitoClient.getUser(any(GetUserRequest.class))).thenReturn(GetUserResponse.builder()
+                .userAttributes(
+                        AttributeType.builder().name("email").value("jane@example.com").build(),
+                        AttributeType.builder().name("email_verified").value("true").build(),
+                        AttributeType.builder().name("name").value("  Jane Doe ").build())
+                .build());
+
+        final CognitoUserService.CognitoUser user = service().findUser(USER_ID, ACCESS_TOKEN);
+
+        assertThat(user.fullName()).contains("Jane Doe");
+        assertThat(user.verifiedEmail()).contains("jane@example.com");
+        verify(cognitoClient, times(1)).getUser(any(GetUserRequest.class));
+    }
+
+    @Test
+    void returnsNoFullName_whenTheUserGaveNoneOrABlankOne() {
+        when(cognitoClient.getUser(any(GetUserRequest.class)))
+                .thenReturn(user("jane@example.com", "true"))
+                .thenReturn(GetUserResponse.builder()
+                        .userAttributes(AttributeType.builder().name("name").value("   ").build())
+                        .build());
+
+        assertThat(service().findUser(USER_ID, ACCESS_TOKEN).fullName()).isEmpty();
+        assertThat(service().findUser(USER_ID, ACCESS_TOKEN).fullName()).isEmpty();
     }
 
     @Test
@@ -66,7 +95,7 @@ class CognitoUserServiceTest {
         when(cognitoClient.getUser(any(GetUserRequest.class)))
                 .thenThrow(NotAuthorizedException.builder().message("Access Token has been revoked").build());
 
-        assertThatThrownBy(() -> service().findVerifiedEmail(USER_ID, ACCESS_TOKEN))
+        assertThatThrownBy(() -> service().findUser(USER_ID, ACCESS_TOKEN))
                 .isInstanceOf(UserSessionRevokedException.class);
     }
 
@@ -74,7 +103,7 @@ class CognitoUserServiceTest {
     void networkFailure_raisesIdentityProviderUnavailable() {
         when(cognitoClient.getUser(any(GetUserRequest.class))).thenThrow(SdkClientException.create("connection refused"));
 
-        assertThatThrownBy(() -> service().findVerifiedEmail(USER_ID, ACCESS_TOKEN))
+        assertThatThrownBy(() -> service().findUser(USER_ID, ACCESS_TOKEN))
                 .isInstanceOf(IdentityProviderUnavailableException.class);
     }
 
@@ -83,7 +112,7 @@ class CognitoUserServiceTest {
         when(cognitoClient.getUser(any(GetUserRequest.class))).thenThrow(
                 CognitoIdentityProviderException.builder().statusCode(500).message("internal error").build());
 
-        assertThatThrownBy(() -> service().findVerifiedEmail(USER_ID, ACCESS_TOKEN))
+        assertThatThrownBy(() -> service().findUser(USER_ID, ACCESS_TOKEN))
                 .isInstanceOf(IdentityProviderUnavailableException.class);
     }
 

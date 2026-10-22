@@ -134,7 +134,7 @@ class JobModeApplicationTest {
     }
 
     private static CandidateProfile profile(final String userId, final String company) {
-        return new CandidateProfile(null, userId, userId + "@example.com", "Senior Java Developer",
+        return new CandidateProfile(null, userId, userId + "@example.com", null, "Senior Java Developer",
                 List.of("Java"), "Builds APIs", List.of(company), 7);
     }
 }

@@ -323,7 +323,7 @@ class JobSearchServiceTest {
     }
 
     private static CandidateProfile profile(final Integer recencyWindowDays, final List<String> companyPreferences) {
-        return new CandidateProfile("profile-1", USER_ID, "ada@example.com", "Senior Java Developer",
+        return new CandidateProfile("profile-1", USER_ID, "ada@example.com", null, "Senior Java Developer",
                 List.of("Java", "Spring Boot"), "Builds APIs", companyPreferences, recencyWindowDays);
     }
 

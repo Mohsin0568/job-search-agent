@@ -42,7 +42,7 @@ class JobSearchLlmServiceTest {
     private static final List<String> SOURCES = List.of("LinkedIn (linkedin.com/jobs)", "Reed (reed.co.uk)");
     private static final int MAX_ATTEMPTS = 3;
 
-    private static final CandidateProfile PROFILE = new CandidateProfile("profile-1", USER_ID, "ada@example.com",
+    private static final CandidateProfile PROFILE = new CandidateProfile("profile-1", USER_ID, "ada@example.com", null,
             "Senior Java Developer", List.of("Java", "Spring Boot"), "Builds payment APIs", List.of(COMPANY), 7);
 
     private static final String ONE_JOB = """
@@ -272,7 +272,7 @@ class JobSearchLlmServiceTest {
     }
 
     private static CandidateProfile profileWithWindow(final Integer recencyWindowDays) {
-        return new CandidateProfile(PROFILE.id(), USER_ID, PROFILE.email(), PROFILE.desiredRole(), PROFILE.skills(),
+        return new CandidateProfile(PROFILE.id(), USER_ID, PROFILE.email(), PROFILE.fullName(), PROFILE.desiredRole(), PROFILE.skills(),
                 PROFILE.currentJobDescription(), PROFILE.companyPreferences(), recencyWindowDays);
     }
 

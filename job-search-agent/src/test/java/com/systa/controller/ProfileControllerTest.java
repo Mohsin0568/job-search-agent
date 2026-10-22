@@ -72,7 +72,7 @@ class ProfileControllerTest {
     @Test
     void getProfile_returnsEditableFieldsOnly() throws Exception {
         when(candidateProfileService.findByUserId(USER_ID)).thenReturn(Optional.of(new CandidateProfile(
-                "p-1", USER_ID, EMAIL, "Senior Java Developer", List.of("Java"), "Building APIs", List.of("Acme"), 14)));
+                "p-1", USER_ID, EMAIL, null, "Senior Java Developer", List.of("Java"), "Building APIs", List.of("Acme"), 14)));
 
         mockMvc.perform(get("/api/profile").with(jwt().jwt(token -> token.subject(USER_ID))))
                 .andExpect(status().isOk())
@@ -87,7 +87,7 @@ class ProfileControllerTest {
     @Test
     void saveProfile_savesForTokenSubject_passingTheAccessToken() throws Exception {
         when(candidateProfileService.save(eq(USER_ID), eq(ACCESS_TOKEN), any())).thenReturn(new CandidateProfile(
-                "p-1", USER_ID, EMAIL, "Senior Java Developer", List.of("Java", "Spring Boot"), "Building APIs",
+                "p-1", USER_ID, EMAIL, null, "Senior Java Developer", List.of("Java", "Spring Boot"), "Building APIs",
                 List.of("Acme", "Globex"), 14));
 
         mockMvc.perform(put("/api/profile")
