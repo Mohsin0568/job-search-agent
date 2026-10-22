@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { RequireAccess } from './access/RequireAccess'
 import { ProtectedRoute, PublicOnlyRoute } from './auth/routes'
 import { AppLayout } from './components/AppLayout'
 import { ConfirmSignUpPage } from './pages/ConfirmSignUpPage'
@@ -27,16 +28,22 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [
       {
-        element: <AppLayout />,
+        // Before the app itself: a user not let in while it is invite-only sees the waitlist instead.
+        element: <RequireAccess />,
         children: [
-          { path: '/onboarding', element: <OnboardingPage /> },
           {
-            element: <RequireProfile />,
+            element: <AppLayout />,
             children: [
-              { index: true, element: <DashboardPage /> },
-              { path: '/marked', element: <MarkedJobsPage /> },
-              { path: '/history', element: <SearchHistoryPage /> },
-              { path: '/profile', element: <ProfilePage /> },
+              { path: '/onboarding', element: <OnboardingPage /> },
+              {
+                element: <RequireProfile />,
+                children: [
+                  { index: true, element: <DashboardPage /> },
+                  { path: '/marked', element: <MarkedJobsPage /> },
+                  { path: '/history', element: <SearchHistoryPage /> },
+                  { path: '/profile', element: <ProfilePage /> },
+                ],
+              },
             ],
           },
         ],

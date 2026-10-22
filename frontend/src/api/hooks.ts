@@ -1,6 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../auth/AuthContext'
 import {
+  getAccess,
   getJobResults,
   getJobSearchRun,
   getJobSearchRuns,
@@ -34,6 +35,7 @@ import type {
 
 // Query keys include the user id so one user's cached data is never shown to the next user on this browser.
 const keys = {
+  access: (userId: string) => ['access', userId] as const,
   profile: (userId: string) => ['profile', userId] as const,
   // Every list of the user's jobs starts ['jobResults', userId, status], so marking a job can find them all.
   jobResults: (userId: string, status: JobStatus, page: number, size: number) =>
@@ -58,6 +60,12 @@ function useUserId(): string {
     throw new Error('API hooks must be used inside a ProtectedRoute')
   }
   return user.userId
+}
+
+/** Whether the user may use the app. Asked again whenever an API call says they aren't let in. */
+export function useAccess() {
+  const userId = useUserId()
+  return useQuery({ queryKey: keys.access(userId), queryFn: getAccess, staleTime: 5 * 60 * 1000 })
 }
 
 export function useProfile() {
