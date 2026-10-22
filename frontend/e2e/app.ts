@@ -115,6 +115,8 @@ export type Backend = {
   /** Every job saved for the user, whatever its status, newest run first. */
   results: JobResult[]
   companies: string[]
+  /** Each known company's sector, by name, for browsing them all. */
+  companySectors: Record<string, string>
   skills: string[]
   /** The user's resume versions, newest first. */
   resumes: Resume[]
@@ -270,6 +272,10 @@ async function fakeBackend(page: Page, backend: Backend) {
       return route.fulfill({ status: 401 })
     }
 
+    if (url.pathname === '/api/companies' && request.method() === 'GET') {
+      const names = [...backend.companies].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+      return json(names.map((name) => ({ name, sector: backend.companySectors[name] ?? null })))
+    }
     const suggest = url.pathname.match(/^\/api\/(companies|skills)\/suggest$/)
     if (suggest) {
       const typed = (url.searchParams.get('q') ?? '').toLowerCase()
@@ -460,6 +466,12 @@ export const test = base.extend<{ backend: Backend }>({
       profile: null,
       results: [],
       companies: ['Deliveroo', 'Dell', 'Deloitte', 'Monzo'],
+      companySectors: {
+        Deliveroo: 'Retail & E-commerce',
+        Dell: 'Big Tech & Software',
+        Deloitte: 'Consulting & IT Services',
+        Monzo: 'Fintech',
+      },
       skills: ['Java', 'JavaScript', 'Spring Boot'],
       resumes: [],
       tailoredResumes: [],

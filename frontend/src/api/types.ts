@@ -187,6 +187,13 @@ export type Suggestion = {
   name: string
 }
 
+/** A known company, as listed for browsing on the profile page. */
+export type KnownCompany = {
+  name: string
+  /** e.g. "Fintech". Null only if the company was seeded without one. */
+  sector: string | null
+}
+
 // Backend limits (CandidateProfileDto) - keep in sync.
 export const MAX_COMPANY_PREFERENCES = 10
 export const MAX_SKILLS = 50

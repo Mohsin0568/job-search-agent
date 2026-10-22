@@ -52,3 +52,29 @@ test('the profile is not saved until a role and a company are given', async ({ p
   await expect(page).toHaveURL('/onboarding')
   expect(backend.savedProfiles).toEqual([])
 })
+
+test('a user picks the companies to search from the full list, by sector', async ({ page, backend }) => {
+  await signIn(page)
+  await page.getByLabel(/Role you/).fill('Senior Java Developer')
+  await page.getByRole('combobox', { name: /Companies to search/ }).fill('A Company Not Listed')
+  await page.getByRole('combobox', { name: /Companies to search/ }).press('Enter')
+
+  await page.getByRole('button', { name: 'Browse all companies' }).click()
+  const browser = page.getByRole('dialog', { name: 'Browse companies' })
+  await browser.getByText('By sector').click()
+  await expect(browser.getByRole('heading', { level: 3 })).toHaveText([
+    /^Big Tech & Software/,
+    /^Consulting & IT Services/,
+    /^Fintech/,
+    /^Retail & E-commerce/,
+  ])
+  await browser.getByRole('list', { name: 'Fintech' }).getByRole('checkbox', { name: 'Monzo' }).check()
+  await browser.getByRole('list', { name: 'Big Tech & Software' }).getByRole('checkbox', { name: 'Dell' }).check()
+  await expect(browser.getByText('3 of 10')).toBeVisible()
+  await browser.getByRole('button', { name: 'Done' }).click()
+  await expect(browser).toBeHidden()
+
+  await page.getByRole('button', { name: 'Save and continue' }).click()
+  await expect(page).toHaveURL('/')
+  expect(backend.savedProfiles[0]?.companyPreferences).toEqual(['A Company Not Listed', 'Monzo', 'Dell'])
+})
