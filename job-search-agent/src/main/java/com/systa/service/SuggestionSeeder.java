@@ -1,6 +1,7 @@
 package com.systa.service;
 
 import com.systa.model.Company;
+import com.systa.model.Sector;
 import com.systa.model.Skill;
 import com.systa.repository.CompanyRepository;
 import com.systa.repository.SkillRepository;
@@ -46,7 +47,8 @@ public class SuggestionSeeder implements ApplicationRunner {
         this.jsonMapper = jsonMapper;
     }
 
-    record Seed(String name, List<String> aliases) {
+    // A skill has no sector; every company in the seed file does (SuggestionSeedDataTest checks).
+    record Seed(String name, List<String> aliases, Sector sector) {
 
         // Jackson leaves a missing "aliases" as null.
         Seed {
@@ -82,7 +84,7 @@ public class SuggestionSeeder implements ApplicationRunner {
 
     static Company toCompany(final Seed seed) {
         return new Company(SuggestionNames.normalize(seed.name()), seed.name(), seed.aliases(),
-                SuggestionNames.searchKeys(seed.name(), seed.aliases()));
+                SuggestionNames.searchKeys(seed.name(), seed.aliases()), seed.sector());
     }
 
     static Skill toSkill(final Seed seed) {

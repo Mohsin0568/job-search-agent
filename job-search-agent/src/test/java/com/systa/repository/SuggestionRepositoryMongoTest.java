@@ -2,6 +2,7 @@ package com.systa.repository;
 
 import com.systa.MongoTestContainer;
 import com.systa.model.Company;
+import com.systa.model.Sector;
 import com.systa.model.Skill;
 import com.systa.service.SuggestionNames;
 import org.junit.jupiter.api.BeforeEach;
@@ -94,6 +95,15 @@ class SuggestionRepositoryMongoTest {
         return companyRepository.findBySearchKeyPrefix(prefix, Limit.of(10)).stream().map(Company::name).toList();
     }
 
+    @Test
+    void keepsEachCompanysSector() {
+        final Company monzo = new Company("monzo", "Monzo", List.of(), SuggestionNames.searchKeys("Monzo", List.of()),
+                Sector.FINTECH);
+        companyRepository.save(monzo);
+
+        assertThat(companyRepository.findById("monzo")).contains(monzo);
+    }
+
     private List<String> skillNames(final String prefix) {
         return skillRepository.findBySearchKeyPrefix(prefix, Limit.of(10)).stream().map(Skill::name).toList();
     }
@@ -101,7 +111,7 @@ class SuggestionRepositoryMongoTest {
     private static Company company(final String name, final String... aliases) {
         final List<String> aliasList = List.of(aliases);
         return new Company(SuggestionNames.normalize(name), name, aliasList,
-                SuggestionNames.searchKeys(name, aliasList));
+                SuggestionNames.searchKeys(name, aliasList), Sector.BIG_TECH_AND_SOFTWARE);
     }
 
     private static Skill skill(final String name, final String... aliases) {

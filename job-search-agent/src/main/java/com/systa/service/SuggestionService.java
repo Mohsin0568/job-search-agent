@@ -1,5 +1,6 @@
 package com.systa.service;
 
+import com.systa.model.CompanyDto;
 import com.systa.model.Suggestable;
 import com.systa.model.Suggestion;
 import com.systa.repository.CompanyRepository;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.Comparator;
 import java.util.List;
 
-/** Autocomplete for the profile form's company and skill lists. */
+/** Autocomplete for the profile form's company and skill lists, and the full list of known companies. */
 @Service
 public class SuggestionService {
 
@@ -29,6 +30,14 @@ public class SuggestionService {
 
     public List<Suggestion> suggestCompanies(final String query, final int limit) {
         return suggest(companyRepository, query, limit);
+    }
+
+    /** Every known company, A-Z. A few hundred, so the profile page can list and sort them all itself. */
+    public List<CompanyDto> allCompanies() {
+        return companyRepository.findAll().stream()
+                .map(CompanyDto::from)
+                .sorted(Comparator.comparing(CompanyDto::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     public List<Suggestion> suggestSkills(final String query, final int limit) {

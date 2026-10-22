@@ -3,28 +3,34 @@
     "name": "Google",
     "aliases": [
       "Alphabet"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
     "name": "Google DeepMind",
     "aliases": [
       "DeepMind"
-    ]
+    ],
+    "sector": "AI"
   },
   {
-    "name": "Microsoft"
+    "name": "Microsoft",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Apple"
+    "name": "Apple",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Amazon"
+    "name": "Amazon",
+    "sector": "Big Tech & Software"
   },
   {
     "name": "Amazon Web Services",
     "aliases": [
       "AWS"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
     "name": "Meta",
@@ -32,462 +38,589 @@
       "Facebook",
       "Instagram",
       "WhatsApp"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Netflix"
+    "name": "Netflix",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Spotify"
+    "name": "Spotify",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Uber"
+    "name": "Uber",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Airbnb"
+    "name": "Airbnb",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Salesforce"
+    "name": "Salesforce",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Oracle"
+    "name": "Oracle",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "SAP"
+    "name": "SAP",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "IBM"
+    "name": "IBM",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Cisco"
+    "name": "Cisco",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Intel"
+    "name": "Intel",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Nvidia"
+    "name": "Nvidia",
+    "sector": "Big Tech & Software"
   },
   {
     "name": "AMD",
     "aliases": [
       "Advanced Micro Devices"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Qualcomm"
+    "name": "Qualcomm",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Adobe"
+    "name": "Adobe",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Atlassian"
+    "name": "Atlassian",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Shopify"
+    "name": "Shopify",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Stripe"
+    "name": "Stripe",
+    "sector": "Fintech"
   },
   {
-    "name": "Bloomberg"
+    "name": "Bloomberg",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Palantir"
+    "name": "Palantir",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Snowflake"
+    "name": "Snowflake",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Datadog"
+    "name": "Datadog",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "MongoDB"
+    "name": "MongoDB",
+    "sector": "Big Tech & Software"
   },
   {
     "name": "Elastic",
     "aliases": [
       "Elasticsearch"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Cloudflare"
+    "name": "Cloudflare",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "GitHub"
+    "name": "GitHub",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "GitLab"
+    "name": "GitLab",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Twilio"
+    "name": "Twilio",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Zendesk"
+    "name": "Zendesk",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "HubSpot"
+    "name": "HubSpot",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Workday"
+    "name": "Workday",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "ServiceNow"
+    "name": "ServiceNow",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Red Hat"
+    "name": "Red Hat",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "VMware"
+    "name": "VMware",
+    "sector": "Big Tech & Software"
   },
   {
     "name": "Dell Technologies",
     "aliases": [
       "Dell"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
     "name": "HP",
     "aliases": [
       "Hewlett-Packard"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
     "name": "Hewlett Packard Enterprise",
     "aliases": [
       "HPE"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Samsung"
+    "name": "Samsung",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Sony"
+    "name": "Sony",
+    "sector": "Big Tech & Software"
   },
   {
     "name": "Arm",
     "aliases": [
       "ARM Holdings"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
     "name": "Sage",
     "aliases": [
       "The Sage Group"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Darktrace"
+    "name": "Darktrace",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Wayve"
+    "name": "Wayve",
+    "sector": "AI"
   },
   {
-    "name": "OpenAI"
+    "name": "OpenAI",
+    "sector": "AI"
   },
   {
-    "name": "Anthropic"
+    "name": "Anthropic",
+    "sector": "AI"
   },
   {
-    "name": "Synthesia"
+    "name": "Synthesia",
+    "sector": "AI"
   },
   {
-    "name": "Stability AI"
+    "name": "Stability AI",
+    "sector": "AI"
   },
   {
-    "name": "ElevenLabs"
+    "name": "ElevenLabs",
+    "sector": "AI"
   },
   {
     "name": "Faculty",
     "aliases": [
       "Faculty AI"
-    ]
+    ],
+    "sector": "AI"
   },
   {
-    "name": "PolyAI"
+    "name": "PolyAI",
+    "sector": "AI"
   },
   {
-    "name": "Quantexa"
+    "name": "Quantexa",
+    "sector": "AI"
   },
   {
-    "name": "Graphcore"
+    "name": "Graphcore",
+    "sector": "AI"
   },
   {
     "name": "Canonical",
     "aliases": [
       "Ubuntu"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "JetBrains"
+    "name": "JetBrains",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Figma"
+    "name": "Figma",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Miro"
+    "name": "Miro",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Notion"
+    "name": "Notion",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Slack"
+    "name": "Slack",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Dropbox"
+    "name": "Dropbox",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Zoom"
+    "name": "Zoom",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "LinkedIn"
+    "name": "LinkedIn",
+    "sector": "Big Tech & Software"
   },
   {
     "name": "TikTok",
     "aliases": [
       "ByteDance"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
     "name": "Snap",
     "aliases": [
       "Snapchat"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Pinterest"
+    "name": "Pinterest",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "eBay"
+    "name": "eBay",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Etsy"
+    "name": "Etsy",
+    "sector": "Retail & E-commerce"
   },
   {
     "name": "Booking.com",
     "aliases": [
       "Booking"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Expedia"
+    "name": "Expedia",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Skyscanner"
+    "name": "Skyscanner",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Trainline"
+    "name": "Trainline",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Rightmove"
+    "name": "Rightmove",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Zoopla"
+    "name": "Zoopla",
+    "sector": "Big Tech & Software"
   },
   {
     "name": "Auto Trader",
     "aliases": [
       "AutoTrader"
-    ]
+    ],
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Moonpig"
+    "name": "Moonpig",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Depop"
+    "name": "Depop",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Farfetch"
+    "name": "Farfetch",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Bumble"
+    "name": "Bumble",
+    "sector": "Big Tech & Software"
   },
   {
     "name": "Deliveroo",
     "aliases": [
       "Roofoods"
-    ]
+    ],
+    "sector": "Retail & E-commerce"
   },
   {
     "name": "Just Eat Takeaway.com",
     "aliases": [
       "Just Eat",
       "Just Eat Takeaway"
-    ]
+    ],
+    "sector": "Retail & E-commerce"
   },
   {
     "name": "Ocado",
     "aliases": [
       "Ocado Technology"
-    ]
+    ],
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Bolt"
+    "name": "Bolt",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Gousto"
+    "name": "Gousto",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "HelloFresh"
+    "name": "HelloFresh",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Zilch"
+    "name": "Zilch",
+    "sector": "Fintech"
   },
   {
-    "name": "Onfido"
+    "name": "Onfido",
+    "sector": "Big Tech & Software"
   },
   {
-    "name": "Paddle"
+    "name": "Paddle",
+    "sector": "Fintech"
   },
   {
     "name": "Peak",
     "aliases": [
       "Peak AI"
-    ]
+    ],
+    "sector": "AI"
   },
   {
-    "name": "Tractable"
+    "name": "Tractable",
+    "sector": "AI"
   },
   {
-    "name": "Accenture"
+    "name": "Accenture",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Deloitte"
+    "name": "Deloitte",
+    "sector": "Consulting & IT Services"
   },
   {
     "name": "PwC",
     "aliases": [
       "PricewaterhouseCoopers"
-    ]
+    ],
+    "sector": "Consulting & IT Services"
   },
   {
     "name": "EY",
     "aliases": [
       "Ernst & Young"
-    ]
+    ],
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "KPMG"
+    "name": "KPMG",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Capgemini"
+    "name": "Capgemini",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Thoughtworks"
+    "name": "Thoughtworks",
+    "sector": "Consulting & IT Services"
   },
   {
     "name": "McKinsey & Company",
     "aliases": [
       "McKinsey"
-    ]
+    ],
+    "sector": "Consulting & IT Services"
   },
   {
     "name": "Boston Consulting Group",
     "aliases": [
       "BCG"
-    ]
+    ],
+    "sector": "Consulting & IT Services"
   },
   {
     "name": "Bain & Company",
     "aliases": [
       "Bain"
-    ]
+    ],
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Infosys"
+    "name": "Infosys",
+    "sector": "Consulting & IT Services"
   },
   {
     "name": "Tata Consultancy Services",
     "aliases": [
       "TCS"
-    ]
+    ],
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Wipro"
+    "name": "Wipro",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Cognizant"
+    "name": "Cognizant",
+    "sector": "Consulting & IT Services"
   },
   {
     "name": "HCLTech",
     "aliases": [
       "HCL Technologies",
       "HCL"
-    ]
+    ],
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Tech Mahindra"
+    "name": "Tech Mahindra",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Capita"
+    "name": "Capita",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Sopra Steria"
+    "name": "Sopra Steria",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "CGI"
+    "name": "CGI",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Atos"
+    "name": "Atos",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Fujitsu"
+    "name": "Fujitsu",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "NTT Data"
+    "name": "NTT Data",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Kainos"
+    "name": "Kainos",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "BJSS"
+    "name": "BJSS",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Endava"
+    "name": "Endava",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Softwire"
+    "name": "Softwire",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Made Tech"
+    "name": "Made Tech",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Equal Experts"
+    "name": "Equal Experts",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Scott Logic"
+    "name": "Scott Logic",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Version 1"
+    "name": "Version 1",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Computacenter"
+    "name": "Computacenter",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Softcat"
+    "name": "Softcat",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Grant Thornton"
+    "name": "Grant Thornton",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "BDO"
+    "name": "BDO",
+    "sector": "Consulting & IT Services"
   },
   {
     "name": "Mazars",
     "aliases": [
       "Forvis Mazars"
-    ]
+    ],
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Oliver Wyman"
+    "name": "Oliver Wyman",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Gartner"
+    "name": "Gartner",
+    "sector": "Consulting & IT Services"
   },
   {
-    "name": "Barclays"
+    "name": "Barclays",
+    "sector": "Banking"
   },
   {
-    "name": "HSBC"
+    "name": "HSBC",
+    "sector": "Banking"
   },
   {
     "name": "Lloyds Banking Group",
@@ -496,7 +629,8 @@
       "Lloyds",
       "Halifax",
       "Bank of Scotland"
-    ]
+    ],
+    "sector": "Banking"
   },
   {
     "name": "NatWest Group",
@@ -504,103 +638,131 @@
       "NatWest",
       "RBS",
       "Royal Bank of Scotland"
-    ]
+    ],
+    "sector": "Banking"
   },
   {
     "name": "Santander",
     "aliases": [
       "Santander UK"
-    ]
+    ],
+    "sector": "Banking"
   },
   {
-    "name": "Standard Chartered"
+    "name": "Standard Chartered",
+    "sector": "Banking"
   },
   {
     "name": "Nationwide Building Society",
     "aliases": [
       "Nationwide"
-    ]
+    ],
+    "sector": "Banking"
   },
   {
-    "name": "Virgin Money"
+    "name": "Virgin Money",
+    "sector": "Banking"
   },
   {
-    "name": "Metro Bank"
+    "name": "Metro Bank",
+    "sector": "Banking"
   },
   {
-    "name": "TSB"
+    "name": "TSB",
+    "sector": "Banking"
   },
   {
-    "name": "Coutts"
+    "name": "Coutts",
+    "sector": "Banking"
   },
   {
-    "name": "Monzo"
+    "name": "Monzo",
+    "sector": "Fintech"
   },
   {
     "name": "Starling Bank",
     "aliases": [
       "Starling"
-    ]
+    ],
+    "sector": "Fintech"
   },
   {
-    "name": "Revolut"
+    "name": "Revolut",
+    "sector": "Fintech"
   },
   {
     "name": "Wise",
     "aliases": [
       "TransferWise"
-    ]
+    ],
+    "sector": "Fintech"
   },
   {
     "name": "Checkout.com",
     "aliases": [
       "Checkout"
-    ]
+    ],
+    "sector": "Fintech"
   },
   {
-    "name": "GoCardless"
+    "name": "GoCardless",
+    "sector": "Fintech"
   },
   {
-    "name": "Klarna"
+    "name": "Klarna",
+    "sector": "Fintech"
   },
   {
-    "name": "Zopa"
+    "name": "Zopa",
+    "sector": "Fintech"
   },
   {
-    "name": "OakNorth"
+    "name": "OakNorth",
+    "sector": "Fintech"
   },
   {
-    "name": "ClearScore"
+    "name": "ClearScore",
+    "sector": "Fintech"
   },
   {
-    "name": "Funding Circle"
+    "name": "Funding Circle",
+    "sector": "Fintech"
   },
   {
-    "name": "Tide"
+    "name": "Tide",
+    "sector": "Fintech"
   },
   {
-    "name": "Curve"
+    "name": "Curve",
+    "sector": "Fintech"
   },
   {
-    "name": "Cleo"
+    "name": "Cleo",
+    "sector": "Fintech"
   },
   {
-    "name": "Moneybox"
+    "name": "Moneybox",
+    "sector": "Fintech"
   },
   {
-    "name": "Marshmallow"
+    "name": "Marshmallow",
+    "sector": "Fintech"
   },
   {
-    "name": "Thought Machine"
+    "name": "Thought Machine",
+    "sector": "Fintech"
   },
   {
-    "name": "10x Banking"
+    "name": "10x Banking",
+    "sector": "Fintech"
   },
   {
-    "name": "Goldman Sachs"
+    "name": "Goldman Sachs",
+    "sector": "Banking"
   },
   {
-    "name": "Morgan Stanley"
+    "name": "Morgan Stanley",
+    "sector": "Banking"
   },
   {
     "name": "JPMorgan Chase",
@@ -608,521 +770,651 @@
       "JP Morgan",
       "J.P. Morgan",
       "Chase UK"
-    ]
+    ],
+    "sector": "Banking"
   },
   {
     "name": "Citi",
     "aliases": [
       "Citigroup",
       "Citibank"
-    ]
+    ],
+    "sector": "Banking"
   },
   {
     "name": "Bank of America",
     "aliases": [
       "BofA"
-    ]
+    ],
+    "sector": "Banking"
   },
   {
-    "name": "Deutsche Bank"
+    "name": "Deutsche Bank",
+    "sector": "Banking"
   },
   {
-    "name": "UBS"
+    "name": "UBS",
+    "sector": "Banking"
   },
   {
-    "name": "BNP Paribas"
+    "name": "BNP Paribas",
+    "sector": "Banking"
   },
   {
     "name": "Société Générale",
     "aliases": [
       "SocGen"
-    ]
+    ],
+    "sector": "Banking"
   },
   {
-    "name": "Nomura"
+    "name": "Nomura",
+    "sector": "Banking"
   },
   {
-    "name": "Bank of England"
+    "name": "Bank of England",
+    "sector": "Banking"
   },
   {
-    "name": "BlackRock"
+    "name": "BlackRock",
+    "sector": "Trading & Investment"
   },
   {
-    "name": "Vanguard"
+    "name": "Vanguard",
+    "sector": "Trading & Investment"
   },
   {
     "name": "Fidelity International",
     "aliases": [
       "Fidelity"
-    ]
+    ],
+    "sector": "Trading & Investment"
   },
   {
-    "name": "Schroders"
+    "name": "Schroders",
+    "sector": "Trading & Investment"
   },
   {
     "name": "Legal & General",
     "aliases": [
       "L&G"
-    ]
+    ],
+    "sector": "Insurance & Financial Services"
   },
   {
-    "name": "Aviva"
+    "name": "Aviva",
+    "sector": "Insurance & Financial Services"
   },
   {
-    "name": "Prudential"
+    "name": "Prudential",
+    "sector": "Insurance & Financial Services"
   },
   {
-    "name": "Phoenix Group"
+    "name": "Phoenix Group",
+    "sector": "Insurance & Financial Services"
   },
   {
     "name": "Admiral Group",
     "aliases": [
       "Admiral"
-    ]
+    ],
+    "sector": "Insurance & Financial Services"
   },
   {
     "name": "Direct Line Group",
     "aliases": [
       "Direct Line"
-    ]
+    ],
+    "sector": "Insurance & Financial Services"
   },
   {
-    "name": "Hargreaves Lansdown"
+    "name": "Hargreaves Lansdown",
+    "sector": "Trading & Investment"
   },
   {
     "name": "London Stock Exchange Group",
     "aliases": [
       "LSEG"
-    ]
+    ],
+    "sector": "Trading & Investment"
   },
   {
-    "name": "Experian"
+    "name": "Experian",
+    "sector": "Insurance & Financial Services"
   },
   {
-    "name": "Equifax"
+    "name": "Equifax",
+    "sector": "Insurance & Financial Services"
   },
   {
-    "name": "Mastercard"
+    "name": "Mastercard",
+    "sector": "Insurance & Financial Services"
   },
   {
-    "name": "Visa"
+    "name": "Visa",
+    "sector": "Insurance & Financial Services"
   },
   {
     "name": "American Express",
     "aliases": [
       "Amex"
-    ]
+    ],
+    "sector": "Insurance & Financial Services"
   },
   {
-    "name": "PayPal"
+    "name": "PayPal",
+    "sector": "Fintech"
   },
   {
-    "name": "Worldpay"
+    "name": "Worldpay",
+    "sector": "Fintech"
   },
   {
-    "name": "Lloyd's of London"
+    "name": "Lloyd's of London",
+    "sector": "Insurance & Financial Services"
   },
   {
-    "name": "Man Group"
+    "name": "Man Group",
+    "sector": "Trading & Investment"
   },
   {
-    "name": "Jane Street"
+    "name": "Jane Street",
+    "sector": "Trading & Investment"
   },
   {
-    "name": "Citadel"
+    "name": "Citadel",
+    "sector": "Trading & Investment"
   },
   {
-    "name": "G-Research"
+    "name": "G-Research",
+    "sector": "Trading & Investment"
   },
   {
-    "name": "Two Sigma"
+    "name": "Two Sigma",
+    "sector": "Trading & Investment"
   },
   {
-    "name": "Optiver"
+    "name": "Optiver",
+    "sector": "Trading & Investment"
   },
   {
     "name": "IMC Trading",
     "aliases": [
       "IMC"
-    ]
+    ],
+    "sector": "Trading & Investment"
   },
   {
-    "name": "Jump Trading"
+    "name": "Jump Trading",
+    "sector": "Trading & Investment"
   },
   {
     "name": "Hudson River Trading",
     "aliases": [
       "HRT"
-    ]
+    ],
+    "sector": "Trading & Investment"
   },
   {
-    "name": "XTX Markets"
+    "name": "XTX Markets",
+    "sector": "Trading & Investment"
   },
   {
-    "name": "Marshall Wace"
+    "name": "Marshall Wace",
+    "sector": "Trading & Investment"
   },
   {
-    "name": "Brevan Howard"
+    "name": "Brevan Howard",
+    "sector": "Trading & Investment"
   },
   {
-    "name": "Tesco"
+    "name": "Tesco",
+    "sector": "Retail & E-commerce"
   },
   {
     "name": "Sainsbury's",
     "aliases": [
       "J Sainsbury",
       "Sainsburys"
-    ]
+    ],
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Asda"
+    "name": "Asda",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Morrisons"
+    "name": "Morrisons",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Waitrose"
+    "name": "Waitrose",
+    "sector": "Retail & E-commerce"
   },
   {
     "name": "John Lewis Partnership",
     "aliases": [
       "John Lewis"
-    ]
+    ],
+    "sector": "Retail & E-commerce"
   },
   {
     "name": "Marks & Spencer",
     "aliases": [
       "M&S",
       "Marks and Spencer"
-    ]
+    ],
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Aldi"
+    "name": "Aldi",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Lidl"
+    "name": "Lidl",
+    "sector": "Retail & E-commerce"
   },
   {
     "name": "Co-op",
     "aliases": [
       "The Co-operative Group"
-    ]
+    ],
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Boots"
+    "name": "Boots",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Next"
+    "name": "Next",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Primark"
+    "name": "Primark",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "JD Sports"
+    "name": "JD Sports",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Currys"
+    "name": "Currys",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Argos"
+    "name": "Argos",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Kingfisher"
+    "name": "Kingfisher",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "B&Q"
+    "name": "B&Q",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Screwfix"
+    "name": "Screwfix",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Dunelm"
+    "name": "Dunelm",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "IKEA"
+    "name": "IKEA",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "H&M"
+    "name": "H&M",
+    "sector": "Retail & E-commerce"
   },
   {
     "name": "Inditex",
     "aliases": [
       "Zara"
-    ]
+    ],
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Burberry"
+    "name": "Burberry",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "ASOS"
+    "name": "ASOS",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Boohoo"
+    "name": "Boohoo",
+    "sector": "Retail & E-commerce"
   },
   {
     "name": "THG",
     "aliases": [
       "The Hut Group"
-    ]
+    ],
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Gymshark"
+    "name": "Gymshark",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Lush"
+    "name": "Lush",
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Superdrug"
+    "name": "Superdrug",
+    "sector": "Retail & E-commerce"
   },
   {
     "name": "WHSmith",
     "aliases": [
       "WH Smith"
-    ]
+    ],
+    "sector": "Retail & E-commerce"
   },
   {
-    "name": "Unilever"
+    "name": "Unilever",
+    "sector": "Consumer Goods & Hospitality"
   },
   {
-    "name": "Diageo"
+    "name": "Diageo",
+    "sector": "Consumer Goods & Hospitality"
   },
   {
     "name": "Reckitt",
     "aliases": [
       "Reckitt Benckiser"
-    ]
+    ],
+    "sector": "Consumer Goods & Hospitality"
   },
   {
     "name": "British American Tobacco",
     "aliases": [
       "BAT"
-    ]
+    ],
+    "sector": "Consumer Goods & Hospitality"
   },
   {
-    "name": "Imperial Brands"
+    "name": "Imperial Brands",
+    "sector": "Consumer Goods & Hospitality"
   },
   {
     "name": "Associated British Foods",
     "aliases": [
       "ABF"
-    ]
+    ],
+    "sector": "Consumer Goods & Hospitality"
   },
   {
-    "name": "Nestlé"
+    "name": "Nestlé",
+    "sector": "Consumer Goods & Hospitality"
   },
   {
-    "name": "PepsiCo"
+    "name": "PepsiCo",
+    "sector": "Consumer Goods & Hospitality"
   },
   {
     "name": "Coca-Cola Europacific Partners",
     "aliases": [
       "Coca-Cola"
-    ]
+    ],
+    "sector": "Consumer Goods & Hospitality"
   },
   {
-    "name": "Mondelez"
+    "name": "Mondelez",
+    "sector": "Consumer Goods & Hospitality"
   },
   {
     "name": "Procter & Gamble",
     "aliases": [
       "P&G"
-    ]
+    ],
+    "sector": "Consumer Goods & Hospitality"
   },
   {
-    "name": "Greggs"
+    "name": "Greggs",
+    "sector": "Consumer Goods & Hospitality"
   },
   {
     "name": "Pret A Manger",
     "aliases": [
       "Pret"
-    ]
+    ],
+    "sector": "Consumer Goods & Hospitality"
   },
   {
     "name": "Whitbread",
     "aliases": [
       "Premier Inn"
-    ]
+    ],
+    "sector": "Consumer Goods & Hospitality"
   },
   {
-    "name": "Compass Group"
+    "name": "Compass Group",
+    "sector": "Consumer Goods & Hospitality"
   },
   {
     "name": "Costa Coffee",
     "aliases": [
       "Costa"
-    ]
+    ],
+    "sector": "Consumer Goods & Hospitality"
   },
   {
-    "name": "Starbucks"
+    "name": "Starbucks",
+    "sector": "Consumer Goods & Hospitality"
   },
   {
     "name": "McDonald's",
     "aliases": [
       "McDonalds"
-    ]
+    ],
+    "sector": "Consumer Goods & Hospitality"
   },
   {
     "name": "Nando's",
     "aliases": [
       "Nandos"
-    ]
+    ],
+    "sector": "Consumer Goods & Hospitality"
   },
   {
-    "name": "BP"
+    "name": "BP",
+    "sector": "Energy & Utilities"
   },
   {
-    "name": "Shell"
+    "name": "Shell",
+    "sector": "Energy & Utilities"
   },
   {
     "name": "Centrica",
     "aliases": [
       "British Gas"
-    ]
+    ],
+    "sector": "Energy & Utilities"
   },
   {
-    "name": "SSE"
+    "name": "SSE",
+    "sector": "Energy & Utilities"
   },
   {
-    "name": "National Grid"
+    "name": "National Grid",
+    "sector": "Energy & Utilities"
   },
   {
     "name": "EDF",
     "aliases": [
       "EDF Energy"
-    ]
+    ],
+    "sector": "Energy & Utilities"
   },
   {
     "name": "E.ON",
     "aliases": [
       "EON"
-    ]
+    ],
+    "sector": "Energy & Utilities"
   },
   {
     "name": "ScottishPower",
     "aliases": [
       "Scottish Power"
-    ]
+    ],
+    "sector": "Energy & Utilities"
   },
   {
     "name": "Octopus Energy",
     "aliases": [
       "Kraken"
-    ]
+    ],
+    "sector": "Energy & Utilities"
   },
   {
     "name": "OVO",
     "aliases": [
       "OVO Energy"
-    ]
+    ],
+    "sector": "Energy & Utilities"
   },
   {
-    "name": "Siemens"
+    "name": "Siemens",
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
-    "name": "GE Vernova"
+    "name": "GE Vernova",
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
-    "name": "GE Aerospace"
+    "name": "GE Aerospace",
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
     "name": "Rolls-Royce",
     "aliases": [
       "Rolls Royce"
-    ]
+    ],
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
     "name": "BAE Systems",
     "aliases": [
       "BAE"
-    ]
+    ],
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
-    "name": "Airbus"
+    "name": "Airbus",
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
-    "name": "Leonardo"
+    "name": "Leonardo",
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
-    "name": "Thales"
+    "name": "Thales",
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
-    "name": "QinetiQ"
+    "name": "QinetiQ",
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
     "name": "Babcock International",
     "aliases": [
       "Babcock"
-    ]
+    ],
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
     "name": "Jaguar Land Rover",
     "aliases": [
       "JLR"
-    ]
+    ],
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "Nissan"
+    "name": "Nissan",
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "Toyota"
+    "name": "Toyota",
+    "sector": "Automotive & Transport"
   },
   {
     "name": "BMW Group",
     "aliases": [
       "BMW",
       "Mini"
-    ]
+    ],
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "Ford"
+    "name": "Ford",
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "Network Rail"
+    "name": "Network Rail",
+    "sector": "Automotive & Transport"
   },
   {
     "name": "Transport for London",
     "aliases": [
       "TfL"
-    ]
+    ],
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "Heathrow"
+    "name": "Heathrow",
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "easyJet"
+    "name": "easyJet",
+    "sector": "Automotive & Transport"
   },
   {
     "name": "British Airways",
     "aliases": [
       "BA"
-    ]
+    ],
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "Virgin Atlantic"
+    "name": "Virgin Atlantic",
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "Ryanair"
+    "name": "Ryanair",
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "Jet2"
+    "name": "Jet2",
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "TUI"
+    "name": "TUI",
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "Royal Mail"
+    "name": "Royal Mail",
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "DPD"
+    "name": "DPD",
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "Evri"
+    "name": "Evri",
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "DHL"
+    "name": "DHL",
+    "sector": "Automotive & Transport"
   },
   {
-    "name": "FedEx"
+    "name": "FedEx",
+    "sector": "Automotive & Transport"
   },
   {
     "name": "BT Group",
@@ -1130,239 +1422,295 @@
       "BT",
       "British Telecom",
       "Openreach"
-    ]
+    ],
+    "sector": "Telecoms & Media"
   },
   {
-    "name": "Vodafone"
+    "name": "Vodafone",
+    "sector": "Telecoms & Media"
   },
   {
-    "name": "EE"
+    "name": "EE",
+    "sector": "Telecoms & Media"
   },
   {
     "name": "Virgin Media O2",
     "aliases": [
       "Virgin Media",
       "O2"
-    ]
+    ],
+    "sector": "Telecoms & Media"
   },
   {
     "name": "Three UK",
     "aliases": [
       "Three"
-    ]
+    ],
+    "sector": "Telecoms & Media"
   },
   {
-    "name": "Sky"
+    "name": "Sky",
+    "sector": "Telecoms & Media"
   },
   {
-    "name": "Arup"
+    "name": "Arup",
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
     "name": "AtkinsRéalis",
     "aliases": [
       "Atkins"
-    ]
+    ],
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
-    "name": "Mott MacDonald"
+    "name": "Mott MacDonald",
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
-    "name": "Balfour Beatty"
+    "name": "Balfour Beatty",
+    "sector": "Engineering, Aerospace & Defence"
   },
   {
-    "name": "AstraZeneca"
+    "name": "AstraZeneca",
+    "sector": "Healthcare & Pharma"
   },
   {
     "name": "GSK",
     "aliases": [
       "GlaxoSmithKline"
-    ]
+    ],
+    "sector": "Healthcare & Pharma"
   },
   {
-    "name": "Haleon"
+    "name": "Haleon",
+    "sector": "Healthcare & Pharma"
   },
   {
-    "name": "Pfizer"
+    "name": "Pfizer",
+    "sector": "Healthcare & Pharma"
   },
   {
-    "name": "Novartis"
+    "name": "Novartis",
+    "sector": "Healthcare & Pharma"
   },
   {
-    "name": "Roche"
+    "name": "Roche",
+    "sector": "Healthcare & Pharma"
   },
   {
     "name": "Johnson & Johnson",
     "aliases": [
       "J&J"
-    ]
+    ],
+    "sector": "Healthcare & Pharma"
   },
   {
-    "name": "Novo Nordisk"
+    "name": "Novo Nordisk",
+    "sector": "Healthcare & Pharma"
   },
   {
-    "name": "Sanofi"
+    "name": "Sanofi",
+    "sector": "Healthcare & Pharma"
   },
   {
     "name": "MSD",
     "aliases": [
       "Merck"
-    ]
+    ],
+    "sector": "Healthcare & Pharma"
   },
   {
-    "name": "Bupa"
+    "name": "Bupa",
+    "sector": "Healthcare & Pharma"
   },
   {
     "name": "NHS",
     "aliases": [
       "National Health Service"
-    ]
+    ],
+    "sector": "Healthcare & Pharma"
   },
   {
-    "name": "NHS England"
+    "name": "NHS England",
+    "sector": "Healthcare & Pharma"
   },
   {
     "name": "Wellcome",
     "aliases": [
       "Wellcome Trust"
-    ]
+    ],
+    "sector": "Healthcare & Pharma"
   },
   {
-    "name": "BBC"
+    "name": "BBC",
+    "sector": "Telecoms & Media"
   },
   {
-    "name": "ITV"
+    "name": "ITV",
+    "sector": "Telecoms & Media"
   },
   {
-    "name": "Channel 4"
+    "name": "Channel 4",
+    "sector": "Telecoms & Media"
   },
   {
     "name": "Guardian Media Group",
     "aliases": [
       "The Guardian"
-    ]
+    ],
+    "sector": "Telecoms & Media"
   },
   {
     "name": "Financial Times",
     "aliases": [
       "FT"
-    ]
+    ],
+    "sector": "Telecoms & Media"
   },
   {
     "name": "Thomson Reuters",
     "aliases": [
       "Reuters"
-    ]
+    ],
+    "sector": "Telecoms & Media"
   },
   {
     "name": "RELX",
     "aliases": [
       "Elsevier",
       "LexisNexis"
-    ]
+    ],
+    "sector": "Telecoms & Media"
   },
   {
-    "name": "Pearson"
+    "name": "Pearson",
+    "sector": "Telecoms & Media"
   },
   {
-    "name": "Informa"
+    "name": "Informa",
+    "sector": "Telecoms & Media"
   },
   {
-    "name": "WPP"
+    "name": "WPP",
+    "sector": "Telecoms & Media"
   },
   {
     "name": "Publicis",
     "aliases": [
       "Publicis Sapient"
-    ]
+    ],
+    "sector": "Telecoms & Media"
   },
   {
-    "name": "Rockstar Games"
+    "name": "Rockstar Games",
+    "sector": "Gaming & Entertainment"
   },
   {
     "name": "Sony Interactive Entertainment",
     "aliases": [
       "PlayStation"
-    ]
+    ],
+    "sector": "Gaming & Entertainment"
   },
   {
-    "name": "King"
+    "name": "King",
+    "sector": "Gaming & Entertainment"
   },
   {
     "name": "Electronic Arts",
     "aliases": [
       "EA"
-    ]
+    ],
+    "sector": "Gaming & Entertainment"
   },
   {
-    "name": "Ubisoft"
+    "name": "Ubisoft",
+    "sector": "Gaming & Entertainment"
   },
   {
-    "name": "Frontier Developments"
+    "name": "Frontier Developments",
+    "sector": "Gaming & Entertainment"
   },
   {
-    "name": "Sumo Digital"
+    "name": "Sumo Digital",
+    "sector": "Gaming & Entertainment"
   },
   {
-    "name": "Rare"
+    "name": "Rare",
+    "sector": "Gaming & Entertainment"
   },
   {
-    "name": "Jagex"
+    "name": "Jagex",
+    "sector": "Gaming & Entertainment"
   },
   {
     "name": "Warner Bros. Discovery",
     "aliases": [
       "Warner Bros"
-    ]
+    ],
+    "sector": "Gaming & Entertainment"
   },
   {
-    "name": "Disney"
+    "name": "Disney",
+    "sector": "Gaming & Entertainment"
   },
   {
     "name": "Universal Music Group",
     "aliases": [
       "UMG"
-    ]
+    ],
+    "sector": "Gaming & Entertainment"
   },
   {
     "name": "HMRC",
     "aliases": [
       "HM Revenue & Customs"
-    ]
+    ],
+    "sector": "Public Sector"
   },
   {
     "name": "Government Digital Service",
     "aliases": [
       "GDS"
-    ]
+    ],
+    "sector": "Public Sector"
   },
   {
     "name": "Ministry of Defence",
     "aliases": [
       "MOD"
-    ]
+    ],
+    "sector": "Public Sector"
   },
   {
     "name": "Department for Work and Pensions",
     "aliases": [
       "DWP"
-    ]
+    ],
+    "sector": "Public Sector"
   },
   {
-    "name": "Home Office"
+    "name": "Home Office",
+    "sector": "Public Sector"
   },
   {
     "name": "Office for National Statistics",
     "aliases": [
       "ONS"
-    ]
+    ],
+    "sector": "Public Sector"
   },
   {
-    "name": "Met Office"
+    "name": "Met Office",
+    "sector": "Public Sector"
   },
   {
-    "name": "GCHQ"
+    "name": "GCHQ",
+    "sector": "Public Sector"
   },
   {
-    "name": "Civil Service"
+    "name": "Civil Service",
+    "sector": "Public Sector"
   }
 ]
