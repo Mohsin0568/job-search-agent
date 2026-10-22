@@ -1,5 +1,7 @@
 package com.systa.controller;
 
+import com.systa.model.CompanyDto;
+import com.systa.model.Sector;
 import com.systa.model.Suggestion;
 import com.systa.security.SecurityConfig;
 import com.systa.service.SuggestionService;
@@ -33,6 +35,28 @@ class CompanyControllerTest {
 
     @MockitoBean
     private SuggestionService suggestionService;
+
+    @Test
+    void all_withoutToken_isUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/companies"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(suggestionService);
+    }
+
+    @Test
+    void all_returnsEachCompanyWithItsSectorLabel() throws Exception {
+        when(suggestionService.allCompanies()).thenReturn(List.of(
+                new CompanyDto("Barclays", Sector.BANKING),
+                new CompanyDto("BAE Systems", Sector.ENGINEERING_AEROSPACE_AND_DEFENCE)));
+
+        mockMvc.perform(get("/api/companies").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value("Barclays"))
+                .andExpect(jsonPath("$[0].sector").value("Banking"))
+                .andExpect(jsonPath("$[1].sector").value("Engineering, Aerospace & Defence"));
+    }
 
     @Test
     void suggest_withoutToken_isUnauthorized() throws Exception {

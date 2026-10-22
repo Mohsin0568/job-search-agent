@@ -1,5 +1,7 @@
 package com.systa.service;
 
+import com.systa.model.Sector;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
@@ -7,6 +9,8 @@ import tools.jackson.databind.json.JsonMapper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,6 +28,37 @@ class SuggestionSeedDataTest {
 
         assertThat(seeds).hasSizeGreaterThan(200);
         assertThat(seeds).allSatisfy(seed -> assertThat(SuggestionNames.normalize(seed.name())).isNotBlank());
+    }
+
+    @Test
+    void everyCompanyHasASector() {
+        assertThat(load(SuggestionSeeder.COMPANIES_FILE))
+                .allSatisfy(seed -> assertThat(seed.sector()).as("sector of %s", seed.name()).isNotNull());
+    }
+
+    @Test
+    void everySectorHasACompany() {
+        final Set<Sector> used = load(SuggestionSeeder.COMPANIES_FILE).stream()
+                .map(SuggestionSeeder.Seed::sector)
+                .collect(Collectors.toSet());
+
+        assertThat(used).containsExactlyInAnyOrder(Sector.values());
+    }
+
+    @Test
+    void readsTheSectorByItsLabel() {
+        final Map<String, Sector> byName = load(SuggestionSeeder.COMPANIES_FILE).stream()
+                .collect(Collectors.toMap(SuggestionSeeder.Seed::name, SuggestionSeeder.Seed::sector));
+
+        assertThat(byName).containsEntry("Monzo", Sector.FINTECH)
+                .containsEntry("Barclays", Sector.BANKING)
+                .containsEntry("BAE Systems", Sector.ENGINEERING_AEROSPACE_AND_DEFENCE)
+                .containsEntry("HMRC", Sector.PUBLIC_SECTOR);
+    }
+
+    @Test
+    void skillsHaveNoSector() {
+        assertThat(load(SuggestionSeeder.SKILLS_FILE)).allSatisfy(seed -> assertThat(seed.sector()).isNull());
     }
 
     @ParameterizedTest

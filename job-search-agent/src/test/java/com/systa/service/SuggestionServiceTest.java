@@ -1,6 +1,8 @@
 package com.systa.service;
 
 import com.systa.model.Company;
+import com.systa.model.CompanyDto;
+import com.systa.model.Sector;
 import com.systa.model.Skill;
 import com.systa.model.Suggestable;
 import com.systa.model.Suggestion;
@@ -64,6 +66,18 @@ class SuggestionServiceTest {
                     .limit(limit.max())
                     .toList();
         });
+    }
+
+    @Test
+    void listsEveryKnownCompanyAToZ_withItsSector() {
+        when(companyRepository.findAll()).thenReturn(COMPANIES);
+
+        final List<CompanyDto> all = service.allCompanies();
+
+        assertThat(all).hasSize(COMPANIES.size());
+        // Case-insensitive, so lower-case names like eBay sit among the Es rather than after Z.
+        assertThat(all).extracting(CompanyDto::name).isSortedAccordingTo(String.CASE_INSENSITIVE_ORDER);
+        assertThat(all).contains(new CompanyDto("Monzo", Sector.FINTECH), new CompanyDto("eBay", Sector.RETAIL_AND_ECOMMERCE));
     }
 
     private List<String> companies(final String query) {
