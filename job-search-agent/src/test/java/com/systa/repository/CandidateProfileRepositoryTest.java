@@ -42,8 +42,17 @@ class CandidateProfileRepositoryTest {
     }
 
     @Test
+    void keepsTheUsersFullName() {
+        final CandidateProfile profile = new CandidateProfile("p-1", "user-1", "user1@example.com", "Jane Doe",
+                "Backend Engineer", List.of("Java"), "Builds APIs", List.of("Acme Corp"), 7);
+        repository.save(profile);
+
+        assertThat(repository.findByUserId("user-1")).contains(profile);
+    }
+
+    @Test
     void profileWithoutARecencyWindow_isReadBackWithNull() {
-        repository.save(new CandidateProfile("p-1", "user-1", "user1@example.com", "Backend Engineer",
+        repository.save(new CandidateProfile("p-1", "user-1", "user1@example.com", null, "Backend Engineer",
                 List.of("Java"), "Builds APIs", List.of("Acme Corp"), null));
 
         assertThat(repository.findByUserId("user-1"))
@@ -51,7 +60,7 @@ class CandidateProfileRepositoryTest {
     }
 
     private static CandidateProfile profile(final String id, final String userId, final String desiredRole) {
-        return new CandidateProfile(id, userId, userId + "@example.com", desiredRole,
+        return new CandidateProfile(id, userId, userId + "@example.com", null, desiredRole,
                 List.of("Java", "Spring"), "Builds APIs", List.of("Acme Corp"), 14);
     }
 }

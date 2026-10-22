@@ -351,7 +351,7 @@ class DailyJobSearchRunnerTest {
     }
 
     private static CandidateProfile profile(final String userId) {
-        return new CandidateProfile("profile-" + userId, userId, userId + "@example.com", "Senior Java Developer",
+        return new CandidateProfile("profile-" + userId, userId, userId + "@example.com", null, "Senior Java Developer",
                 List.of("Java"), "Builds APIs", List.of("Acme Corp"), 7);
     }
 }

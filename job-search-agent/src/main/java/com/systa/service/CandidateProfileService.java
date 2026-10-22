@@ -26,23 +26,27 @@ public class CandidateProfileService {
     }
 
     /**
-     * Creates the user's profile on first save, otherwise replaces its editable fields. The email is
-     * refreshed from Cognito each time, since the access token has no email claim and the client can't be
-     * trusted to supply it; if Cognito has no verified email, any email already stored is kept.
+     * Creates the user's profile on first save, otherwise replaces its editable fields. The email and full
+     * name are refreshed from Cognito each time, since the access token carries neither and the client
+     * can't be trusted to supply them; if Cognito has none, whatever is already stored is kept.
      *
-     * @param accessToken the caller's Cognito access token, used to look up their verified email
+     * @param accessToken the caller's Cognito access token, used to look up their verified email and name
      */
     public CandidateProfile save(final String userId, final String accessToken, final CandidateProfileDto details) {
-        final String verifiedEmail = cognitoUserService.findVerifiedEmail(userId, accessToken).orElse(null);
+        final CognitoUserService.CognitoUser cognitoUser = cognitoUserService.findUser(userId, accessToken);
 
         final Optional<CandidateProfile> existing = candidateProfileRepository.findByUserId(userId);
         final String id = existing.map(CandidateProfile::id).orElseGet(() -> UUID.randomUUID().toString());
-        final String email = verifiedEmail != null ? verifiedEmail : existing.map(CandidateProfile::email).orElse(null);
+        final String email = cognitoUser.verifiedEmail()
+                .orElseGet(() -> existing.map(CandidateProfile::email).orElse(null));
+        final String fullName = cognitoUser.fullName()
+                .orElseGet(() -> existing.map(CandidateProfile::fullName).orElse(null));
 
         return candidateProfileRepository.save(new CandidateProfile(
                 id,
                 userId,
                 email,
+                fullName,
                 details.desiredRole(),
                 details.skills(),
                 details.currentJobDescription(),
