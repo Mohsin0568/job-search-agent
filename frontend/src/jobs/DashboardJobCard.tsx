@@ -5,7 +5,7 @@ import { TailoredResumeView } from '../resume/TailoredResumeAction'
 import { tailoringMenuActions, useTailoring } from '../resume/useTailoring'
 import { specified } from './format'
 import { JobCard } from './JobCard'
-import { JobStatusProblem, NotRelevantReasonForm } from './JobStatusActions'
+import { JobStatusProblem, NotRelevantReasonForm } from './NotRelevantReasonForm'
 import { jobStatusMenuActions, useJobStatus } from './useJobStatus'
 
 type Props = {

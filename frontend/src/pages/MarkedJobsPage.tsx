@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMarkedJobs, useResumeReviews } from '../api/hooks'
-import { specified } from '../jobs/format'
-import { JobCard } from '../jobs/JobCard'
 import { JobMovedNotice, type MovedJob } from '../jobs/JobMovedNotice'
-import { JobStatusActions } from '../jobs/JobStatusActions'
-import { MARKED_TABS, markedOnText, markedStatusForTab, type MarkedStatus } from '../jobs/status'
+import { MarkedJobCard } from '../jobs/MarkedJobCard'
+import { MARKED_TABS, markedStatusForTab, type MarkedStatus } from '../jobs/status'
 
 const EMPTY: Record<MarkedStatus, { title: string; text: string }> = {
   APPLIED: {
@@ -99,33 +97,14 @@ function MarkedJobsList({ status, onMoved }: { status: MarkedStatus; onMoved: (m
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {loaded.map((result) => {
-              const jobTitle = specified(result.job.jobTitle) ?? 'Untitled role'
-              const markedOn = markedOnText(result)
-              return (
-                <JobCard key={result.id} job={result.job} companyName={result.companyName}>
-                  <div className="space-y-3">
-                    {(markedOn || result.notRelevantReason) && (
-                      <div className="space-y-1">
-                        {markedOn && <p className="text-xs text-slate-500">{markedOn}</p>}
-                        {result.notRelevantReason && (
-                          <blockquote className="whitespace-pre-line break-words border-l-2 border-slate-200 pl-2 text-slate-700">
-                            <span className="sr-only">Your reason: </span>
-                            {result.notRelevantReason}
-                          </blockquote>
-                        )}
-                      </div>
-                    )}
-                    <JobStatusActions
-                      result={result}
-                      jobTitle={jobTitle}
-                      review={reviews.get(result.id)}
-                      onMoved={(previous, updated) => onMoved({ previous, updated })}
-                    />
-                  </div>
-                </JobCard>
-              )
-            })}
+            {loaded.map((result) => (
+              <MarkedJobCard
+                key={result.id}
+                result={result}
+                review={reviews.get(result.id)}
+                onMoved={(previous, updated) => onMoved({ previous, updated })}
+              />
+            ))}
           </div>
           {jobs.hasNextPage && (
             <div className="mt-4 text-center">

@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
-import { MAX_NOT_RELEVANT_REASON_LENGTH, type JobSearchResult, type ResumeReview } from '../api/types'
+import { MAX_NOT_RELEVANT_REASON_LENGTH, type ResumeReview } from '../api/types'
 import { reasonSuggestions, withPhrase } from './status'
-import { jobStatusMenuActions, useJobStatus, type JobStatusControl } from './useJobStatus'
+import type { JobStatusControl } from './useJobStatus'
 
 const buttonClass =
   'rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60'
@@ -10,43 +10,6 @@ const primaryButtonClass =
 
 // Show how much room is left only once the user is close to running out.
 const SHOW_COUNT_FROM = MAX_NOT_RELEVANT_REASON_LENGTH - 100
-
-type Props = {
-  result: JobSearchResult
-  /** Names the job in each button's accessible name, so a screen reader can tell the cards apart. */
-  jobTitle: string
-  /** The job's resume review, if there is one: its findings can be added to a not-relevant reason. */
-  review?: ResumeReview
-  /** Called once the job has a new status (not after only its reason changed), with the job as it was. */
-  onMoved?: (previous: JobSearchResult, updated: JobSearchResult) => void
-}
-
-/** On a job card: mark it as applied for or not relevant, or put it back on the dashboard. */
-export function JobStatusActions({ result, jobTitle, review, onMoved }: Props) {
-  const status = useJobStatus(result, onMoved)
-
-  if (status.editingReason) return <NotRelevantReasonForm status={status} jobTitle={jobTitle} review={review} />
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        {jobStatusMenuActions(status, jobTitle).map((action) => (
-          <button
-            key={action.label}
-            type="button"
-            onClick={action.onSelect}
-            disabled={action.disabled}
-            aria-label={action.accessibleLabel}
-            className={buttonClass}
-          >
-            {action.label}
-          </button>
-        ))}
-      </div>
-      <JobStatusProblem status={status} />
-    </div>
-  )
-}
 
 /** Why the last status change failed, if it did. */
 export function JobStatusProblem({ status }: { status: JobStatusControl }) {
