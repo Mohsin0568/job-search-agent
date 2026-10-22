@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useSaveProfile } from '../api/hooks'
 import { MAX_COMPANY_PREFERENCES, MAX_SKILLS, type CandidateProfile } from '../api/types'
@@ -8,6 +8,7 @@ import { inputClass, labelClass } from '../components/form/fieldStyles'
 import { SubmitButton } from '../components/form/SubmitButton'
 import { TextAreaField } from '../components/form/TextAreaField'
 import { TextField } from '../components/form/TextField'
+import { CompanyBrowser } from './CompanyBrowser'
 import { SuggestTagInput } from './SuggestTagInput'
 import { profileSchema, RECENCY_OPTIONS, toFormValues, toProfile, type ProfileFormValues } from './profileSchema'
 
@@ -24,6 +25,12 @@ export function ProfileForm({ initialProfile, submitLabel, autoFocus = true, onS
   const recencyId = useId()
   const saveProfile = useSaveProfile()
   const [formError, setFormError] = useState<string>()
+  const [browsing, setBrowsing] = useState(false)
+  const browseButton = useRef<HTMLButtonElement>(null)
+  const closeBrowser = useCallback(() => {
+    setBrowsing(false)
+    browseButton.current?.focus()
+  }, [])
 
   const {
     register,
@@ -69,18 +76,39 @@ export function ProfileForm({ initialProfile, submitLabel, autoFocus = true, onS
         control={control}
         name="companyPreferences"
         render={({ field, fieldState }) => (
-          <SuggestTagInput
-            source="companies"
-            label="Companies to search"
-            value={field.value}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            placeholder="Start typing, e.g. Deliveroo"
-            maxItems={MAX_COMPANY_PREFERENCES}
-            maxItemLength={200}
-            error={fieldState.error?.message}
-            hint="Pick from the suggestions to get the name right, or press Enter to add a company that isn’t listed."
-          />
+          <div>
+            <SuggestTagInput
+              source="companies"
+              label="Companies to search"
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              placeholder="Start typing, e.g. Deliveroo"
+              maxItems={MAX_COMPANY_PREFERENCES}
+              maxItemLength={200}
+              error={fieldState.error?.message}
+              hint="Pick from the suggestions to get the name right, or press Enter to add a company that isn’t listed."
+            />
+            <button
+              type="button"
+              ref={browseButton}
+              onClick={() => setBrowsing(true)}
+              className="mt-2 text-sm font-medium text-indigo-600 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            >
+              Browse all companies
+            </button>
+            {browsing && (
+              <CompanyBrowser
+                current={field.value}
+                max={MAX_COMPANY_PREFERENCES}
+                onDone={(companies) => {
+                  field.onChange(companies)
+                  closeBrowser()
+                }}
+                onCancel={closeBrowser}
+              />
+            )}
+          </div>
         )}
       />
 

@@ -13,6 +13,7 @@ import {
   requestResumeReview,
   requestTailoredResume,
   saveProfile,
+  listCompanies,
   suggestNames,
   updateJobStatus,
   uploadResume,
@@ -234,6 +235,16 @@ export function useJobSearchRun(runId: string, enabled: boolean) {
     enabled,
     // A finished run never changes.
     staleTime: Infinity,
+  })
+}
+
+/** Every known company, for browsing them all. Not user-specific, and changes only with a deploy. */
+export function useKnownCompanies(enabled = true) {
+  return useQuery({
+    queryKey: ['knownCompanies'],
+    queryFn: listCompanies,
+    enabled,
+    staleTime: 60 * 60 * 1000,
   })
 }
 

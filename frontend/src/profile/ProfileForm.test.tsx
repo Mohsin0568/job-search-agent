@@ -142,4 +142,28 @@ describe('ProfileForm', () => {
     expect(onSaved).not.toHaveBeenCalled()
     expect(save()).toBeEnabled()
   })
+
+  it('adds companies picked from the full list, then saves them', async () => {
+    server.use(
+      http.get(`${API}/api/companies`, () =>
+        HttpResponse.json([
+          { name: 'Monzo', sector: 'Fintech' },
+          { name: 'Wise', sector: 'Fintech' },
+        ]),
+      ),
+    )
+    const user = renderForm()
+    await user.type(role(), 'Senior Java Developer')
+    await user.type(companies(), 'Acme Corp{Enter}')
+
+    await user.click(screen.getByRole('button', { name: 'Browse all companies' }))
+    await user.click(await screen.findByRole('checkbox', { name: /Wise/ }))
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Browse all companies' })).toHaveFocus()
+    await user.click(save())
+    await waitFor(() => expect(savedBodies).toHaveLength(1))
+    expect(savedBodies[0]).toMatchObject({ companyPreferences: ['Acme Corp', 'Wise'] })
+  })
 })

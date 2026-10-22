@@ -12,6 +12,7 @@ import type {
   ResumeTemplate,
   TailoredResume,
   TailoringFix,
+  KnownCompany,
   Suggestion,
   SuggestionSource,
 } from './types'
@@ -124,6 +125,11 @@ export function getJobSearchRuns(page = 0, size = 20): Promise<JobSearchRunSumma
 /** What one run of the search found for each company, from each source. */
 export function getJobSearchRun(runId: string): Promise<JobSearchRunDetail> {
   return apiFetch<JobSearchRunDetail>(`/api/jobs/search-runs/${encodeURIComponent(runId)}`)
+}
+
+/** Every known company with its sector, A-Z. */
+export function listCompanies(): Promise<KnownCompany[]> {
+  return apiFetch<KnownCompany[]>('/api/companies')
 }
 
 /** Known companies or skills matching what the user has typed so far, e.g. "del" -> Deliveroo. */
