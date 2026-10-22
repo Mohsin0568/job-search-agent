@@ -100,7 +100,8 @@ describe('MarkedJobsPage', () => {
     const state = backend([applied('r-1', 'Staff Engineer'), applied('r-2', 'Platform Engineer')])
     renderRoutes(routes, { at: '/marked' })
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Move Staff Engineer back to your dashboard' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions for Staff Engineer' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Move Staff Engineer back to your dashboard' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('“Staff Engineer” at Acme Corp is back on your dashboard.')
     expect(screen.queryByRole('heading', { name: 'Staff Engineer' })).not.toBeInTheDocument()
@@ -116,7 +117,8 @@ describe('MarkedJobsPage', () => {
     const state = backend([applied('r-1', 'Staff Engineer', { status: 'NOT_RELEVANT', notRelevantReason: 'Too senior' })])
     renderRoutes(routes, { at: '/marked?tab=not-relevant' })
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Mark Staff Engineer as applied' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions for Staff Engineer' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Mark Staff Engineer as applied' }))
     await userEvent.click(await screen.findByRole('button', { name: 'Undo' }))
 
     expect(await screen.findByText('Too senior')).toBeInTheDocument()
@@ -128,7 +130,8 @@ describe('MarkedJobsPage', () => {
     backend([applied('r-1', 'Staff Engineer', { status: 'NOT_RELEVANT', notRelevantReason: 'Too senior' })])
     renderRoutes(routes, { at: '/marked?tab=not-relevant' })
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Edit why Staff Engineer isn’t relevant' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions for Staff Engineer' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Edit why Staff Engineer isn’t relevant' }))
     await userEvent.click(screen.getByRole('button', { name: 'Add “No measurable results” to the reason' }))
     await userEvent.click(screen.getByRole('button', { name: 'Save reason' }))
 

@@ -40,7 +40,8 @@ test('a job marked not relevant keeps the reason, and can go back to the dashboa
   const card = page.getByRole('article').filter({ hasText: 'Platform Engineer' })
   await expect(card.getByText('Needs relocation to Leeds')).toBeVisible()
 
-  await card.getByRole('button', { name: 'Move Platform Engineer back to your dashboard' }).click()
+  await card.getByRole('button', { name: 'More actions for Platform Engineer' }).click()
+  await card.getByRole('menuitem', { name: 'Move Platform Engineer back to your dashboard' }).click()
   await expect(page.getByText('Nothing marked not relevant')).toBeVisible()
   expect(backend.results.find((result) => result.id === 'j2')).toMatchObject({ status: 'ACTIVE', notRelevantReason: null })
 
