@@ -10,11 +10,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.mongodb.test.autoconfigure.DataMongoTest;
 import org.springframework.context.annotation.Import;
+import org.bson.Document;
 import org.springframework.data.domain.Limit;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 /**
  * The prefix query is a $regex on an array field, which only behaves like the real thing against a
@@ -29,6 +32,9 @@ class SuggestionRepositoryMongoTest {
 
     @Autowired
     private SkillRepository skillRepository;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     @BeforeEach
     void seed() {
@@ -93,6 +99,34 @@ class SuggestionRepositoryMongoTest {
 
     private List<String> companyNames(final String prefix) {
         return companyRepository.findBySearchKeyPrefix(prefix, Limit.of(10)).stream().map(Company::name).toList();
+    }
+
+    @Test
+    void listsOnlyTheSeededCompanies_skippingOtherDocumentsInTheCollection() {
+        // As imported by hand into a local database: keyed by companyName, with sectors of its own.
+        mongoTemplate.getCollection("companies").insertOne(new Document()
+                .append("companyName", "Goldman Sachs")
+                .append("sector", "Banking & Capital Markets")
+                .append("source", "curated-uk-java-employer-list"));
+        // Seeded under a sector that has since been renamed or removed.
+        mongoTemplate.getCollection("companies").insertOne(new Document()
+                .append("_id", "old corp")
+                .append("name", "Old Corp")
+                .append("sector", "NO_LONGER_A_SECTOR"));
+        // Seeded before companies had sectors.
+        mongoTemplate.getCollection("companies").insertOne(new Document()
+                .append("_id", "acme")
+                .append("name", "Acme")
+                .append("aliases", List.of())
+                .append("searchKeys", List.of("acme")));
+
+        assertThat(companyRepository.findAllListable()).extracting(Company::name, Company::sector)
+                .containsExactlyInAnyOrder(
+                        tuple("Lloyds Banking Group", Sector.BIG_TECH_AND_SOFTWARE),
+                        tuple("Barclays", Sector.BIG_TECH_AND_SOFTWARE),
+                        tuple("Bank of America", Sector.BIG_TECH_AND_SOFTWARE),
+                        tuple("Nestlé", Sector.BIG_TECH_AND_SOFTWARE),
+                        tuple("Acme", null));
     }
 
     @Test
