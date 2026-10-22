@@ -70,7 +70,7 @@ class SuggestionServiceTest {
 
     @Test
     void listsEveryKnownCompanyAToZ_withItsSector() {
-        when(companyRepository.findAll()).thenReturn(COMPANIES);
+        when(companyRepository.findAllListable()).thenReturn(COMPANIES);
 
         final List<CompanyDto> all = service.allCompanies();
 

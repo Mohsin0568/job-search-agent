@@ -34,7 +34,7 @@ public class SuggestionService {
 
     /** Every known company, A-Z. A few hundred, so the profile page can list and sort them all itself. */
     public List<CompanyDto> allCompanies() {
-        return companyRepository.findAll().stream()
+        return companyRepository.findAllListable().stream()
                 .map(CompanyDto::from)
                 .sorted(Comparator.comparing(CompanyDto::name, String.CASE_INSENSITIVE_ORDER))
                 .toList();
