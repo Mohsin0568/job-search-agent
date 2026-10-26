@@ -1,0 +1,831 @@
+openapi: 3.1.0
+info:
+  description: REST API behind the Job Search Agent frontend.
+  title: Job Search Agent API
+  version: v1
+servers:
+- description: Same origin as the frontend
+  url: /
+security:
+- cognito: []
+paths:
+  /api/access:
+    get:
+      operationId: access
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccessResponse"
+          description: OK
+      tags:
+      - access-controller
+  /api/chat:
+    get:
+      operationId: chat
+      parameters:
+      - in: query
+        name: message
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: OK
+      tags:
+      - demo-chat-controller
+  /api/companies:
+    get:
+      operationId: all
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompanyDto"
+          description: OK
+      tags:
+      - company-controller
+  /api/companies/suggest:
+    get:
+      operationId: suggest_1
+      parameters:
+      - in: query
+        name: q
+        required: false
+        schema:
+          type: string
+          default: ""
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Suggestion"
+          description: OK
+      tags:
+      - company-controller
+  /api/jobs/results:
+    get:
+      operationId: getResults
+      parameters:
+      - in: query
+        name: status
+        required: false
+        schema:
+          type: string
+          default: ACTIVE
+          enum:
+          - ACTIVE
+          - APPLIED
+          - NOT_RELEVANT
+      - in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 50
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserJobSearchResult"
+          description: OK
+      tags:
+      - job-search-controller
+  /api/jobs/results/{id}/description:
+    post:
+      operationId: getDescription
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/JobDescriptionDto"
+          description: OK
+      tags:
+      - job-search-controller
+  /api/jobs/results/{id}/resume-review:
+    post:
+      operationId: request_1
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ResumeReviewDto"
+          description: OK
+      tags:
+      - resume-review-controller
+  /api/jobs/results/{id}/status:
+    put:
+      operationId: updateStatus
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobStatusUpdate"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserJobSearchResult"
+          description: OK
+      tags:
+      - job-search-controller
+  /api/jobs/results/{id}/tailored-resume:
+    get:
+      operationId: get
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TailoredResumeDto"
+          description: OK
+      tags:
+      - tailored-resume-controller
+    post:
+      operationId: request
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TailoredResumeRequest"
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TailoredResumeDto"
+          description: OK
+      tags:
+      - tailored-resume-controller
+  /api/jobs/results/{id}/tailored-resume/download:
+    get:
+      operationId: getDownloadLink_1
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ResumeDownload"
+          description: OK
+      tags:
+      - tailored-resume-controller
+  /api/jobs/resume-reviews:
+    get:
+      operationId: getAll_1
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ResumeReviewDto"
+          description: OK
+      tags:
+      - resume-review-controller
+  /api/jobs/search-runs:
+    get:
+      operationId: getRuns
+      parameters:
+      - in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobSearchRunSummaryDto"
+          description: OK
+      tags:
+      - job-search-history-controller
+  /api/jobs/search-runs/{runId}:
+    get:
+      operationId: getRun
+      parameters:
+      - in: path
+        name: runId
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/JobSearchRunDetailDto"
+          description: OK
+      tags:
+      - job-search-history-controller
+  /api/jobs/tailored-resumes:
+    get:
+      operationId: getAll
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TailoredResumeDto"
+          description: OK
+      tags:
+      - tailored-resume-controller
+  /api/profile:
+    get:
+      operationId: getProfile
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CandidateProfileDto"
+          description: OK
+      tags:
+      - profile-controller
+    put:
+      operationId: saveProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CandidateProfileDto"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CandidateProfileDto"
+          description: OK
+      tags:
+      - profile-controller
+  /api/profile/resume:
+    get:
+      operationId: getVersions
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ResumeDto"
+          description: OK
+      tags:
+      - resume-controller
+    post:
+      operationId: upload
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+              - file
+      responses:
+        "201":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ResumeDto"
+          description: Created
+      tags:
+      - resume-controller
+  /api/profile/resume/{version}/download:
+    get:
+      operationId: getDownloadLink
+      parameters:
+      - in: path
+        name: version
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ResumeDownload"
+          description: OK
+      tags:
+      - resume-controller
+  /api/resume-templates/{template}/preview:
+    get:
+      operationId: preview
+      parameters:
+      - in: path
+        name: template
+        required: true
+        schema:
+          type: string
+          enum:
+          - CLASSIC
+          - MODERN
+          - COMPACT
+          - EVEN
+          - STACK_OVERFLOW
+          - KENDALL
+      responses:
+        "200":
+          content:
+            image/png:
+              schema:
+                type: string
+                format: byte
+          description: OK
+      security: []
+      tags:
+      - resume-template-controller
+  /api/skills/suggest:
+    get:
+      operationId: suggest
+      parameters:
+      - in: query
+        name: q
+        required: false
+        schema:
+          type: string
+          default: ""
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Suggestion"
+          description: OK
+      tags:
+      - skill-controller
+components:
+  schemas:
+    AccessResponse:
+      type: object
+      properties:
+        inviteOnly:
+          type: boolean
+        status:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+          - REVOKED
+    CandidateProfileDto:
+      type: object
+      properties:
+        companyPreferences:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+            minLength: 0
+          maxItems: 10
+          minItems: 0
+        currentJobDescription:
+          type: string
+          maxLength: 10000
+          minLength: 0
+        desiredRole:
+          type: string
+          maxLength: 200
+          minLength: 0
+        recencyWindowDays:
+          type: integer
+          format: int32
+          maximum: 365
+          minimum: 1
+        skills:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+            minLength: 0
+          maxItems: 50
+          minItems: 0
+    CompanyDto:
+      type: object
+      properties:
+        name:
+          type: string
+        sector:
+          type: string
+          enum:
+          - Big Tech & Software
+          - AI
+          - Fintech
+          - Banking
+          - Trading & Investment
+          - Insurance & Financial Services
+          - Consulting & IT Services
+          - Retail & E-commerce
+          - Consumer Goods & Hospitality
+          - Energy & Utilities
+          - "Engineering, Aerospace & Defence"
+          - Automotive & Transport
+          - Telecoms & Media
+          - Healthcare & Pharma
+          - Gaming & Entertainment
+          - Public Sector
+    CompanyResult:
+      type: object
+      properties:
+        companyName:
+          type: string
+        duplicateJobs:
+          type: integer
+          format: int32
+        filteredOutJobs:
+          type: integer
+          format: int32
+        newJobs:
+          type: integer
+          format: int32
+        searchedAt:
+          type: string
+          format: date-time
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceResult"
+        sourcesFailed:
+          type: integer
+          format: int32
+    Fix:
+      type: object
+      properties:
+        keywords:
+          type: array
+          items:
+            type: string
+        redFlags:
+          type: array
+          items:
+            $ref: "#/components/schemas/RedFlag"
+    JobDescriptionDto:
+      type: object
+      properties:
+        description:
+          type: string
+        fetchedAt:
+          type: string
+          format: date-time
+        jobResultId:
+          type: string
+        requiredSkills:
+          type: array
+          items:
+            type: string
+    JobListing:
+      type: object
+      properties:
+        atsScore:
+          type: integer
+          format: int32
+        datePosted:
+          type: string
+        jobId:
+          type: string
+        jobTitle:
+          type: string
+        lastDateForSubmission:
+          type: string
+        location:
+          type: string
+        salaryRange:
+          type: string
+        source:
+          type: string
+        url:
+          type: string
+    JobSearchRunDetailDto:
+      type: object
+      properties:
+        companies:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompanyResult"
+        run:
+          $ref: "#/components/schemas/JobSearchRunSummaryDto"
+    JobSearchRunSummaryDto:
+      type: object
+      properties:
+        companiesSearched:
+          type: integer
+          format: int32
+        duplicateJobs:
+          type: integer
+          format: int32
+        filteredOutJobs:
+          type: integer
+          format: int32
+        finishedAt:
+          type: string
+          format: date-time
+        newJobs:
+          type: integer
+          format: int32
+        runDate:
+          type: string
+        runId:
+          type: string
+        sourcesFailed:
+          type: integer
+          format: int32
+        startedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - SUCCEEDED
+          - PARTIAL
+          - FAILED
+          - SKIPPED
+    JobStatusUpdate:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+          minLength: 0
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - APPLIED
+          - NOT_RELEVANT
+      required:
+      - status
+    RedFlag:
+      type: object
+      properties:
+        explanation:
+          type: string
+        issue:
+          type: string
+    ResumeDownload:
+      type: object
+      properties:
+        expiresAt:
+          type: string
+          format: date-time
+        url:
+          type: string
+    ResumeDto:
+      type: object
+      properties:
+        fileName:
+          type: string
+        latest:
+          type: boolean
+        sizeBytes:
+          type: integer
+          format: int64
+        uploadedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int32
+    ResumeReviewDto:
+      type: object
+      properties:
+        failureReason:
+          type: string
+        jobResultId:
+          type: string
+        missingKeywords:
+          type: array
+          items:
+            type: string
+        redFlags:
+          type: array
+          items:
+            $ref: "#/components/schemas/RedFlag"
+        requestedAt:
+          type: string
+          format: date-time
+        resumeAtsScore:
+          type: integer
+          format: int32
+        resumeVersion:
+          type: integer
+          format: int32
+        reviewedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - PENDING
+          - READY
+          - FAILED
+    SourceResult:
+      type: object
+      properties:
+        duplicateJobs:
+          type: integer
+          format: int32
+        filteredOutJobs:
+          type: integer
+          format: int32
+        jobsFound:
+          type: integer
+          format: int32
+        newJobs:
+          type: integer
+          format: int32
+        source:
+          type: string
+        status:
+          type: string
+          enum:
+          - SCANNED
+          - FAILED
+    Suggestion:
+      type: object
+      properties:
+        name:
+          type: string
+    TailoredResumeDto:
+      type: object
+      properties:
+        completedAt:
+          type: string
+          format: date-time
+        failureReason:
+          type: string
+        fix:
+          $ref: "#/components/schemas/Fix"
+        jobResultId:
+          type: string
+        requestedAt:
+          type: string
+          format: date-time
+        resumeVersion:
+          type: integer
+          format: int32
+        status:
+          type: string
+          enum:
+          - PENDING
+          - READY
+          - FAILED
+        template:
+          type: string
+          enum:
+          - CLASSIC
+          - MODERN
+          - COMPACT
+          - EVEN
+          - STACK_OVERFLOW
+          - KENDALL
+    TailoredResumeRequest:
+      type: object
+      properties:
+        fix:
+          $ref: "#/components/schemas/TailoringFix"
+        template:
+          type: string
+          enum:
+          - CLASSIC
+          - MODERN
+          - COMPACT
+          - EVEN
+          - STACK_OVERFLOW
+          - KENDALL
+    TailoringFix:
+      type: object
+      properties:
+        keywords:
+          type: array
+          items:
+            type: string
+        redFlags:
+          type: boolean
+    UserJobSearchResult:
+      type: object
+      properties:
+        companyName:
+          type: string
+        id:
+          type: string
+        job:
+          $ref: "#/components/schemas/JobListing"
+        jobRunDateTime:
+          type: string
+          format: date-time
+        notRelevantReason:
+          type: string
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - APPLIED
+          - NOT_RELEVANT
+        statusChangedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+  securitySchemes:
+    cognito:
+      bearerFormat: JWT
+      description: A Cognito access token for the SPA app client.
+      scheme: bearer
+      type: http

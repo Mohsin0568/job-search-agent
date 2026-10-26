@@ -2,6 +2,7 @@ package com.systa.controller;
 
 import com.systa.model.ResumeTemplate;
 import com.systa.service.ResumeTemplatePreviewService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,8 @@ public class ResumeTemplateController {
     }
 
     /** A picture of the template's first page, laid out with a sample resume. 400 for an unknown template. */
+    // No token needed: shown as public in the OpenAPI definition.
+    @SecurityRequirements
     @GetMapping(value = "/{template}/preview", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> preview(@PathVariable final ResumeTemplate template) {
         return ResponseEntity.ok()

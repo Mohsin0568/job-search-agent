@@ -39,6 +39,9 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         // Pictures of the resume templates with made-up content, loaded by plain <img> tags.
                         .requestMatchers(HttpMethod.GET, "/api/resume-templates/*/preview").permitAll()
+                        // The OpenAPI definition and Swagger UI (switched off with API_DOCS_ENABLED=false).
+                        .requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml",
+                                "/swagger-ui.html", "/swagger-ui/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();
