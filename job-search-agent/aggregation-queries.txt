@@ -1,0 +1,35 @@
+ Totals per user, with their email (biggest users first):
+  db.llm_usage.aggregate([
+    { $group: { _id: "$userId", calls: { $sum: 1 }, prompt: { $sum: "$promptTokens" },
+                completion: { $sum: "$completionTokens" }, total: { $sum: "$totalTokens" } } },
+    { $lookup: { from: "user_access", localField: "_id", foreignField: "userId", as: "access" } },
+    { $project: { email: { $first: "$access._id" }, calls: 1, prompt: 1, completion: 1, total: 1 } },
+    { $sort: { total: -1 } }
+  ])
+
+  Per day, last 30 days:
+  db.llm_usage.aggregate([
+    { $match: { calledAt: { $gte: new Date(Date.now() - 30 * 864e5) } } },
+    { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$calledAt" } },
+                calls: { $sum: 1 }, total: { $sum: "$totalTokens" } } },
+    { $sort: { _id: -1 } }
+  ])
+
+  Per daily search run (job search calls only):
+  db.llm_usage.aggregate([
+    { $match: { runId: { $ne: null } } },
+    { $group: { _id: { runId: "$runId", userId: "$userId" }, firstCall: { $min: "$calledAt" },
+                calls: { $sum: 1 }, total: { $sum: "$totalTokens" } } },
+    { $sort: { firstCall: -1 } }
+  ])
+
+By feature (job search, job posting, resume review, tailoring, demo chat):
+  db.llm_usage.aggregate([
+    { $group: { _id: "$operation", calls: { $sum: 1 }, total: { $sum: "$totalTokens" },
+                avgPerCall: { $avg: "$totalTokens" } } },
+    { $sort: { total: -1 } }
+  ])
+
+  Failed calls, such as rate limits (these are saved with 0 tokens):
+  db.llm_usage.find({ status: "FAILED" }, { userId: 1, operation: 1, failureReason: 1, calledAt: 1 })
+    .sort({ calledAt: -1 }).limit(20)
